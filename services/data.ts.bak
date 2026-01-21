@@ -1,0 +1,74 @@
+
+import { supabase } from '@/lib/supabase';
+
+export const DataService = {
+  getProfile: async () => {
+    // 1. Get Auth User
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error('No valid session');
+
+    // 2. Fetch User Data + Profile
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        *,
+        profile:profiles(*)
+      `)
+      .eq('id', user.id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  getPromotions: async () => {
+    const { data, error } = await supabase.from('promotions').select('*');
+    if (error) throw error;
+    return data;
+  },
+
+  getEvents: async () => {
+    const { data, error } = await supabase.from('events').select('*');
+    if (error) throw error;
+    return data;
+  },
+
+  getLeaderboard: async () => {
+    // We need user names for the leaderboard. 
+    // Assuming Relation: leaderboard_entries -> user -> profile
+    const { data, error } = await supabase
+        .from('leaderboard_entries')
+        .select(`
+            *,
+            user:users (
+                profile:profiles (
+                    firstName,
+                    lastName,
+                    photoUrl
+                )
+            )
+        `)
+        .order('score', { ascending: false })
+        .limit(10);
+
+    if (error) throw error;
+    
+    // Map to flatter structure if needed by UI, or Keep nested. 
+    // MOCK_LEADERBOARD has: { id, name, score, avatar, rank }
+    // We might need to transform this result in the UI or here.
+    // Let's transform it here to match Mock structure for easy UI compat.
+    return data.map((entry: any, index: number) => ({
+        id: entry.id,
+        name: entry.user?.profile?.firstName || 'Unknown',
+        score: entry.score,
+        avatar: entry.user?.profile?.photoUrl || 'https://via.placeholder.com/150',
+        rank: index + 1
+    }));
+  },
+
+  getNutritionPlans: async () => {
+    const { data, error } = await supabase.from('nutrition_plans').select('*');
+    if (error) throw error;
+    return data;
+  },
+};
