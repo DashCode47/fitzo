@@ -29,18 +29,18 @@ export const AuthAPI = {
   },
 
   lookupEmailByCedula: async (nationalId: string) => {
-    const { data, error } = await supabase.rpc('get_email_by_national_id', { p_national_id: nationalId });
+    // Calls a security definer RPC to bypass RLS for this specific lookup
+    const { data, error } = await supabase.rpc('lookup_email_by_national_id', { 
+        p_national_id: nationalId 
+    });
     
     if (error) {
-      console.error('[AuthAPI] RPC Error:', error);
-      throw new Error('Error buscando cédula');
-    }
-
-    if (!data || data.length === 0) {
+      console.error('[AuthAPI] Lookup RPC Error:', error.message);
       return { email: null };
     }
 
-    return { email: data[0].email };
+    // RPC returns string or null
+    return { email: data };
   },
 
   registerUser: async (userData: any) => {

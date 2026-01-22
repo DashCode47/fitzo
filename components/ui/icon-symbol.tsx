@@ -14,6 +14,7 @@ const MAPPING = {
   'fitness.fill': 'fitness-center',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'trophy.fill': 'emoji-events',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;

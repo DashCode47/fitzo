@@ -1,45 +1,73 @@
 
 import { supabase } from '@/lib/supabase';
-import { withTimeout } from '@/utils/async';
 
 /**
  * UserAPI - Provides methods to interact with user profile data.
  */
 export const UserAPI = {
+  syncProfile: async (user: any) => {
+    if (!user?.email) return null;
+    try {
+      const payload = {
+        id: user.id, // Primary key
+        email: user.email,
+        username: user.user_metadata?.first_name || user.email.split('@')[0],
+        display_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim(),
+        national_id: user.user_metadata?.national_id,
+        phone: user.user_metadata?.phone,
+        updated_at: new Date().toISOString(),
+      };
+      
+      console.log("[UserAPI] Syncing profile with payload:", JSON.stringify(payload, null, 2));
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("[UserAPI] Profile sync Error:", error.code, error.message);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error("[UserAPI] Profile sync Exception:", e);
+      return null;
+    }
+  },
+
   getProfile: async (userId?: string) => {
     let finalUserId = userId;
 
     try {
       if (!finalUserId) {
-        // 1. Try local session recovery
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user?.id) {
-          finalUserId = session.user.id;
-        } else {
-          // 2. Fallback to server verification
-          const { data: { user }, error: authError } = await supabase.auth.getUser();
-          
-          if (authError || !user) {
-             throw new Error('No se pudo recuperar la sesión activa');
-          }
-          finalUserId = user.id;
-        }
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No active session');
+        finalUserId = user.id;
       }
 
-      // 3. Fetch User Data + Profile from DB
-      const query = supabase
-        .from('users')
-        .select(`
-          *,
-          profile:profiles(*)
-        `)
+      // Fetch only from profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
         .eq('id', finalUserId)
         .single();
 
-      const { data, error } = (await withTimeout(query as any, 15000, "La base de datos no respondió a tiempo")) as any;
+      if (error) {
+        if (error.code === 'PGRST116') {
+           // If not found, it might be a new user where trigger is still running or failed.
+           // Return partial data from auth as fallback
+           const { data: authData } = await supabase.auth.getUser();
+           return {
+             id: finalUserId,
+             email: authData.user?.email,
+             username: authData.user?.user_metadata?.first_name,
+           };
+        }
+        throw error;
+      }
 
-      if (error) throw error;
       return data;
     } catch (e: any) {
       console.error("[UserAPI] Profile fetch failed:", e.message);

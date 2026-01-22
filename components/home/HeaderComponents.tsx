@@ -1,8 +1,7 @@
-
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PRIMARY_COLOR = '#0df259'; // Keeping Green for CrowdMeter/Status
 const GOLD_COLOR = '#C5A356';
@@ -46,58 +45,127 @@ interface CrowdMeterProps {
 export const CrowdMeter = ({ data }: CrowdMeterProps) => (
   <View style={styles.crowdContainer}>
     <View style={styles.crowdCard}>
-        {/* Decorative background would require absolute positioning logic similar to HTML */}
-      <View style={styles.crowdHeader}>
-        <View>
-          <Text style={styles.crowdLabel}>AFLUENCIA</Text>
-          <Text style={styles.crowdStatus}>{data.status}</Text>
-          <Text style={styles.crowdDesc}>{data.description}</Text>
+      <View style={styles.crowdContent}>
+        <View style={styles.crowdIconContainer}>
+            <MaterialIcons name="groups" size={24} color={PRIMARY_COLOR} />
         </View>
-        <Text style={styles.crowdPercent}>{data.percentage}%</Text>
-      </View>
-      <View style={styles.progressBarBg}>
-        <LinearGradient
-            colors={['#4ade80', PRIMARY_COLOR]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.progressBarFill, { width: `${data.percentage}%` }]}
-        />
-      </View>
-      <View style={styles.crowdLegend}>
-          <Text style={styles.legendText}>Baja</Text>
-          <Text style={styles.legendText}>Media</Text>
-          <Text style={styles.legendText}>Alta</Text>
+        <View style={styles.crowdInfo}>
+            <Text style={styles.crowdLabel}>AFLUENCIA</Text>
+            <Text style={styles.crowdStatus}>{data.status} <Text style={styles.crowdPercent}>({data.percentage}%)</Text></Text>
+        </View>
+        <View style={styles.miniProgressBar}>
+            <View style={[styles.miniProgressBarFill, { width: `${data.percentage}%`, backgroundColor: data.percentage > 80 ? '#ef4444' : data.percentage > 50 ? '#eab308' : '#22c55e' }]} />
+        </View>
       </View>
     </View>
   </View>
 );
 
+import { Banner } from '@/api/banners';
+
 interface PromoCarouselProps {
-  data: Array<{ id: number; image: string; tag: string; title: string; subtitle: string }>;
+  data: Banner[];
+  onPressItem?: (item: Banner) => void;
 }
-export const PromoCarousel = ({ data }: PromoCarouselProps) => (
-  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselContent}>
-    {data.map((item) => (
-      <View key={item.id} style={styles.promoCard}>
-        <Image source={{ uri: item.image }} style={styles.promoImage} />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.promoGradient}
-        />
-        <View style={styles.promoContent}>
-            <View style={[styles.badge, { backgroundColor: item.tag === 'PROMO' ? 'white' : GOLD_COLOR }]}>
-               <Text style={[styles.badgeText, { color: 'black' }]}>{item.tag}</Text>
+export const PromoCarousel = ({ data, onPressItem }: PromoCarouselProps) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+  const { width } = Dimensions.get('window');
+  const CARD_WIDTH = width * 0.85;
+  const GAP = 16;
+
+  const getBadgeColor = (tag: string | null) => {
+    switch (tag) {
+        case 'URGENTE': return '#FF4444'; 
+        case 'NUEVO': return '#4ade80';
+        case 'INFO': return '#3b82f6';
+        default: return GOLD_COLOR;
+    }
+  };
+
+  useEffect(() => {
+    if (data.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      let nextIndex = activeIndex + 1;
+      if (nextIndex >= data.length) {
+        nextIndex = 0;
+      }
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      setActiveIndex(nextIndex);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [activeIndex, data.length]);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setActiveIndex(viewableItems[0].index || 0);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50
+  }).current;
+
+  const getItemLayout = (data: any, index: number) => ({
+    length: CARD_WIDTH + GAP,
+    offset: (CARD_WIDTH + GAP) * index,
+    index,
+  });
+
+  return (
+    <View>
+      <FlatList
+        ref={flatListRef}
+        data={data}
+        keyExtractor={(item) => item.id.toString()}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContent}
+        snapToInterval={CARD_WIDTH + GAP}
+        decelerationRate="fast"
+        snapToAlignment="start"
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        getItemLayout={getItemLayout}
+        renderItem={({ item }) => (
+            <TouchableOpacity style={styles.promoCard} onPress={() => onPressItem?.(item)} activeOpacity={0.9}>
+            <Image source={{ uri: item.image_url || 'https://via.placeholder.com/300' }} style={styles.promoImage} />
+            <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.promoGradient}
+            />
+            <View style={styles.promoContent}>
+                {item.tag && (
+                    <View style={[styles.badge, { backgroundColor: getBadgeColor(item.tag) }]}>
+                        <Text style={[styles.badgeText, { color: 'white' }]}>{item.tag}</Text>
+                    </View>
+                )}
+                <Text style={styles.promoTitle}>{item.title}</Text>
+                <View style={styles.promoFooter}>
+                    <Text style={styles.promoSubtitle} numberOfLines={1}>{item.short_description}</Text>
+                    <MaterialIcons name="arrow-forward" size={20} color={GOLD_COLOR} />
+                </View>
             </View>
-            <Text style={styles.promoTitle}>{item.title}</Text>
-            <View style={styles.promoFooter}>
-                <Text style={styles.promoSubtitle}>{item.subtitle}</Text>
-                <MaterialIcons name="arrow-forward" size={20} color={GOLD_COLOR} />
-            </View>
-        </View>
+            </TouchableOpacity>
+        )}
+      />
+      {/* Pagination Dots */}
+      <View style={styles.paginationContainer}>
+        {data.map((_, index) => (
+            <View 
+                key={index} 
+                style={[
+                    styles.paginationDot, 
+                    { backgroundColor: index === activeIndex ? GOLD_COLOR : '#555', opacity: index === activeIndex ? 1 : 0.5 }
+                ]} 
+            />
+        ))}
       </View>
-    ))}
-  </ScrollView>
-);
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   // TopBar
@@ -116,16 +184,31 @@ const styles = StyleSheet.create({
 
   // CrowdMeter
   crowdContainer: { paddingHorizontal: 16, paddingVertical: 8 },
-  crowdCard: { backgroundColor: '#1e3a29', borderRadius: 16, padding: 20, overflow: 'hidden' },
-  crowdHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  crowdLabel: { color: PRIMARY_COLOR, fontSize: 12, fontWeight: 'bold', letterSpacing: 1, marginBottom: 4 },
-  crowdStatus: { color: 'white', fontSize: 24, fontWeight: 'bold' },
-  crowdDesc: { color: '#9ca3af', fontSize: 14 },
-  crowdPercent: { color: PRIMARY_COLOR, fontSize: 30, fontWeight: 'bold' },
-  progressBarBg: { height: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden', marginTop: 8 },
-  progressBarFill: { height: '100%', borderRadius: 6 },
-  crowdLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  legendText: { color: '#9ca3af', fontSize: 10, fontWeight: '500' },
+  crowdCard: { 
+      backgroundColor: 'rgba(30, 58, 41, 0.8)', 
+      borderRadius: 12, 
+      paddingHorizontal: 16, 
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(13, 242, 89, 0.2)'
+  },
+  crowdContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  crowdIconContainer: { 
+      width: 40, height: 40, borderRadius: 20, 
+      backgroundColor: 'rgba(13, 242, 89, 0.1)', 
+      justifyContent: 'center', alignItems: 'center' 
+  },
+  crowdInfo: { flex: 1 },
+  crowdLabel: { color: '#9ca3af', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
+  crowdStatus: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  crowdPercent: { color: PRIMARY_COLOR, fontSize: 16 },
+  miniProgressBar: { 
+      width: 60, height: 6, 
+      backgroundColor: 'rgba(255,255,255,0.1)', 
+      borderRadius: 3, 
+      overflow: 'hidden' 
+  },
+  miniProgressBarFill: { height: '100%', borderRadius: 3 },
 
   // PromoCarousel
   carouselContent: { paddingHorizontal: 16, gap: 16, paddingBottom: 16 },
@@ -138,4 +221,8 @@ const styles = StyleSheet.create({
   promoTitle: { color: 'white', fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
   promoFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   promoSubtitle: { color: '#e5e7eb', fontSize: 14 },
+  
+  // Pagination
+  paginationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10, gap: 8 },
+  paginationDot: { width: 8, height: 8, borderRadius: 4 },
 });

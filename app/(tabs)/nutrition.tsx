@@ -54,15 +54,25 @@ export default function NutritionScreen() {
     try {
       if (!isHydrated) setLoading(true);
       
-      const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 5000)) as any;
-      if (!session?.user) {
+      let userId = profile?.id;
+      
+      try {
+        const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
+        if (session?.user) {
+            userId = session.user.id;
+        }
+      } catch (err) {
+        console.warn('[NutritionScreen] Session fetch timeout/error, trying fallback to profile ID', err);
+      }
+
+      if (!userId) {
         setLoading(false);
         return;
       }
 
       const [newStats, newDiet] = await Promise.all([
-        NutritionAPI.getUserStats(session.user.id).catch(() => stats),
-        NutritionAPI.getActiveDiet(session.user.id).catch(() => diet),
+        NutritionAPI.getUserStats(userId).catch(() => stats),
+        NutritionAPI.getActiveDiet(userId).catch(() => diet),
       ]);
 
       // Auto-assign: If stats exist but no diet is assigned yet, match them now.
@@ -76,8 +86,8 @@ export default function NutritionScreen() {
           newStats.activity_level,
           newStats.goal
         );
-        await withTimeout(NutritionAPI.assignBestDietPlan(session.user.id, calcResult.calories));
-        finalDiet = await withTimeout(NutritionAPI.getActiveDiet(session.user.id));
+        await withTimeout(NutritionAPI.assignBestDietPlan(userId, calcResult.calories));
+        finalDiet = await withTimeout(NutritionAPI.getActiveDiet(userId));
       }
 
       if (newStats) {
@@ -99,7 +109,7 @@ export default function NutritionScreen() {
   };
 
   const handleSaveStats = async () => {
-    const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 5000)) as any;
+    const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
     if (!session?.user) return;
 
     if (!weight || !height || !age) {

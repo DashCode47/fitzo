@@ -4,7 +4,7 @@ import { UserAPI } from '@/api/user';
 import { CustomModal } from '@/components/ui/CustomModal';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useProfileImage } from '@/hooks/useProfileImage';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
@@ -21,6 +21,9 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(!profile);
   const { uploadAvatar, uploading } = useProfileImage();
   const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
+
+  // Local state for editing (if needed in future) or just display
+  const [editMode, setEditMode] = useState(false);
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -40,22 +43,10 @@ export default function ProfileScreen() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const currentId = profile?.id || profile?.user_id;
-      const data = await UserAPI.getProfile(currentId);
-      setProfile(data);
-    } catch (error: any) {
-      console.error("[ProfileScreen] Error loading profile:", error);
-      // Always allow retrying on the same screen
-      setModalConfig({
-        title: 'ERROR DE CARGA',
-        message: error.message || 'No pudimos obtener tu información de perfil.',
-        type: 'confirm',
-        onConfirm: () => {
-          setModalVisible(false);
-          loadProfile();
-        }
-      });
-      setModalVisible(true);
+      const data = await UserAPI.getProfile();
+      if (data) setProfile(data);
+    } catch (e: any) {
+      console.error("[ProfileScreen] Profile load failed:", e.message);
     } finally {
       setLoading(false);
     }
@@ -70,17 +61,10 @@ export default function ProfileScreen() {
         setModalVisible(false);
         try {
           await AuthAPI.logout();
-          clearAll(); // Clear Zustand store
+          clearAll(); 
           goToLogin();
         } catch (error) {
           console.error("Logout failed:", error);
-          setModalConfig({
-            title: 'ERROR',
-            message: 'No pudimos cerrar tu sesión. Inténtalo de nuevo.',
-            type: 'error',
-            onConfirm: () => setModalVisible(false)
-          });
-          setModalVisible(true);
         }
       }
     });
@@ -92,7 +76,6 @@ export default function ProfileScreen() {
       const newUrl = await uploadAvatar();
       if (newUrl) {
         setAvatarTimestamp(Date.now());
-        // Reload profile to get the updated photoUrl from DB
         await loadProfile();
         setModalConfig({
           title: '¡FOTO ACTUALIZADA!',
@@ -121,20 +104,15 @@ export default function ProfileScreen() {
     );
   }
 
-  // Define data even if null for the UI to not crash
+  const username = profile?.username || 'Atleta';
   const email = profile?.email || '';
-  const nationalId = profile?.nationalId || '';
   const phone = profile?.phone || 'No registrado';
-  const role = profile?.role || '';
-  const status = profile?.status || '';
+  const role = profile?.role || 'CLIENT';
+  const status = profile?.status || 'ACTIVE';
+  const points = profile?.total_points || 0;
   
-  // Safe extraction of nested profile
-  const rawProfile = profile?.profile;
-  const userProfile = (Array.isArray(rawProfile) ? rawProfile[0] : rawProfile) || {};
-  const { firstName = '', lastName = '', photoUrl: rawPhotoUrl = null } = userProfile;
-
-  // Cache busting
-  const photoUrl = rawPhotoUrl ? `${rawPhotoUrl}?t=${avatarTimestamp}` : null;
+  // Cache busting for avatar
+  const photoUrl = profile?.photo_url ? `${profile.photo_url}?t=${avatarTimestamp}` : null;
 
   return (
     <View style={styles.container}>
@@ -156,18 +134,15 @@ export default function ProfileScreen() {
             style={styles.gradientOverlay}
          >
             <SafeAreaView style={styles.safeArea}>
-                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={goBack} style={styles.backButton}>
-                    <MaterialIcons name="arrow-back" size={24} color="white" />
+                      <MaterialIcons name="arrow-back" size={24} color="white" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>MI PERFIL</Text>
                     <View style={{ width: 40 }} /> 
                 </View>
 
-                {profile ? (
                 <View style={styles.content}>
-                    {/* Avatar Section */}
                     <View style={styles.avatarSection}>
                         <View style={styles.avatarContainer}>
                             {photoUrl ? (
@@ -185,7 +160,7 @@ export default function ProfileScreen() {
                                         <ActivityIndicator size="small" color={GOLD_COLOR} />
                                     ) : (
                                         <Text style={styles.avatarInitials}>
-                                            {firstName?.[0]}{lastName?.[0]}
+                                            {username?.[0]?.toUpperCase()}
                                         </Text>
                                     )}
                                 </View>
@@ -198,32 +173,26 @@ export default function ProfileScreen() {
                                 <MaterialIcons name="photo-camera" size={14} color="black" />
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.name}>{firstName} {lastName}</Text>
+                        <Text style={styles.name}>{username}</Text>
                         <Text style={styles.role}>{role}</Text>
+                        
+                        <View style={styles.pointsBadge}>
+                          <Ionicons name="flash" size={16} color="black" />
+                          <Text style={styles.pointsText}>{points} PUNTOS</Text>
+                        </View>
                     </View>
 
-                    {/* Info Cards */}
                     <View style={styles.infoSection}>
                         <InfoItem icon="email" label="Correo" value={email} />
-                        <InfoItem icon="badge" label="Cédula" value={nationalId} />
-                        <InfoItem icon="phone" label="Teléfono" value={phone || 'No registrado'} />
+                        <InfoItem icon="phone" label="Teléfono" value={phone} />
                         <InfoItem icon="verified-user" label="Estado" value={status} />
                     </View>
 
-                    {/* Logout Button */}
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                         <MaterialIcons name="logout" size={24} color="black" />
                         <Text style={styles.logoutText}>CERRAR SESIÓN</Text>
                     </TouchableOpacity>
                 </View>
-                ) : (
-                  <View style={[styles.content, { flex: 1, justifyContent: 'center' }]}>
-                      <ActivityIndicator size="large" color={GOLD_COLOR} />
-                      <Text style={{ color: 'white', marginTop: 20, textAlign: 'center' }}>
-                        Cargando tu información...
-                      </Text>
-                  </View>
-                )}
             </SafeAreaView>
          </LinearGradient>
       </ImageBackground>
@@ -424,5 +393,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 2,
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: GOLD_COLOR,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  pointsText: {
+    color: 'black',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 6,
   },
 });

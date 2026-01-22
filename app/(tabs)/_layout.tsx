@@ -50,6 +50,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="nutrition.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="rankings"
+        options={{
+          title: 'Ranking',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="trophy.fill" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

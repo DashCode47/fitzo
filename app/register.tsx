@@ -36,6 +36,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!formData.email || !formData.firstName || !formData.lastName || !formData.nationalId || !formData.phone) {
+      console.warn("[RegisterScreen] Validation failed: Missing required fields.");
       setErrorMessage('Por favor complete todos los campos obligatorios');
       setErrorVisible(true);
       return;
@@ -58,11 +59,12 @@ export default function RegisterScreen() {
 
       await AuthAPI.registerUser(payload);
       
-      setSuccessMessage("Tu cuenta ha sido creada. Ahora puedes ingresar con tu cédula.");
+      setSuccessMessage("¡Registro exitoso! Te hemos enviado un correo de confirmación. Por favor, revisa tu bandeja de entrada y pulsa el enlace para activar tu cuenta.");
       setSuccessVisible(true);
     } catch (error: any) {
-      console.log(error);
-      setErrorMessage(error.response?.data?.message || 'Error en el registro. Verifique sus datos.');
+      console.error('[RegisterScreen] Registration failed:', error);
+      console.error('[RegisterScreen] Error details:', JSON.stringify(error, null, 2));
+      setErrorMessage(error.message || 'Error en el registro. Verifique sus datos.');
       setErrorVisible(true);
     } finally {
       setLoading(false);

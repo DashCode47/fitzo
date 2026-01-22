@@ -1,23 +1,25 @@
 
+import { Banner, BannersAPI } from '@/api/banners';
 import { ContentAPI } from '@/api/content';
 import { LeaderboardAPI } from '@/api/leaderboard';
 import { NutritionAPI } from '@/api/nutrition';
 import { UserAPI } from '@/api/user';
-import { CrowdMeter, PromoCarousel, TopBar } from '@/components/home/HeaderComponents';
-import { EventsTimeline, Leaderboard, NutritionCard } from '@/components/home/SectionComponents';
-import { MOCK_CROWD, MOCK_EVENTS, MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_PROMOS, MOCK_USER } from '@/constants/mocks';
+import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
+import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
+import { MOCK_CROWD, MOCK_EVENTS, MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/utils/async';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GOLD_COLOR = '#C5A356';
 
-import { useSegments } from 'expo-router';
 
 import { useAppStore } from '@/store/useAppStore';
 
@@ -36,10 +38,11 @@ export default function HomeScreen() {
   } = useAppStore();
 
   const [loading, setLoading] = useState(!isHydrated);
+
   const [data, setData] = useState<any>({
     user: MOCK_USER,
     crowd: MOCK_CROWD,
-    promos: MOCK_PROMOS,
+    promos: [],
     events: MOCK_EVENTS,
     leaderboard: MOCK_LEADERBOARD,
     nutrition: MOCK_NUTRITION,
@@ -48,11 +51,9 @@ export default function HomeScreen() {
   // Effect to sync store data with local view data
   useEffect(() => {
     if (isHydrated) {
-      const userProfile = profile ? (Array.isArray(profile.profile) ? profile.profile[0] : profile.profile) : null;
-      
-      const user = userProfile ? { 
-         name: userProfile.firstName, 
-         avatar: userProfile.photoUrl 
+      const user = profile ? { 
+         name: profile.username || 'Atleta', 
+         avatar: profile.photo_url 
       } : MOCK_USER;
 
       const nutritionData = activeDiet ? {
@@ -72,7 +73,7 @@ export default function HomeScreen() {
       setData({
         user,
         crowd: MOCK_CROWD,
-        promos: promos && promos.length ? promos : MOCK_PROMOS,
+        promos: promos || [],
         events: events && events.length ? events : MOCK_EVENTS,
         leaderboard: leaderboard && leaderboard.length ? leaderboard : MOCK_LEADERBOARD,
         nutrition: nutritionData,
@@ -94,24 +95,23 @@ export default function HomeScreen() {
 
   const loadData = async () => {
     try {
-      // 1. Wait for session to be restored
       const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 20000, "Error recuperando sesión")) as any;
-      
       if (!session) {
         goToLogin();
         return;
       }
 
+      // 1. Sync Profile on Login/Refresh
+      await UserAPI.syncProfile(session.user);
+
       // 2. Refresh data in background
       const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition] = await Promise.all([
         UserAPI.getProfile(session.user.id).catch(() => profile),
-        ContentAPI.getPromotions().catch(() => promos || MOCK_PROMOS),
+        BannersAPI.getBanners().catch(() => promos || []),
         ContentAPI.getEvents().catch(() => events || MOCK_EVENTS),
         LeaderboardAPI.getLeaderboard().catch(() => leaderboard || MOCK_LEADERBOARD),
         NutritionAPI.getActiveDiet(session.user.id).catch(() => activeDiet),
       ]);
-
-      // Update store
       if (newProfile) setProfile(newProfile);
       if (newPromos) setPromos(newPromos);
       if (newEvents) setEvents(newEvents);
@@ -125,6 +125,17 @@ export default function HomeScreen() {
     }
   };
 
+  const handleBannerPress = (banner: Banner) => {
+    if (banner.external_link) {
+      Linking.openURL(banner.external_link).catch(err => console.error("Couldn't load page", err));
+    } else {
+      router.push({
+        pathname: '/banner-details',
+        params: { id: banner.id }
+      });
+    }
+  };
+
   if (loading) {
      return (
         <SafeAreaView style={[styles.container, {justifyContent:'center', alignItems:'center', backgroundColor: 'black'}]}>
@@ -132,6 +143,8 @@ export default function HomeScreen() {
         </SafeAreaView>
      );
   }
+
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -146,22 +159,54 @@ export default function HomeScreen() {
          >
             <SafeAreaView style={styles.safeArea}>
               <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    {/* Top Bar */}
-                    <TopBar user={data.user} onPressProfile={goToProfile} />
+                    {/* Top Bar with Points and Scanner */}
+                    <View style={styles.header}>
+                      <View>
+                        <Text style={styles.greeting}>Hola, {profile?.username || 'Atleta'}</Text>
+                        <View style={styles.pointsContainer}>
+                          <Ionicons name="flash" size={16} color="#FFD700" />
+                          <Text style={styles.pointsText}>{profile?.total_points || 0} PTS</Text>
+                        </View>
+                      </View>
+                      <View style={styles.headerIcons}>
+                        <TouchableOpacity 
+                          style={styles.iconButton} 
+                          onPress={() => router.push('/scanner')}
+                        >
+                          <Ionicons name="qr-code-outline" size={24} color="#FFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.profileButton} 
+                          onPress={goToProfile}
+                        >
+                          {profile?.photo_url ? (
+                            <Image 
+                              source={{ uri: profile.photo_url }} 
+                              style={styles.avatar} 
+                            />
+                          ) : (
+                            <Ionicons name="person-circle-outline" size={32} color="#FFF" />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
 
                     {/* Crowd Meter */}
                     <CrowdMeter data={data.crowd} />
 
                     {/* Promo Carousel */}
                     <View style={{ marginTop: 16 }}>
-                        <PromoCarousel data={data.promos} />
+                        <PromoCarousel data={data.promos} onPressItem={handleBannerPress} />
                     </View>
 
                     {/* Upcoming Events */}
                     <EventsTimeline data={data.events} />
 
-                    {/* Rankings */}
-                    <Leaderboard data={data.leaderboard} />
+                    {/* Top 3 Rankings */}
+                    <TopThreePodium 
+                      data={data.leaderboard.slice(0, 3)} 
+                      onSeeAll={() => router.push('/rankings')}
+                    />
 
                     {/* Nutrition Plan */}
                     <NutritionCard data={data.nutrition} onPress={goToNutrition} />
@@ -194,5 +239,52 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  greeting: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  pointsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  pointsText: {
+    color: '#FFD700',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    marginRight: 15,
+    padding: 5,
+  },
+  profileButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
 });

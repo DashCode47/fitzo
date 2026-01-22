@@ -1,5 +1,6 @@
 
 import { AuthAPI } from '@/api/auth';
+import { UserAPI } from '@/api/user';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -69,6 +70,13 @@ export default function LoginScreen() {
             const result = await AuthAPI.verifyOtp(email, otp);
             console.log('[LoginScreen] OTP Verification Success:', result);
             
+            // Initial Sync to populate profiles table
+            if (result.session?.user) {
+              await UserAPI.syncProfile(result.session.user).catch(err => {
+                 console.error('[LoginScreen] Initial sync failed:', err);
+              });
+            }
+
             console.log('[LoginScreen] Navigating to Home...');
             goToHome();
         } catch (error: any) {

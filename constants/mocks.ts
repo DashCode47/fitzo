@@ -10,22 +10,7 @@ export const MOCK_CROWD = {
   description: "El gym está concurrido ahora.",
 };
 
-export const MOCK_PROMOS = [
-  {
-    id: 1,
-    title: "Reto de Verano",
-    subtitle: "Únete y gana premios",
-    tag: "NUEVO RETO",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC4dObh-bumfmg1OeiDq7WvtK1_XgCf7JZ7MYnLhXGYybVT9K25RiNVymBNBCruj9yXszRUr9dDEJFP8UM61Rz6w1nSMS6y6BMLA6L3j1Y1wB2FoG1AqeqaluB1KJQmqPpiTIJBMLs5BITz3GOuVaBRj-ZnqMNPlOUWD90fFsi3rWMDPTVrVX6O4Gj_6KHvAyxbE5yrAwHwjxgbTZ8pEZp4ozghj-7uDNuskP2IrJFtFZkgfoeCM7qBSdJeBJYSi0cu0cyTEpMKxg",
-  },
-  {
-    id: 2,
-    title: "20% OFF en Batidos",
-    subtitle: "En el bar del gimnasio",
-    tag: "PROMO",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDyik949XI53psqG4N5JIGBQZxOznJWT0XhFnAuZ2YEGOB6LItzugG4I8UEykfFMeWXuiTIBG21wrSyQhDULBkzWYyUVduLUvn-3TBTMVvsi-6Vo0Y-94CZtpKHLvD3HxdVDb9NU5x8kwJ8APkASjdG3Ct_26MDR5cyblNHofPi21f2Z6V4JCj7EmJ59EMwvRwEVU6_oFHYFJyY887sgxrnXBzfXSBILYf9MbJZzK0rHQb4yrzW4Jt_ASdlqj7sQHGYEZIDRQprFg",
-  },
-];
+
 
 export const MOCK_EVENTS = [
   {
@@ -45,23 +30,50 @@ export const MOCK_EVENTS = [
 ];
 
 export const MOCK_LEADERBOARD = [
-  {
-    rank: 2,
-    name: "Juan",
-    points: 1420,
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuClEumC9tQPgGw4EzmcsDRnydLMX7Q1UlK6NsiWEetx4SMpSOH8sBjD6KnIxDF1s25eDRdRIn_iGqXtkTiHHiwfwxuitVtOBz6-FSuqo8zl01aduVneK9feEHcnWgIqBywelinAKmRpAaoabP-B37yCaWrcIGodrp4IshO3qkyhf3cve8vBPoHNbqRK1WjKmWI7P0Hy_yeqRcuHemvSUwrqy8iCsK80c32MkC0YgkYyipdhk9CW8d3VXggUBIdPOrrhay6y1NO84w",
+  { 
+    id: '1', 
+    name: 'David L.', 
+    score: 2450, 
+    avatar: 'https://i.pravatar.cc/150?u=david', 
+    rank: 1, 
+    streak: 14, 
+    badges: ['Early Bird', 'Gym Rat'] 
   },
-  {
-    rank: 1,
-    name: "Maria",
-    points: 1500,
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuC5Wte1eFMxwFh24s17nlN8fLc8UA-C67jaL4dTiU70KuLm9ucBRQuccZL2wTEfJ6w8kQ5lz_xDWFh9NCVmfJ6yuzPaQwqHWb2f8vmc_DLK0L6SrqkaGI4N5wDczg2_7KnfIhywCEs43uIIxt_lglPQJcQNxHeDwZsifVi5xvepKnsjD_ncXu3IAG7orBayGYyKdtfTJMSq15S2mhdjmRjVfoXH_1whItrlMJNnG0-cyr-RjjQTizPJqrSMnSs-QlURIoT4aPwD9g",
+  { 
+    id: '2', 
+    name: 'Maria G.', 
+    score: 2100, 
+    avatar: 'https://i.pravatar.cc/150?u=maria', 
+    rank: 2, 
+    streak: 7, 
+    badges: ['Strength Pro'] 
   },
-  {
-    rank: 3,
-    name: "Sofi",
-    points: 1300,
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuCEUJ9vjfDU1WHKehKqycwYL1BJVcQA5RpYcc11s6lqAV5Wt0aLlZHYWEyLpeMqasyDpDtmMkCrcwhsgKT3RGVsGTwLHr3fbAEc5X4LqEFljdUXR5BJ0Rv5NnDnlrDs7mmGhcuB_vmql6hK_vqSTFvW9p5PxUX3nsBYFywRztOhPpe4IAuJeXYcI8mEeB-Ev2v28L36O7b_xm1NtRPYvZOoHYjq0fLWPN51FEt-GpDvoYpp1-SSYILaAgWFskGXBN8e0vcGOqERtQ",
+  { 
+    id: '3', 
+    name: 'Carlos R.', 
+    score: 1850, 
+    avatar: 'https://i.pravatar.cc/150?u=carlos', 
+    rank: 3, 
+    streak: 5, 
+    badges: ['Cardio King'] 
+  },
+  { 
+    id: '4', 
+    name: 'Ana P.', 
+    score: 1600, 
+    avatar: 'https://i.pravatar.cc/150?u=ana', 
+    rank: 4, 
+    streak: 10, 
+    badges: [] 
+  },
+  { 
+    id: '5', 
+    name: 'Juan M.', 
+    score: 1550, 
+    avatar: 'https://i.pravatar.cc/150?u=juan', 
+    rank: 5, 
+    streak: 3, 
+    badges: [] 
   },
 ];
 

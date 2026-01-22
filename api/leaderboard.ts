@@ -1,36 +1,37 @@
 
 import { supabase } from '@/lib/supabase';
 
+export interface LeaderboardItem {
+    id: string;
+    name: string;
+    score: number;
+    avatar: string;
+    rank: number;
+    streak?: number;
+    badges?: string[];
+}
+
 export const LeaderboardAPI = {
   getLeaderboard: async () => {
+    console.log('[LeaderboardAPI] Fetching leaderboard from VIEW...');
     const { data, error } = await supabase
-        .from('leaderboard_entries')
-        .select(`
-            *,
-            user:users (
-                profile:profiles (
-                    firstName,
-                    lastName,
-                    photoUrl
-                )
-            )
-        `)
-        .order('score', { ascending: false })
-        .limit(10);
+        .from('top_rankings')
+        .select('*')
+        .order('score', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+        console.error('[LeaderboardAPI] Supabase error:', error);
+        throw error;
+    }
+    
+    console.log('[LeaderboardAPI] View Success. items:', data?.length);
     
     return data.map((entry: any, index: number) => {
-        // Handle array or object relation for profile
-        const userProfile = Array.isArray(entry.user?.profile) 
-            ? entry.user.profile[0] 
-            : entry.user?.profile;
-
         return {
             id: entry.id,
-            name: userProfile?.firstName || 'Unknown',
+            name: entry.name || entry.username || 'Unknown',
             score: entry.score,
-            avatar: userProfile?.photoUrl || 'https://via.placeholder.com/150',
+            avatar: entry.avatar || 'https://via.placeholder.com/150',
             rank: index + 1
         };
     });

@@ -41,52 +41,80 @@ export const EventsTimeline = ({ data }: EventsProps) => (
 );
 
 interface LeaderboardProps {
-    data: Array<{ rank: number; name: string; points: number; avatar: string }>;
+    data: Array<{ rank: number; name: string; score: number; avatar: string }>;
+    onSeeAll?: () => void;
 }
-export const Leaderboard = ({ data }: LeaderboardProps) => {
-    const [second, first, third] = [
-        data.find(d => d.rank === 2),
-        data.find(d => d.rank === 1),
-        data.find(d => d.rank === 3)
+export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
+    // Sort data to ensure correct order
+    const sorted = [...data].sort((a, b) => a.rank - b.rank).slice(0, 3);
+    
+    const [first, second, third] = [
+        sorted.find(d => d.rank === 1),
+        sorted.find(d => d.rank === 2),
+        sorted.find(d => d.rank === 3)
     ];
 
-    if (!first || !second || !third) return null;
+    if (!first) return null;
+
+    const GOLD = '#C5A356';
 
     return (
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Rankings</Text>
-            <LinearGradient colors={['#1e3a29', '#152a1e']} style={styles.leaderboardCard}>
-                <View style={styles.podiumContainer}>
-                    <View style={styles.podiumPlace}>
-                        <View style={styles.avatarWrapper}>
-                           <Image source={{ uri: second.avatar }} style={styles.podiumAvatarSmall} />
-                           <View style={styles.rankBadgeSmall}><Text style={styles.rankText}>2</Text></View>
+            <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: 'white' }]}>Iron Legends</Text>
+                <TouchableOpacity onPress={onSeeAll}>
+                    <Text style={[styles.seeAll, { color: GOLD }]}>Ver todos</Text>
+                </TouchableOpacity>
+            </View>
+            <LinearGradient 
+                colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']} 
+                style={styles.podiumCard}
+            >
+                <View style={styles.podiumContent}>
+                    {/* Second Place */}
+                    {second && (
+                        <View style={styles.podiumItem}>
+                            <View style={styles.avatarContainer}>
+                                <Image source={{ uri: second.avatar }} style={styles.podiumAvatarSmall} />
+                                <View style={[styles.rankBadge, { backgroundColor: '#C0C0C0' }]}>
+                                    <Text style={styles.rankBadgeText}>2</Text>
+                                </View>
+                            </View>
+                            <Text style={styles.podiumNameText} numberOfLines={1}>{second.name}</Text>
+                            <Text style={styles.podiumPointsText}>{second.score} pts</Text>
                         </View>
-                        <Text style={styles.podiumName}>{second.name}</Text>
-                        <Text style={styles.podiumPoints}>{second.points} pts</Text>
-                        <View style={[styles.podiumBar, { height: 60, backgroundColor: 'rgba(255,255,255,0.1)' }]} />
+                    )}
+
+                    {/* First Place */}
+                    <View style={[styles.podiumItem, { marginTop: -20 }]}>
+                        <MaterialIcons name="emoji-events" size={28} color={GOLD} style={{ marginBottom: 4 }} />
+                        <View style={styles.avatarContainer}>
+                            <LinearGradient
+                                colors={[GOLD, '#E5C78B']}
+                                style={styles.glowRing}
+                            />
+                            <Image source={{ uri: first.avatar }} style={styles.podiumAvatarLarge} />
+                            <View style={[styles.rankBadge, { backgroundColor: GOLD, width: 28, height: 28, borderRadius: 14, left: 22 }]}>
+                                <Text style={[styles.rankBadgeText, { fontSize: 14 }]}>1</Text>
+                            </View>
+                        </View>
+                        <Text style={[styles.podiumNameText, { fontSize: 16, fontWeight: '900' }]} numberOfLines={1}>{first.name}</Text>
+                        <Text style={[styles.podiumPointsText, { color: GOLD, fontSize: 14 }]}>{first.score} pts</Text>
                     </View>
 
-                    <View style={styles.podiumPlace}>
-                        <MaterialIcons name="emoji-events" size={24} color="#facc15" style={{ marginBottom: 4 }} />
-                        <View style={[styles.avatarWrapper, { marginBottom: 8 }]}>
-                           <Image source={{ uri: first.avatar }} style={styles.podiumAvatarLarge} />
-                           <View style={styles.rankBadgeLarge}><Text style={styles.rankText}>1</Text></View>
+                    {/* Third Place */}
+                    {third && (
+                        <View style={styles.podiumItem}>
+                            <View style={styles.avatarContainer}>
+                                <Image source={{ uri: third.avatar }} style={styles.podiumAvatarSmall} />
+                                <View style={[styles.rankBadge, { backgroundColor: '#CD7F32' }]}>
+                                    <Text style={styles.rankBadgeText}>3</Text>
+                                </View>
+                            </View>
+                            <Text style={styles.podiumNameText} numberOfLines={1}>{third.name}</Text>
+                            <Text style={styles.podiumPointsText}>{third.score} pts</Text>
                         </View>
-                        <Text style={[styles.podiumName, { fontSize: 14 }]}>{first.name}</Text>
-                        <Text style={[styles.podiumPoints, { fontSize: 12 }]}>{first.points} pts</Text>
-                        <View style={[styles.podiumBar, { height: 90, backgroundColor: 'rgba(13, 242, 89, 0.2)', borderTopWidth: 1, borderColor: 'rgba(13, 242, 89, 0.3)' }]} />
-                    </View>
-                    
-                     <View style={[styles.podiumPlace, {marginBottom: 8}]}>
-                        <View style={styles.avatarWrapper}>
-                           <Image source={{ uri: third.avatar }} style={styles.podiumAvatarSmall} />
-                           <View style={[styles.rankBadgeSmall, { backgroundColor: '#fdba74' }]}><Text style={styles.rankText}>3</Text></View>
-                        </View>
-                        <Text style={styles.podiumName}>{third.name}</Text>
-                        <Text style={styles.podiumPoints}>{third.points} pts</Text>
-                         <View style={[styles.podiumBar, { height: 48, backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-                    </View>
+                    )}
                 </View>
             </LinearGradient>
         </View>
@@ -146,18 +174,78 @@ const styles = StyleSheet.create({
     addButton: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', justifyContent: 'center', alignItems: 'center' },
 
     // Leaderboard
-    leaderboardCard: { padding: 20, borderRadius: 8 },
-    podiumContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', height: 160, gap: 16 },
-    podiumPlace: { alignItems: 'center', gap: 4 },
-    avatarWrapper: { position: 'relative' },
-    podiumAvatarSmall: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: 'white' },
-    podiumAvatarLarge: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: PRIMARY_COLOR },
-    rankBadgeSmall: { position: 'absolute', bottom: -8, left: 14, width: 20, height: 20, borderRadius: 10, backgroundColor: '#d1d5db', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'white' },
-    rankBadgeLarge: { position: 'absolute', bottom: -8, left: 20, width: 24, height: 24, borderRadius: 12, backgroundColor: '#facc15', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#1e3a29' },
-    rankText: { fontSize: 10, fontWeight: 'bold', color: 'black' },
-    podiumName: { color: 'white', fontSize: 12, fontWeight: '500' },
-    podiumPoints: { color: PRIMARY_COLOR, fontSize: 10, fontWeight: 'bold' },
-    podiumBar: { width: '100%', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
+    // Podium Styles
+    podiumCard: {
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        marginTop: 10,
+    },
+    podiumContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+    },
+    podiumItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    avatarContainer: {
+        position: 'relative',
+        marginBottom: 10,
+    },
+    podiumAvatarSmall: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    podiumAvatarLarge: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 3,
+        borderColor: 'black',
+    },
+    glowRing: {
+        position: 'absolute',
+        top: -4,
+        left: -4,
+        right: -4,
+        bottom: -4,
+        borderRadius: 44,
+    },
+    rankBadge: {
+        position: 'absolute',
+        bottom: -5,
+        left: 17,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'black',
+    },
+    rankBadgeText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: 'black',
+    },
+    podiumNameText: {
+        color: 'white',
+        fontSize: 13,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    podiumPointsText: {
+        color: '#888',
+        fontSize: 12,
+        fontWeight: '700',
+        marginTop: 2,
+    },
 
     // Nutrition
     nutritionCard: { flexDirection: 'row', backgroundColor: 'white', borderRadius: 8, padding: 16, alignItems: 'center', gap: 16, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },

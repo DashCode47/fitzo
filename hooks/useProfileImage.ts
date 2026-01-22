@@ -91,31 +91,22 @@ export const useProfileImage = () => {
       console.log("[useProfileImage] Public URL generated:", publicUrl);
 
       // 5. Update the profile table
-      console.log("[useProfileImage] Updating profile in DB (trying photoUrl)...");
-      const updateResponse: any = await withTimeout(
+      console.log("[useProfileImage] Updating profile in DB (column photo_url)...");
+      const { data: updateData, error: updateError } = (await withTimeout(
         supabase
           .from('profiles')
-          .update({ photoUrl: publicUrl }) 
-          .eq('userId', user.id) as any
-      );
-
-      // fallback check: If the update fails due to column name, we might need photo_url
-      if (updateResponse.error) {
-        console.warn("[useProfileImage] photoUrl update failed, trying photo_url/user_id fallback...", updateResponse.error.message);
-        const fallbackResponse: any = await withTimeout(
-          supabase
-            .from('profiles')
-            .update({ photo_url: publicUrl })
-            .eq('user_id', user.id) as any
-        );
-        if (fallbackResponse.error) {
-          console.error("[useProfileImage] Fallback update failed:", fallbackResponse.error);
-          throw fallbackResponse.error;
-        }
-        console.log("[useProfileImage] Profile updated using 'photo_url' column.");
-      } else {
-        console.log("[useProfileImage] Profile updated using 'photoUrl' column.");
+          .update({ photo_url: publicUrl }) 
+          .eq('id', user.id)
+          .select()
+          .single() as any
+      )) as any;
+      
+      if (updateError) {
+        console.error("[useProfileImage] Profile update failed:", updateError);
+        throw updateError;
       }
+
+      console.log("[useProfileImage] Profile photo updated successfully");
 
       return publicUrl;
     } catch (error: any) {

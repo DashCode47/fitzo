@@ -1,15 +1,28 @@
 
+import { Banner } from '@/api/banners';
 import { DietPlan, UserStats } from '@/api/nutrition';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+export interface UserProfile {
+  id?: string;
+  email: string;
+  username?: string;
+  phone?: string;
+  role?: string;
+  status?: string;
+  photo_url?: string;
+  total_points?: number;
+  created_at?: string;
+  updated_at?: string;
+}
 interface AppState {
   // Data
-  profile: any | null;
+  profile: UserProfile | null;
   activeDiet: DietPlan | null;
   userStats: UserStats | null;
-  promos: any[] | null;
+  promos: Banner[] | null;
   events: any[] | null;
   leaderboard: any[] | null;
   
@@ -17,10 +30,10 @@ interface AppState {
   isHydrated: boolean;
 
   // Setters
-  setProfile: (profile: any) => void;
+  setProfile: (profile: UserProfile | null) => void;
   setActiveDiet: (diet: DietPlan | null) => void;
   setUserStats: (stats: UserStats | null) => void;
-  setPromos: (promos: any[]) => void;
+  setPromos: (promos: Banner[]) => void;
   setEvents: (events: any[]) => void;
   setLeaderboard: (leaderboard: any[]) => void;
   setHydrated: (val: boolean) => void;
