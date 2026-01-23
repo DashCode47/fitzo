@@ -5,7 +5,7 @@ export interface Banner {
   id: number;
   title: string;
   short_description: string | null;
-  long_description: string | null;
+  large_description: string | null;
   tag: string | null; // 'PROMO', 'EVENTO', 'NOTICIA', 'URGENTE', 'NUEVO', 'INFO'
   expiration_date: string | null;
   external_link: string | null;

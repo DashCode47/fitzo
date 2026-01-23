@@ -8,11 +8,21 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ImageBackground, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+    Easing,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GOLD_COLOR = '#C5A356';
 
+import { RadarService } from '@/lib/radar';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function ProfileScreen() {
@@ -32,6 +42,32 @@ export default function ProfileScreen() {
     message: '',
     type: 'error' as 'error' | 'success' | 'confirm',
     onConfirm: () => {}
+  });
+
+  const glowValue = useSharedValue(0);
+
+  useEffect(() => {
+    // Name neon breathing
+    glowValue.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2000 }),
+        withTiming(0, { duration: 2000 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedNameStyle = useAnimatedStyle(() => {
+    const shadowRadius = interpolate(glowValue.value, [0, 1], [2, 25]);
+    const opacity = interpolate(glowValue.value, [0, 1], [0.7, 1]);
+    const scale = interpolate(glowValue.value, [0, 1], [1, 1.03]);
+
+    return {
+      textShadowRadius: shadowRadius,
+      opacity: opacity,
+      transform: [{ scale }],
+    };
   });
 
   useEffect(() => {
@@ -72,27 +108,30 @@ export default function ProfileScreen() {
   };
 
   const handleUpdateAvatar = async () => {
+    // ... (existing code remains but I'll add the new handler next)
+  };
+
+  const handleRadarSync = async () => {
     try {
-      const newUrl = await uploadAvatar();
-      if (newUrl) {
-        setAvatarTimestamp(Date.now());
-        await loadProfile();
-        setModalConfig({
-          title: '¡FOTO ACTUALIZADA!',
-          message: 'Tu foto de perfil se ha guardado correctamente.',
-          type: 'success',
-          onConfirm: () => setModalVisible(false)
-        });
-        setModalVisible(true);
-      }
-    } catch (error: any) {
-      setModalConfig({
-        title: 'ERROR AL SUBIR',
-        message: 'No pudimos subir tu foto. Inténtalo de nuevo.',
-        type: 'error',
-        onConfirm: () => setModalVisible(false)
-      });
-      setModalVisible(true);
+        setLoading(true);
+        const status = await RadarService.requestPermissions();
+        if (status === 'DENIED') {
+            Alert.alert("Permisos Denegados", "Por favor habilita la ubicación en los ajustes para usar el geofencing.");
+            return;
+        }
+
+        if (profile?.id) {
+            await RadarService.activate(profile.id, { 
+                name: profile.username,
+                email: profile.email 
+            });
+            RadarService.startTracking('continuous');
+            Alert.alert("Sincronización Radar", "Ubicación enviada al dashboard (Modo Continuo activo).");
+        }
+    } catch (error) {
+        console.error("Radar sync error:", error);
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -103,6 +142,34 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
   }
+
+  const pointsRotation = useSharedValue(0);
+  const intensity = Math.min((profile?.total_points || 0) / 1030, 1);
+
+  useEffect(() => {
+    if ((profile?.total_points || 0) > 0) {
+        const rotationDuration = 4000 - (intensity * 3500); // 4s down to 0.5s
+        pointsRotation.value = withRepeat(
+            withTiming(360, { duration: rotationDuration, easing: Easing.linear }),
+            -1,
+            false
+        );
+    } else {
+        pointsRotation.value = 0;
+    }
+  }, [profile?.total_points]);
+
+  const animatedPointsStyle = useAnimatedStyle(() => {
+    const glow = interpolate(intensity, [0, 1], [0, 15]);
+    
+    return {
+      transform: [{ rotate: `${pointsRotation.value}deg` }],
+      opacity: intensity > 0 ? 1 : 0,
+      shadowColor: GOLD_COLOR,
+      shadowRadius: glow,
+      shadowOpacity: intensity * 0.8,
+    };
+  });
 
   const username = profile?.username || 'Atleta';
   const email = profile?.email || '';
@@ -173,12 +240,24 @@ export default function ProfileScreen() {
                                 <MaterialIcons name="photo-camera" size={14} color="black" />
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.name}>{username}</Text>
+                        <Animated.Text style={[styles.name, animatedNameStyle]}>
+                            {username}
+                        </Animated.Text>
                         <Text style={styles.role}>{role}</Text>
                         
-                        <View style={styles.pointsBadge}>
-                          <Ionicons name="flash" size={16} color="black" />
-                          <Text style={styles.pointsText}>{points} PUNTOS</Text>
+                        <View style={styles.pointsWrapper}>
+                            <Animated.View style={[styles.pointsBorder, animatedPointsStyle]}>
+                                <LinearGradient
+                                    colors={[GOLD_COLOR, 'transparent', GOLD_COLOR, 'transparent']}
+                                    style={styles.gradientBorder}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                />
+                            </Animated.View>
+                            <View style={styles.pointsBadgeInner}>
+                                <Ionicons name="flash" size={16} color={GOLD_COLOR} />
+                                <Text style={styles.pointsText}>{points} PUNTOS</Text>
+                            </View>
                         </View>
                     </View>
 
@@ -186,6 +265,15 @@ export default function ProfileScreen() {
                         <InfoItem icon="email" label="Correo" value={email} />
                         <InfoItem icon="phone" label="Teléfono" value={phone} />
                         <InfoItem icon="verified-user" label="Estado" value={status} />
+                    </View>
+
+                    {/* Radar Tools (Debug) */}
+                    <View style={[styles.infoSection, { borderColor: GOLD_COLOR, borderWidth: 1 }]}>
+                        <Text style={[styles.infoLabel, { color: GOLD_COLOR, marginBottom: 10 }]}>Herramientas de Radar (Debug)</Text>
+                        <TouchableOpacity style={styles.debugItem} onPress={handleRadarSync}>
+                            <MaterialIcons name="sync" size={20} color={GOLD_COLOR} />
+                            <Text style={styles.debugText}>Sincronizar Ubicación (Live)</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -294,10 +382,15 @@ const styles = StyleSheet.create({
     borderColor: 'black',
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#fff',
     marginBottom: 4,
+    textShadowColor: GOLD_COLOR,
+    textShadowOffset: { width: 0, height: 0 },
+    // shadowRadius is animated
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   role: {
     fontSize: 12,
@@ -394,19 +487,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 2,
   },
-  pointsBadge: {
+  pointsWrapper: {
+    marginTop: 12,
+    width: 140,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  pointsBorder: {
+    position: 'absolute',
+    width: '200%',
+    height: '200%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gradientBorder: {
+    width: '100%',
+    height: '100%',
+  },
+  pointsBadgeInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: GOLD_COLOR,
+    backgroundColor: '#111',
+    width: 136,
+    height: 32,
+    borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginTop: 12,
+    justifyContent: 'center',
+    gap: 6,
   },
   pointsText: {
-    color: 'black',
+    color: GOLD_COLOR,
     fontSize: 14,
-    fontWeight: 'bold',
-    marginLeft: 6,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
 });

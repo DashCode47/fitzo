@@ -12,6 +12,9 @@ export const useAppNavigation = () => {
   const goToNutrition = () => router.replace(ROUTES.NUTRITION);
   const goToProfile = () => router.push(ROUTES.PROFILE);
   const goBack = () => router.back();
+  const goToRankings = () => router.push(ROUTES.RANKINGS);
+  const goToScanner = () => router.push(ROUTES.SCANNER);
+  const goToLocationPermission = () => router.push(ROUTES.LOCATION_PERMISSION);
 
   return {
     router,
@@ -23,5 +26,8 @@ export const useAppNavigation = () => {
     goToNutrition,
     goToProfile,
     goBack,
+    goToRankings,
+    goToScanner,
+    goToLocationPermission,
   };
 };

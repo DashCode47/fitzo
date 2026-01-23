@@ -5,8 +5,21 @@ import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { ActivityIndicator, Dimensions, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  ImageBackground,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomModal } from '@/components/ui/CustomModal';
@@ -20,6 +33,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [step, setStep] = useState<'ID' | 'OTP'>('ID');
   
+  const otpInputRef = useRef<TextInput>(null);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -45,7 +59,7 @@ export default function LoginScreen() {
             // 2. Send OTP
             await AuthAPI.signInWithOtp(data.email);
             
-            setStep('OTP');
+            Keyboard.dismiss();
             setStep('OTP');
             setSuccessMessage(`Se ha enviado un código a su correo registrado: ${data.email}`);
             setSuccessVisible(true);
@@ -110,7 +124,11 @@ export default function LoginScreen() {
         type="success"
         message={successMessage}
         buttonText="ENTENDIDO"
-        onClose={() => setSuccessVisible(false)}
+        onClose={() => {
+          setSuccessVisible(false);
+          // Autofocus OTP input after closing modal
+          setTimeout(() => otpInputRef.current?.focus(), 100);
+        }}
       />
       <ImageBackground 
         source={require('../assets/images/login.jpg')} 
@@ -120,76 +138,89 @@ export default function LoginScreen() {
           colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']}
           style={styles.gradientOverlay}
         >
-          <SafeAreaView style={styles.content}>
-        {/* Logo Section */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>IRON</Text>
-          <Text style={styles.logoSubText}>BODY</Text>
-        </View>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+            >
+              <SafeAreaView style={styles.content}>
+                {/* Logo Section */}
+                <View style={styles.logoContainer}>
+                  <Text style={styles.logoText}>IRON</Text>
+                  <Text style={styles.logoSubText}>BODY</Text>
+                </View>
 
-        {/* Form Section */}
-        <View style={styles.formContainer}>
-          
-          {step === 'ID' ? (
-              /* ID Input */
-              <View style={styles.inputWrapper}>
-                <FontAwesome name="id-card" size={20} color="#C5A356" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Número de Cédula"
-                  maxLength={10}
-                  placeholderTextColor="#888"
-                  value={nationalId}
-                  onChangeText={setNationalId}
-                  keyboardType="numeric"
-                />
-              </View>
-          ) : (
-              /* OTP Input */
-              <View style={styles.inputWrapper}>
-                <FontAwesome name="lock" size={20} color="#C5A356" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Código de Verificación (OTP)"
-                  placeholderTextColor="#888"
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                />
-              </View>
-          )}
+                {/* Form Section */}
+                <View style={styles.formContainer}>
+                  
+                  {step === 'ID' ? (
+                      /* ID Input */
+                      <View style={styles.inputWrapper}>
+                        <FontAwesome name="id-card" size={20} color="#C5A356" style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Número de Cédula"
+                          maxLength={10}
+                          placeholderTextColor="#888"
+                          value={nationalId}
+                          onChangeText={setNationalId}
+                          keyboardType="numeric"
+                          returnKeyType="done"
+                          onSubmitEditing={handleLogin}
+                        />
+                      </View>
+                  ) : (
+                      /* OTP Input */
+                      <View style={styles.inputWrapper}>
+                        <FontAwesome name="lock" size={20} color="#C5A356" style={styles.inputIcon} />
+                        <TextInput
+                          ref={otpInputRef}
+                          style={styles.input}
+                          placeholder="Código de Verificación (OTP)"
+                          placeholderTextColor="#888"
+                          value={otp}
+                          onChangeText={setOtp}
+                          keyboardType="number-pad"
+                          textContentType="oneTimeCode"
+                          returnKeyType="done"
+                          onSubmitEditing={handleLogin}
+                        />
+                      </View>
+                  )}
 
-          {/* Login Button */}
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="black" />
-            ) : (
-              <Text style={styles.loginButtonText}>
-                {step === 'ID' ? 'INGRESAR' : 'VERIFICAR'}
-              </Text>
-            )}
-          </TouchableOpacity>
-          
-          {step === 'OTP' && (
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleBack} disabled={loading}>
-                 <Text style={styles.secondaryButtonText}>Volver</Text>
-              </TouchableOpacity>
-          )}
+                  {/* Login Button */}
+                  <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+                    {loading ? (
+                      <ActivityIndicator color="black" />
+                    ) : (
+                      <Text style={styles.loginButtonText}>
+                        {step === 'ID' ? 'INGRESAR' : 'VERIFICAR'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                  
+                  {step === 'OTP' && (
+                      <TouchableOpacity style={styles.secondaryButton} onPress={handleBack} disabled={loading}>
+                        <Text style={styles.secondaryButtonText}>Volver</Text>
+                      </TouchableOpacity>
+                  )}
 
-          {step === 'ID' && (
-             <TouchableOpacity style={styles.registerLink} onPress={goToRegister}>
-                <Text style={styles.registerText}>
-                    ¿No tienes cuenta? <Text style={styles.linkText}>Crea una aquí</Text>
-                </Text>
-             </TouchableOpacity>
-          )}
+                  {step === 'ID' && (
+                    <TouchableOpacity style={styles.registerLink} onPress={goToRegister}>
+                        <Text style={styles.registerText}>
+                            ¿No tienes cuenta? <Text style={styles.linkText}>Crea una aquí</Text>
+                        </Text>
+                    </TouchableOpacity>
+                  )}
 
-          <Text style={styles.disclaimerText}>
-            Al continuar, aceptas nuestros <Text style={styles.linkText}>Términos y Condiciones</Text> y <Text style={styles.linkText}>Política de Privacidad</Text>.
-          </Text>
+                  <Text style={styles.disclaimerText}>
+                    Al continuar, aceptas nuestros <Text style={styles.linkText}>Términos y Condiciones</Text> y <Text style={styles.linkText}>Política de Privacidad</Text>.
+                  </Text>
 
-        </View>
-        </SafeAreaView>
+                </View>
+              </SafeAreaView>
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
         </LinearGradient>
       </ImageBackground>
     </View>

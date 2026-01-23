@@ -8,6 +8,7 @@ import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
 import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
 import { MOCK_CROWD, MOCK_EVENTS, MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { RadarService } from '@/lib/radar';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/utils/async';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GOLD_COLOR = '#C5A356';
@@ -23,9 +24,48 @@ const GOLD_COLOR = '#C5A356';
 
 import { useAppStore } from '@/store/useAppStore';
 
+function LocationPermissionNotice({ onAction }: { onAction: () => void }) {
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkStatus = async () => {
+      const status = await RadarService.getPermissionsStatus();
+      if (status === 'NOT_DETERMINED' || status === 'DENIED') {
+        setVisible(true);
+      }
+    };
+    checkStatus().catch(e => console.error('[LocationPermissionNotice] checkStatus failed:', e));
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <TouchableOpacity style={styles.noticeContainer} onPress={onAction}>
+      <LinearGradient
+        colors={[GOLD_COLOR, '#8a6d2b']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.noticeGradient}
+      >
+        <View style={styles.noticeContent}>
+          <View style={styles.noticeIconBox}>
+            <Ionicons name="location" size={20} color="white" />
+          </View>
+          <View style={styles.noticeTextBlock}>
+            <Text style={styles.noticeTitle}>ACTIVA TU UBICACIÓN</Text>
+            <Text style={styles.noticeSubtitle}>Regístrate automáticamente al llegar.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="white" />
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
 export default function HomeScreen() {
   const segments = useSegments();
-  const { goToLogin, goToProfile, goToNutrition } = useAppNavigation();
+  const router = useRouter();
+  const { goToLogin, goToProfile, goToNutrition, goToScanner, goToRankings, goToLocationPermission } = useAppNavigation();
   
   // Zustand Store
   const { 
@@ -38,6 +78,7 @@ export default function HomeScreen() {
   } = useAppStore();
 
   const [loading, setLoading] = useState(!isHydrated);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [data, setData] = useState<any>({
     user: MOCK_USER,
@@ -70,14 +111,14 @@ export default function HomeScreen() {
         image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=800&auto=format&fit=crop'
       };
 
-      setData({
+      setData((prev: any) => ({
+        ...prev,
         user,
-        crowd: MOCK_CROWD,
         promos: promos || [],
         events: events && events.length ? events : MOCK_EVENTS,
         leaderboard: leaderboard && leaderboard.length ? leaderboard : MOCK_LEADERBOARD,
         nutrition: nutritionData,
-      });
+      }));
       
       if (loading && profile) {
         setLoading(false);
@@ -86,12 +127,12 @@ export default function HomeScreen() {
   }, [isHydrated, profile, activeDiet, promos, events, leaderboard]);
 
   useEffect(() => {
-    // Only load data if we are actually on the home screen and store is ready
-    const currentRoute = segments.join('/');
-    if (currentRoute.includes('home') && isHydrated) {
+    // Only load data once when store is hydrated. 
+    // This prevents re-fetching every time you switch tabs or go back.
+    if (isHydrated) {
       loadData();
     }
-  }, [segments, isHydrated]);
+  }, [isHydrated]); // Removed 'segments' to stop triggering on navigation back
 
   const loadData = async () => {
     try {
@@ -105,12 +146,13 @@ export default function HomeScreen() {
       await UserAPI.syncProfile(session.user);
 
       // 2. Refresh data in background
-      const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition] = await Promise.all([
+      const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition, newCrowd] = await Promise.all([
         UserAPI.getProfile(session.user.id).catch(() => profile),
         BannersAPI.getBanners().catch(() => promos || []),
         ContentAPI.getEvents().catch(() => events || MOCK_EVENTS),
         LeaderboardAPI.getLeaderboard().catch(() => leaderboard || MOCK_LEADERBOARD),
         NutritionAPI.getActiveDiet(session.user.id).catch(() => activeDiet),
+        ContentAPI.getCrowdStatus().catch(() => MOCK_CROWD)
       ]);
       if (newProfile) setProfile(newProfile);
       if (newPromos) setPromos(newPromos);
@@ -118,22 +160,33 @@ export default function HomeScreen() {
       if (newLeaderboard) setLeaderboard(newLeaderboard);
       if (newNutrition !== undefined) setActiveDiet(newNutrition);
 
+      setData((prev: any) => ({ ...prev, crowd: newCrowd }));
+
     } catch (e) {
       console.error("[HomeScreen] Refresh failed:", e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
   const handleBannerPress = (banner: Banner) => {
-    if (banner.external_link) {
-      Linking.openURL(banner.external_link).catch(err => console.error("Couldn't load page", err));
-    } else {
-      router.push({
-        pathname: '/banner-details',
-        params: { id: banner.id }
-      });
-    }
+    router.push({
+      pathname: '/banner-details',
+      params: { id: banner.id, type: 'promo' }
+    });
+  };
+
+  const handleEventPress = (event: any) => {
+    router.push({
+      pathname: '/banner-details',
+      params: { id: event.id, type: 'event' }
+    });
   };
 
   if (loading) {
@@ -143,8 +196,6 @@ export default function HomeScreen() {
         </SafeAreaView>
      );
   }
-
-  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -158,20 +209,31 @@ export default function HomeScreen() {
             style={styles.gradientOverlay}
          >
             <SafeAreaView style={styles.safeArea}>
-              <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <ScrollView 
+                contentContainerStyle={styles.scrollContent} 
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl 
+                    refreshing={refreshing} 
+                    onRefresh={handleRefresh} 
+                    tintColor={GOLD_COLOR}
+                    colors={[GOLD_COLOR]}
+                  />
+                }
+              >
                     {/* Top Bar with Points and Scanner */}
                     <View style={styles.header}>
                       <View>
                         <Text style={styles.greeting}>Hola, {profile?.username || 'Atleta'}</Text>
-                        <View style={styles.pointsContainer}>
+                        <TouchableOpacity style={styles.pointsContainer} onPress={() => goToRankings()}>
                           <Ionicons name="flash" size={16} color="#FFD700" />
                           <Text style={styles.pointsText}>{profile?.total_points || 0} PTS</Text>
-                        </View>
+                        </TouchableOpacity>
                       </View>
                       <View style={styles.headerIcons}>
                         <TouchableOpacity 
                           style={styles.iconButton} 
-                          onPress={() => router.push('/scanner')}
+                          onPress={() => goToScanner()}
                         >
                           <Ionicons name="qr-code-outline" size={24} color="#FFF" />
                         </TouchableOpacity>
@@ -194,13 +256,16 @@ export default function HomeScreen() {
                     {/* Crowd Meter */}
                     <CrowdMeter data={data.crowd} />
 
+                    {/* Radar Location Permission Reminder */}
+                    <LocationPermissionNotice onAction={goToLocationPermission} />
+
                     {/* Promo Carousel */}
                     <View style={{ marginTop: 16 }}>
                         <PromoCarousel data={data.promos} onPressItem={handleBannerPress} />
                     </View>
 
                     {/* Upcoming Events */}
-                    <EventsTimeline data={data.events} />
+                    <EventsTimeline data={data.events} onPressItem={handleEventPress} />
 
                     {/* Top 3 Rankings */}
                     <TopThreePodium 
@@ -220,6 +285,7 @@ export default function HomeScreen() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -286,5 +352,45 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+  },
+  noticeContainer: {
+    marginTop: 20,
+    borderRadius: 15,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: GOLD_COLOR,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  noticeGradient: {
+    padding: 16,
+  },
+  noticeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  noticeIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  noticeTextBlock: {
+    flex: 1,
+  },
+  noticeTitle: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  noticeSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    marginTop: 2,
   },
 });

@@ -1,6 +1,6 @@
 # Iron Body - Documentation Technical Guide
 
-Welcome to the **Iron Body** frontend documentation. This project is a mobile application built with **Expo** and **React Native**, designed to integrate directly with **Supabase** for authentication and data management.
+Welcome to the **Iron Body** frontend documentation. This project is a mobile application built with **Expo** and **React Native**, designed to integrate directly with **Supabase** for authentication and data management, and **Radar** for geofencing.
 
 ## 🚀 Tech Stack
 
@@ -8,8 +8,9 @@ Welcome to the **Iron Body** frontend documentation. This project is a mobile ap
 - **Language**: TypeScript
 - **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
 - **Database & Auth**: [Supabase](https://supabase.com/)
-- **State Management**: React Hooks & Context
-- **Icons**: @expo/vector-icons (FontAwesome, MaterialIcons)
+- **Geofencing**: [Radar](https://radar.com/)
+- **State Management**: React Hooks & [Zustand](https://github.com/pmndrs/zustand) (with Persistence)
+- **Icons**: @expo/vector-icons (Ionicons, MaterialIcons)
 - **Styling**: React Native StyleSheet + Expo Linear Gradient
 - **Storage**: Expo SecureStore (for JWT management)
 
@@ -18,74 +19,88 @@ Welcome to the **Iron Body** frontend documentation. This project is a mobile ap
 ## 📂 Project Structure
 
 ```text
-├── api/             # Supabase data fetching modules (centralized logic)
-├── app/             # Expo Router screens and layouts
-│   ├── (tabs)/      # Bottom tab navigation screens
-│   ├── _layout.tsx  # Root layout with SafeAreaProvider & Providers
-│   └── index.tsx    # Login screen (Entry point)
-├── components/      # Reusable UI components
-│   ├── home/        # Home-screen specific sub-components
-│   └── ui/          # Generic UI components (CustomModal, etc.)
-├── constants/       # App-wide constants (Routes, Colors, Mocks)
-├── hooks/           # Custom React hooks (Navigation, Theme)
-├── lib/             # Third-party library initializations (Supabase client)
-└── services/        # Legacy services (being phased out for api/ folder)
+├── api/             # Supabase data fetching (Auth, User, Content, Nutrition, Banners)
+├── app/             # Expo Router screens
+│   ├── (tabs)/      # Bottom tab navigation (Home, Nutrition, Rankings, Store)
+│   ├── _layout.tsx  # Root layout, Radar init, Providers
+│   ├── profile.tsx  # User Profile & Settings
+│   └── login.tsx    # Auth entry point
+├── components/      # UI components
+│   ├── home/        # Home-screen complex pieces (PromoCarousel, etc.)
+│   └── ui/          # Shared components
+├── constants/       # Mocks, Theme (Colors), Routes
+├── hooks/           # Custom hooks (Navigation, Store helpers)
+├── lib/             # Client initializations (Supabase, Radar)
+├── store/           # Zustand global state (useAppStore.ts)
+└── utils/           # Async helpers, timeouts
 ```
+
+---
+
+## 📡 Geofencing (Radar Integration)
+
+The app uses **Radar** to detect when users enter the gym automatically:
+- **Initialization**: Handled in `app/_layout.tsx` via `RadarService`.
+- **Flow**: When a user logs in, Radar identifies them (`userId`).
+- **Permissions**: A custom screen `location-permission.tsx` manages the "Always Allow" location requirement.
+- **Background**: Configured to run in the background to detect arrives even when the app is closed.
+
+---
+
+## 🥗 Nutrition & Diet Plans
+
+Nutrition is a core feature that syncs local state with remote plans:
+- **State**: The `activeDiet` is managed in the Zustand store.
+- **Logic**: If a user has a plan in the database, it shows their macros. If not, it prompts them to create one.
+- **Mocks**: Uses fallback `MOCK_NUTRITION` if the network fails.
+
+---
+
+## 🏆 Gamification & Rankings
+
+The "Iron Legends" system rewards users:
+- **Points**: Users earn points via gym visits and activities (stored in `profiles.total_points`).
+- **Leaderboard**: Fetched via `LeaderboardAPI`.
+- **Scanner**: `app/scanner.tsx` allows users to scan QR codes for attendance/events.
 
 ---
 
 ## 🔐 Authentication Flow
 
-The app uses a custom **Login by Cedula** flow integrated with Supabase:
-
-1.  **Email Lookup**: The user enters their National ID (Cedula). A Supabase RPC function `get_email_by_national_id` finds the corresponding email in the private auth schema.
-2.  **OTP Generation**: `AuthAPI.signInWithOtp` sends a verification code to the found email.
-3.  **OTP Verification**: The user enters the code, and `AuthAPI.verifyOtp` validates it and establishes a session.
-4.  **Session Persistence**: The JWT access token is stored in `Expo.SecureStore` for session recovery.
-
-### Registration
-Registration is handled directly via `supabase.auth.signUp`. A database trigger (`handle_new_user`) in the Supabase backend automatically populates the `public.users` and `public.profiles` tables upon successful signup.
+The app uses a custom **Login by Cedula** flow:
+1.  **Email Lookup**: `AuthAPI.get_email_by_national_id` finds the record.
+2.  **OTP**: `AuthAPI.signInWithOtp` sends the code.
+3.  **Persistence**: Sessions are managed by Superbase and recovered automatically on app start.
 
 ---
 
-## 🗺️ Navigation & Routing
+## 💅 Design System
 
-Navigation is centralized in `constants/routes.ts` and managed via a custom hook:
-
--   **Routes**: All paths are defined in `ROUTES` constant.
--   **Hook**: Use `useAppNavigation()` for common actions like `goToHome()`, `goToProfile()`, or `goBack()`. This ensures type safety and makes refactoring easier.
-
----
-
-## 💅 Design System & Safe Areas
-
--   **Theme**: The app follows a premium dark theme with gold accents (`#C5A356`).
--   **Safe Areas**: Always wrap screen content with `SafeAreaView` from `react-native-safe-area-context` to handle device notches and status bars correctly across iOS and Android.
+- **Primary Colors**: Gold (`#C5A356`), Dark BG (`#000000`).
+- **Typography**: Uses modern sans-serif fonts via Expo.
+- **Glassmorphism**: Subtle usage in overlays and podium components.
 
 ---
 
 ## 🛠️ Adding New Features
 
 ### 1. New API Endpoint
-1.  Add the query logic to the relevant file in `api/` (e.g., `api/user.ts`).
-2.  Use the `supabase` client from `@/lib/supabase`.
+Add it to `api/` using the base `supabase` client. Always include `.catch()` or try-catch blocks for mobile stability.
 
-### 2. New Screen
-1.  Create a new file in `app/`.
-2.  Register the route in `constants/routes.ts`.
-3.  Update `useAppNavigation.ts` if a named navigation method is needed.
-4.  Configure the screen header/visibility in `app/_layout.tsx`.
+### 2. Global State
+Use `useAppStore.ts`. Data in the store is persisted in `AsyncStorage` automatically.
 
-### 3. New Component
-1.  Create the component in `components/`.
-2.  Keep it pure if possible, receiving data via props.
+### 3. Navigation
+Update `hooks/useAppNavigation.ts` to expose new route methods.
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Environment Variables
 
-### Supabase
-Ensure your `lib/supabase.ts` contains the correct `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+Managed in `env.ts` and `.env`:
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- `EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY`
 
-### RLS Policies
-The database uses Row Level Security (RLS). Ensure any new tables have policies allowing access to `authenticated` users, typically using the `auth.uid()` check against the `id` column.
+> [!IMPORTANT]
+> Always use the `EXPO_PUBLIC_` prefix for variables to be accessible in client-side code during builds.

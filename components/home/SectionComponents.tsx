@@ -7,9 +7,17 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 const PRIMARY_COLOR = '#0df259';
 
 interface EventsProps {
-    data: Array<{ id: number; day: string; title: string; time: string; isToday: boolean }>;
+    data: Array<{ 
+        id: string; 
+        name: string; 
+        short_description: string; 
+        event_date: string; 
+        event_time: string;
+        image_url?: string;
+    }>;
+    onPressItem?: (item: any) => void;
 }
-export const EventsTimeline = ({ data }: EventsProps) => (
+export const EventsTimeline = ({ data, onPressItem }: EventsProps) => (
     <View style={styles.section}>
         <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Próximos eventos</Text>
@@ -18,24 +26,37 @@ export const EventsTimeline = ({ data }: EventsProps) => (
             </TouchableOpacity>
         </View>
         <View style={styles.eventsCard}>
-            {data.map((item, index) => (
-                <View key={item.id} style={[styles.eventItem, index < data.length - 1 && styles.eventBorder]}>
-                    <View style={styles.dateBadge}>
-                        <Text style={styles.dateLabel}>HOY</Text>
-                        <Text style={styles.dateNumber}>{item.day}</Text>
-                    </View>
-                    <View style={styles.eventInfo}>
-                        <Text style={styles.eventTitle}>{item.title}</Text>
-                        <View style={styles.timeRow}>
-                            <MaterialIcons name="schedule" size={14} color="#6b7280" />
-                            <Text style={styles.timeText}>{item.time}</Text>
-                        </View>
-                    </View>
-                    <TouchableOpacity style={styles.addButton}>
-                        <MaterialIcons name="add" size={18} color={PRIMARY_COLOR} />
-                    </TouchableOpacity>
-                </View>
-            ))}
+            {data.length === 0 ? (
+                <Text style={styles.emptyText}>No hay eventos próximos.</Text>
+            ) : (
+                data.map((item, index) => {
+                    const date = new Date(item.event_date);
+                    const day = date.getDate() + 1; // Basic fixed to UTC drift
+                    
+                    return (
+                        <TouchableOpacity 
+                            key={item.id} 
+                            style={[styles.eventItem, index < data.length - 1 && styles.eventBorder]}
+                            onPress={() => onPressItem?.(item)}
+                        >
+                            <View style={styles.dateBadge}>
+                                <Text style={styles.dateLabel}>DÍA</Text>
+                                <Text style={styles.dateNumber}>{day}</Text>
+                            </View>
+                            <View style={styles.eventInfo}>
+                                <Text style={styles.eventTitle}>{item.name}</Text>
+                                <View style={styles.timeRow}>
+                                    <MaterialIcons name="schedule" size={14} color="#6b7280" />
+                                    <Text style={styles.timeText}>{(item.event_time || '').substring(0, 5)}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.addButton}>
+                                <MaterialIcons name="chevron-right" size={18} color={PRIMARY_COLOR} />
+                            </View>
+                        </TouchableOpacity>
+                    );
+                })
+            )}
         </View>
     </View>
 );
@@ -161,6 +182,7 @@ const styles = StyleSheet.create({
     seeAll: { fontSize: 14, fontWeight: '500', color: '#6b7280' },
     
     // Events
+    emptyText: { padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 14 },
     eventsCard: { backgroundColor: 'white', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: '#f3f4f6' },
     eventItem: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 16 },
     eventBorder: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },

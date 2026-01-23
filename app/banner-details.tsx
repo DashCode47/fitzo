@@ -9,23 +9,46 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 const GOLD_COLOR = '#C5A356';
 const DARK_BG = '#000';
 
-export default function BannerDetailsScreen() {
+export default function DetailsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
-  const { promos } = useAppStore();
+  const { id, type } = useLocalSearchParams();
+  const { promos, events } = useAppStore();
 
-  const banner = promos?.find(p => p.id === Number(id));
+  let content: any = null;
 
-  if (!banner) {
+  if (type === 'event') {
+    content = events?.find(e => e.id === id);
+  } else {
+    // Default to banner/promo
+    content = promos?.find(p => p.id === Number(id));
+  }
+
+  if (!content) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>No se encontró la información del banner.</Text>
+        <Text style={styles.errorText}>No se encontró la información solicitada.</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>VOLVER</Text>
         </TouchableOpacity>
       </View>
     );
   }
+
+  const formatEventDate = (dateStr: string) => {
+    try {
+      // Basic split to avoid UTC drift from new Date(string)
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      
+      return date.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long' 
+      }).replace(/^\w/, (c) => c.toUpperCase());
+    } catch (e) {
+      return dateStr;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -38,7 +61,7 @@ export default function BannerDetailsScreen() {
         {/* Header Image Section */}
         <View style={styles.headerContainer}>
           <Image 
-            source={{ uri: banner.image_url || 'https://via.placeholder.com/800x600' }} 
+            source={{ uri: content.image_url || 'https://via.placeholder.com/800x600' }} 
             style={styles.headerImage} 
             resizeMode="cover"
           />
@@ -56,21 +79,41 @@ export default function BannerDetailsScreen() {
         {/* Content Section */}
         <View style={styles.content}>
           <View style={styles.metaRow}>
-            {banner.tag && (
+            {type === 'event' ? (
+                <View style={[styles.tagBadge, { backgroundColor: '#0df259' }]}>
+                  <Text style={styles.tagText}>EVENTO</Text>
+                </View>
+            ) : content.tag && (
               <View style={styles.tagBadge}>
-                <Text style={styles.tagText}>{banner.tag.toUpperCase()}</Text>
+                <Text style={styles.tagText}>{content.tag.toUpperCase()}</Text>
               </View>
             )}
-            {banner.expiration_date && (
-                <Text style={styles.dateText}>Vence: {new Date(banner.expiration_date).toLocaleDateString()}</Text>
+            
+            {type !== 'event' && (
+               <Text style={styles.dateText}>
+                  {content.expiration_date ? `Vence: ${new Date(content.expiration_date).toLocaleDateString()}` : ''}
+               </Text>
             )}
           </View>
 
-          <Text style={styles.title}>{banner.title}</Text>
+          {type === 'event' && (
+            <View style={styles.eventDetailsRow}>
+              <View style={styles.eventDetailItem}>
+                <Ionicons name="calendar-outline" size={18} color={GOLD_COLOR} />
+                <Text style={styles.eventDetailText}>{formatEventDate(content.event_date)}</Text>
+              </View>
+              <View style={styles.eventDetailItem}>
+                <Ionicons name="time-outline" size={18} color={GOLD_COLOR} />
+                <Text style={styles.eventDetailText}>{(content.event_time || '').substring(0, 5)} HS</Text>
+              </View>
+            </View>
+          )}
+
+          <Text style={styles.title}>{type === 'event' ? content.name : content.title}</Text>
           <View style={styles.divider} />
           
           <Text style={styles.description}>
-            {banner.long_description || banner.short_description}
+            {content.large_description || content.short_description || content.description}
           </Text>
 
           {/* Footer Decoration */}
@@ -134,7 +177,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  eventDetailsRow: {
+    flexDirection: 'column',
+    gap: 8,
     marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  eventDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  eventDetailText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
   tagBadge: {
     backgroundColor: GOLD_COLOR,

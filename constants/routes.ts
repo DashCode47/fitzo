@@ -6,6 +6,9 @@ export const ROUTES = {
   STORE: '/(tabs)/store',
   NUTRITION: '/(tabs)/nutrition',
   PROFILE: '/profile',
+  SCANNER: '/scanner',
+  RANKINGS: '/rankings',
+  LOCATION_PERMISSION: '/location-permission',
 } as const;
 
 export type AppRoute = typeof ROUTES[keyof typeof ROUTES];

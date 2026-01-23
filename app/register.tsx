@@ -4,7 +4,21 @@ import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ActivityIndicator, Dimensions, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+    ActivityIndicator,
+    Dimensions,
+    ImageBackground,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomModal } from '@/components/ui/CustomModal';
@@ -44,14 +58,6 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      // Generate a temporary password or ask for one? 
-      // User request: "decesitamos mail, nombre apellido, nationalID(Cedula) phone".
-      // Usually need a password for Supabase Auth. 
-      // I'll assume we use the National ID as the initial password for simplicity based on the Login logic "email constructed from ID", 
-      // BUT, since we are doing a proper registration now, maybe we should ask for a password.
-      // However, the Login flow is "Cedula -> OTP". So password might not be used by the user explicitly for login.
-      // For Supabase creation, I'll use a generated password or the Cedula. Let's use Cedula as password.
-      
       const payload = {
         ...formData,
         password: formData.nationalId, // Default password
@@ -99,7 +105,12 @@ export default function RegisterScreen() {
           colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
           style={styles.gradientOverlay}
         >
-          <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+            >
+              <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
             <ScrollView contentContainerStyle={styles.content}>
               {/* Header */}
             <View style={styles.headerContainer}>
@@ -186,11 +197,13 @@ export default function RegisterScreen() {
 
             </View>
           </ScrollView>
-        </SafeAreaView>
+            </SafeAreaView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </LinearGradient>
-      </ImageBackground>
-    </View>
-  );
+    </ImageBackground>
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
