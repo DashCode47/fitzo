@@ -17,16 +17,16 @@ const CARD_BG = '#1A1A1A';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function NutritionScreen() {
-  const { 
-    profile, 
-    activeDiet: diet, setActiveDiet: setDiet, 
+  const {
+    profile,
+    activeDiet: diet, setActiveDiet: setDiet,
     userStats: stats, setUserStats: setStats,
-    isHydrated 
+    isHydrated
   } = useAppStore();
 
   const [loading, setLoading] = useState(!isHydrated || (!stats && !diet));
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Form state
   const [weight, setWeight] = useState(stats?.weight?.toString() || '');
   const [height, setHeight] = useState(stats?.height?.toString() || '');
@@ -53,13 +53,13 @@ export default function NutritionScreen() {
   const loadData = async () => {
     try {
       if (!isHydrated) setLoading(true);
-      
+
       let userId = profile?.id;
-      
+
       try {
         const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
         if (session?.user) {
-            userId = session.user.id;
+          userId = session.user.id;
         }
       } catch (err) {
         console.warn('[NutritionScreen] Session fetch timeout/error, trying fallback to profile ID', err);
@@ -153,7 +153,7 @@ export default function NutritionScreen() {
 
       // 2. Automated Matching Logic
       await withTimeout(NutritionAPI.assignBestDietPlan(session.user.id, calcResult.calories));
-      
+
       // 3. Reload Diet
       const activeDiet = await withTimeout(NutritionAPI.getActiveDiet(session.user.id));
       setDiet(activeDiet);
@@ -233,14 +233,14 @@ export default function NutritionScreen() {
       <View style={styles.formGroup}>
         <Text style={styles.label}>Género</Text>
         <View style={styles.row}>
-          <TouchableOpacity 
-            style={[styles.chip, gender === 'M' && styles.activeChip]} 
+          <TouchableOpacity
+            style={[styles.chip, gender === 'M' && styles.activeChip]}
             onPress={() => setGender('M')}
           >
             <Text style={[styles.chipText, gender === 'M' && styles.activeChipText]}>Hombre</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.chip, gender === 'F' && styles.activeChip]} 
+          <TouchableOpacity
+            style={[styles.chip, gender === 'F' && styles.activeChip]}
             onPress={() => setGender('F')}
           >
             <Text style={[styles.chipText, gender === 'F' && styles.activeChipText]}>Mujer</Text>
@@ -252,9 +252,9 @@ export default function NutritionScreen() {
         <Text style={styles.label}>Nivel de Actividad</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
           {['sedentary', 'moderate', 'active'].map((level) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={level}
-              style={[styles.chip, activityLevel === level && styles.activeChip]} 
+              style={[styles.chip, activityLevel === level && styles.activeChip]}
               onPress={() => setActivityLevel(level as any)}
             >
               <Text style={[styles.chipText, activityLevel === level && styles.activeChipText]}>
@@ -269,9 +269,9 @@ export default function NutritionScreen() {
         <Text style={styles.label}>Objetivo</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
           {['cut', 'maintain', 'bulk'].map((g) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={g}
-              style={[styles.chip, goal === g && styles.activeChip]} 
+              style={[styles.chip, goal === g && styles.activeChip]}
               onPress={() => setGoal(g as any)}
             >
               <Text style={[styles.chipText, goal === g && styles.activeChipText]}>
@@ -318,7 +318,7 @@ export default function NutritionScreen() {
               <Text style={styles.caloriesText}>{calcResult.calories} kcal</Text>
             </View>
             <TouchableOpacity style={styles.miniUpdateButton} onPress={() => setStats(null)}>
-              <IconSymbol name="fitness.fill" size={20} color={GOLD_COLOR} />
+              <IconSymbol name="dumbbell.fill" size={20} color={GOLD_COLOR} />
               <Text style={styles.miniUpdateText}>ACTUALIZAR</Text>
             </TouchableOpacity>
           </View>
@@ -329,7 +329,7 @@ export default function NutritionScreen() {
 
         {calcResult.isOverridden && (
           <View style={styles.warningCard}>
-            <IconSymbol name="fitness.fill" size={24} color={GOLD_COLOR} />
+            <IconSymbol name="dumbbell.fill" size={24} color={GOLD_COLOR} />
             <Text style={styles.warningText}>
               Hemos ajustado tu objetivo a pérdida de grasa para priorizar tu salud debido a tu índice de masa corporal.
             </Text>
@@ -374,7 +374,7 @@ export default function NutritionScreen() {
                           <Text style={styles.mealTitle}>{meal.title}</Text>
                           {meal.time && <Text style={styles.mealTime}>{meal.time}</Text>}
                         </View>
-                        
+
                         {meal.options?.length > 1 && (
                           <View style={styles.optionsBadge}>
                             <Text style={styles.optionsBadgeText}>
@@ -387,7 +387,7 @@ export default function NutritionScreen() {
                       {meal.options?.length > 1 && (
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsScroll}>
                           {meal.options.map((opt, optIdx) => (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                               key={optIdx}
                               style={[styles.optionChip, selectedIdx === optIdx && styles.activeOptionChip]}
                               onPress={() => setSelectedOptions(prev => ({ ...prev, [idx]: optIdx }))}
@@ -417,7 +417,7 @@ export default function NutritionScreen() {
             </View>
           ) : (
             <View style={styles.emptyCard}>
-              <IconSymbol name="fitness.fill" size={48} color="#444" />
+              <IconSymbol name="dumbbell.fill" size={48} color="#444" />
               <Text style={styles.emptyText}>Tu entrenador aún no ha asignado un plan específico.</Text>
               <Text style={styles.emptySubtext}>Sigue tus calorías mientras tanto.</Text>
             </View>
@@ -429,7 +429,7 @@ export default function NutritionScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <CustomModal 
+      <CustomModal
         visible={modalVisible}
         title={modalConfig.title}
         message={modalConfig.message}

@@ -32,74 +32,74 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [email, setEmail] = useState('');
   const [step, setStep] = useState<'ID' | 'OTP'>('ID');
-  
+
   const otpInputRef = useRef<TextInput>(null);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleLogin = async () => {
     if (step === 'ID') {
-        if (!nationalId) {
-            setErrorMessage('Por favor ingrese su número de cédula');
-            setErrorVisible(true);
-            return;
-        }
+      if (!nationalId) {
+        setErrorMessage('Por favor ingrese su número de cédula');
+        setErrorVisible(true);
+        return;
+      }
 
-        setLoading(true);
-        try {
-            // 1. Lookup Email
-            const data = await AuthAPI.lookupEmailByCedula(nationalId);
-            if (!data.email) throw new Error('Cédula no encontrada');
-            setEmail(data.email);
+      setLoading(true);
+      try {
+        // 1. Lookup Email
+        const data = await AuthAPI.lookupEmailByCedula(nationalId);
+        if (!data.email) throw new Error('Cédula no encontrada');
+        setEmail(data.email);
 
-            // 2. Send OTP
-            await AuthAPI.signInWithOtp(data.email);
-            
-            Keyboard.dismiss();
-            setStep('OTP');
-            setSuccessMessage(`Se ha enviado un código a su correo registrado: ${data.email}`);
-            setSuccessVisible(true);
-        } catch (error: any) {
-            console.log(error);
-            setErrorMessage(error.response?.data?.message || 'Cédula no registrada o inválida');
-            setErrorVisible(true);
-        } finally {
-            setLoading(false);
-        }
+        // 2. Send OTP
+        await AuthAPI.signInWithOtp(data.email);
+
+        Keyboard.dismiss();
+        setStep('OTP');
+        setSuccessMessage(`Se ha enviado un código a su correo registrado: ${data.email}`);
+        setSuccessVisible(true);
+      } catch (error: any) {
+        console.log(error);
+        setErrorMessage(error.response?.data?.message || 'Cédula no registrada o inválida');
+        setErrorVisible(true);
+      } finally {
+        setLoading(false);
+      }
     } else {
-        // Step === OTP
-        if (!otp) {
-            setErrorMessage('Por favor ingrese el código de verificación');
-            setErrorVisible(true);
-            return;
+      // Step === OTP
+      if (!otp) {
+        setErrorMessage('Por favor ingrese el código de verificación');
+        setErrorVisible(true);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        console.log('[LoginScreen] Verifying OTP...');
+        const result = await AuthAPI.verifyOtp(email, otp);
+        console.log('[LoginScreen] OTP Verification Success:', result);
+
+        // Initial Sync to populate profiles table
+        if (result.session?.user) {
+          await UserAPI.syncProfile(result.session.user).catch(err => {
+            console.error('[LoginScreen] Initial sync failed:', err);
+          });
         }
 
-        setLoading(true);
-        try {
-            console.log('[LoginScreen] Verifying OTP...');
-            const result = await AuthAPI.verifyOtp(email, otp);
-            console.log('[LoginScreen] OTP Verification Success:', result);
-            
-            // Initial Sync to populate profiles table
-            if (result.session?.user) {
-              await UserAPI.syncProfile(result.session.user).catch(err => {
-                 console.error('[LoginScreen] Initial sync failed:', err);
-              });
-            }
-
-            console.log('[LoginScreen] Navigating to Home...');
-            goToHome();
-        } catch (error: any) {
-            console.error('[LoginScreen] OTP Verification Failed:', error);
-            setErrorMessage('Código incorrecto o expirado');
-            setErrorVisible(true);
-        } finally {
-            setLoading(false);
-        }
+        console.log('[LoginScreen] Navigating to Home...');
+        goToHome();
+      } catch (error: any) {
+        console.error('[LoginScreen] OTP Verification Failed:', error);
+        setErrorMessage('Código incorrecto o expirado');
+        setErrorVisible(true);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -112,13 +112,13 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <CustomModal 
+      <CustomModal
         visible={errorVisible}
         title="ERROR DE ACCESO"
         message={errorMessage}
         onClose={() => setErrorVisible(false)}
       />
-      <CustomModal 
+      <CustomModal
         visible={successVisible}
         title="CÓDIGO ENVIADO"
         type="success"
@@ -127,11 +127,11 @@ export default function LoginScreen() {
         onClose={() => {
           setSuccessVisible(false);
           // Autofocus OTP input after closing modal
-          setTimeout(() => otpInputRef.current?.focus(), 100);
+          setTimeout(() => otpInputRef.current?.focus(), 500);
         }}
       />
-      <ImageBackground 
-        source={require('../assets/images/login.jpg')} 
+      <ImageBackground
+        source={require('../assets/images/login.jpg')}
         style={styles.backgroundImage}
       >
         <LinearGradient
@@ -139,7 +139,7 @@ export default function LoginScreen() {
           style={styles.gradientOverlay}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={{ flex: 1 }}
             >
@@ -152,40 +152,45 @@ export default function LoginScreen() {
 
                 {/* Form Section */}
                 <View style={styles.formContainer}>
-                  
+
                   {step === 'ID' ? (
-                      /* ID Input */
-                      <View style={styles.inputWrapper}>
-                        <FontAwesome name="id-card" size={20} color="#C5A356" style={styles.inputIcon} />
-                        <TextInput
-                          style={styles.input}
-                          placeholder="Número de Cédula"
-                          maxLength={10}
-                          placeholderTextColor="#888"
-                          value={nationalId}
-                          onChangeText={setNationalId}
-                          keyboardType="numeric"
-                          returnKeyType="done"
-                          onSubmitEditing={handleLogin}
-                        />
-                      </View>
+                    /* ID Input */
+                    <View style={styles.inputWrapper}>
+                      <FontAwesome name="id-card" size={20} color="#C5A356" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Número de Cédula"
+                        maxLength={10}
+                        placeholderTextColor="#888"
+                        value={nationalId}
+                        onChangeText={setNationalId}
+                        keyboardType="numeric"
+                        returnKeyType="done"
+                        onSubmitEditing={handleLogin}
+                      />
+                    </View>
                   ) : (
-                      /* OTP Input */
-                      <View style={styles.inputWrapper}>
-                        <FontAwesome name="lock" size={20} color="#C5A356" style={styles.inputIcon} />
-                        <TextInput
-                          ref={otpInputRef}
-                          style={styles.input}
-                          placeholder="Código de Verificación (OTP)"
-                          placeholderTextColor="#888"
-                          value={otp}
-                          onChangeText={setOtp}
-                          keyboardType="number-pad"
-                          textContentType="oneTimeCode"
-                          returnKeyType="done"
-                          onSubmitEditing={handleLogin}
-                        />
-                      </View>
+                    /* OTP Input */
+                    <View style={styles.inputWrapper}>
+                      <FontAwesome name="lock" size={20} color="#C5A356" style={styles.inputIcon} />
+                      <TextInput
+                        ref={otpInputRef}
+                        style={styles.input}
+                        placeholder="Código de Verificación (OTP)"
+                        placeholderTextColor="#888"
+                        value={otp}
+                        onChangeText={setOtp}
+                        keyboardType="number-pad"
+                        textContentType="oneTimeCode"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        spellCheck={false}
+                        maxLength={8}
+                        selectionColor="#C5A356"
+                        returnKeyType="done"
+                        onSubmitEditing={handleLogin}
+                      />
+                    </View>
                   )}
 
                   {/* Login Button */}
@@ -198,18 +203,18 @@ export default function LoginScreen() {
                       </Text>
                     )}
                   </TouchableOpacity>
-                  
+
                   {step === 'OTP' && (
-                      <TouchableOpacity style={styles.secondaryButton} onPress={handleBack} disabled={loading}>
-                        <Text style={styles.secondaryButtonText}>Volver</Text>
-                      </TouchableOpacity>
+                    <TouchableOpacity style={styles.secondaryButton} onPress={handleBack} disabled={loading}>
+                      <Text style={styles.secondaryButtonText}>Volver</Text>
+                    </TouchableOpacity>
                   )}
 
                   {step === 'ID' && (
                     <TouchableOpacity style={styles.registerLink} onPress={goToRegister}>
-                        <Text style={styles.registerText}>
-                            ¿No tienes cuenta? <Text style={styles.linkText}>Crea una aquí</Text>
-                        </Text>
+                      <Text style={styles.registerText}>
+                        ¿No tienes cuenta? <Text style={styles.linkText}>Crea una aquí</Text>
+                      </Text>
                     </TouchableOpacity>
                   )}
 
@@ -316,7 +321,7 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     marginTop: 20,
-    alignItems: 'center', 
+    alignItems: 'center',
   },
   registerText: {
     color: '#ccc',

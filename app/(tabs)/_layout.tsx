@@ -47,7 +47,7 @@ export default function TabLayout() {
         name="nutrition"
         options={{
           title: 'Nutrición',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="nutrition.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="fork.knife" color={color} />,
         }}
       />
       <Tabs.Screen

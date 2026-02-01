@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function UserScanner() {
+export default function Scanner() {
   const router = useRouter();
   const { profile, setProfile } = useAppStore();
   const [permission, requestPermission] = useCameraPermissions();
@@ -89,11 +89,11 @@ export default function UserScanner() {
         <TouchableOpacity style={styles.backButton} onPress={requestPermission}>
           <Text style={styles.backButtonText}>PEDIR PERMISO</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.backButton, {marginTop: 10, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#C5A356'}]} 
+        <TouchableOpacity
+          style={[styles.backButton, { marginTop: 10, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#C5A356' }]}
           onPress={() => router.back()}
         >
-          <Text style={[styles.backButtonText, {color: '#C5A356'}]}>VOLVER</Text>
+          <Text style={[styles.backButtonText, { color: '#C5A356' }]}>VOLVER</Text>
         </TouchableOpacity>
       </View>
     );
@@ -102,7 +102,7 @@ export default function UserScanner() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
+
       <CameraView
         style={StyleSheet.absoluteFillObject}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
@@ -122,10 +122,10 @@ export default function UserScanner() {
 
           <View style={styles.scannerContainer}>
             <View style={styles.scannerFrame}>
-                <View style={[styles.corner, styles.topLeft]} />
-                <View style={[styles.corner, styles.topRight]} />
-                <View style={[styles.corner, styles.bottomLeft]} />
-                <View style={[styles.corner, styles.bottomRight]} />
+              <View style={[styles.corner, styles.topLeft]} />
+              <View style={[styles.corner, styles.topRight]} />
+              <View style={[styles.corner, styles.bottomLeft]} />
+              <View style={[styles.corner, styles.bottomRight]} />
             </View>
             <Text style={styles.helperText}>Apunta al código QR del establecimiento</Text>
           </View>
