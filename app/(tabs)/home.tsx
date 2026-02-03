@@ -66,15 +66,15 @@ export default function HomeScreen() {
   const segments = useSegments();
   const router = useRouter();
   const { goToLogin, goToProfile, goToNutrition, goToScanner, goToRankings, goToLocationPermission } = useAppNavigation();
-  
+
   // Zustand Store
-  const { 
-    profile, setProfile, 
+  const {
+    profile, setProfile,
     activeDiet, setActiveDiet,
     promos, setPromos,
     events, setEvents,
     leaderboard, setLeaderboard,
-    isHydrated 
+    isHydrated
   } = useAppStore();
 
   const [loading, setLoading] = useState(!isHydrated);
@@ -93,9 +93,9 @@ export default function HomeScreen() {
   // Effect to sync store data with local view data
   useEffect(() => {
     if (isHydrated) {
-      const user = profile ? { 
-         name: profile.username || 'Atleta', 
-         avatar: profile.photo_url 
+      const user = profile ? {
+        name: profile.username || 'Atleta',
+        avatar: profile.photo_url
       } : MOCK_USER;
 
       const nutritionData = activeDiet ? {
@@ -120,7 +120,7 @@ export default function HomeScreen() {
         leaderboard: leaderboard && leaderboard.length ? leaderboard : MOCK_LEADERBOARD,
         nutrition: nutritionData,
       }));
-      
+
       if (loading && profile) {
         setLoading(false);
       }
@@ -147,20 +147,28 @@ export default function HomeScreen() {
       await UserAPI.syncProfile(session.user);
 
       // 2. Refresh data in background
-      const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition, radarUsers] = await Promise.all([
+      const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition] = await Promise.all([
         UserAPI.getProfile(session.user.id).catch(() => profile),
         BannersAPI.getBanners().catch(() => promos || []),
         ContentAPI.getEvents().catch(() => events || MOCK_EVENTS),
         LeaderboardAPI.getLeaderboard().catch(() => leaderboard || MOCK_LEADERBOARD),
         NutritionAPI.getActiveDiet(session.user.id).catch(() => activeDiet),
-        RadarService.getGeofenceUsers('usersTest', 'userId'),
       ]);
+
       if (newProfile) setProfile(newProfile);
       if (newPromos) setPromos(newPromos);
       if (newEvents) setEvents(newEvents);
       if (newLeaderboard) setLeaderboard(newLeaderboard);
       if (newNutrition !== undefined) setActiveDiet(newNutrition);
-      setGeofenceUsers(radarUsers);
+
+      // 3. Fetch Radar data independently
+      RadarService.getGeofenceUsers('usersTest', 'userId')
+        .then(res => {
+          setGeofenceUsers(res);
+        })
+        .catch((err) => {
+          console.error("[HomeScreen] Radar fetch failed:", err.message || err);
+        });
 
     } catch (e) {
       console.error("[HomeScreen] Refresh failed:", e);
@@ -190,97 +198,97 @@ export default function HomeScreen() {
   };
 
   if (loading) {
-     return (
-        <SafeAreaView style={[styles.container, {justifyContent:'center', alignItems:'center', backgroundColor: 'black'}]}>
-             <ActivityIndicator size="large" color={GOLD_COLOR} />
-        </SafeAreaView>
-     );
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'black' }]}>
+        <ActivityIndicator size="large" color={GOLD_COLOR} />
+      </SafeAreaView>
+    );
   }
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <ImageBackground 
-        source={require('../../assets/images/login.jpg')} 
+      <ImageBackground
+        source={require('../../assets/images/login.jpg')}
         style={styles.backgroundImage}
       >
-         <LinearGradient
-            colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)']}
-            style={styles.gradientOverlay}
-         >
-            <SafeAreaView style={styles.safeArea}>
-              <ScrollView 
-                contentContainerStyle={styles.scrollContent} 
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl 
-                    refreshing={refreshing} 
-                    onRefresh={handleRefresh} 
-                    tintColor={GOLD_COLOR}
-                    colors={[GOLD_COLOR]}
-                  />
-                }
-              >
-                    {/* Top Bar with Points and Scanner */}
-                    <View style={styles.header}>
-                      <View>
-                        <Text style={styles.greeting}>Hola, {profile?.username || 'Atleta'}</Text>
-                        <TouchableOpacity style={styles.pointsContainer} onPress={() => goToRankings()}>
-                          <Ionicons name="flash" size={16} color="#FFD700" />
-                          <Text style={styles.pointsText}>{profile?.total_points || 0} PTS</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={styles.headerIcons}>
-                        <TouchableOpacity 
-                          style={styles.iconButton} 
-                          onPress={() => goToScanner()}
-                        >
-                          <Ionicons name="qr-code-outline" size={24} color="#FFF" />
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={styles.profileButton} 
-                          onPress={goToProfile}
-                        >
-                          {profile?.photo_url ? (
-                            <Image 
-                              source={{ uri: profile.photo_url }} 
-                              style={styles.avatar} 
-                            />
-                          ) : (
-                            <Ionicons name="person-circle-outline" size={32} color="#FFF" />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)']}
+          style={styles.gradientOverlay}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={GOLD_COLOR}
+                  colors={[GOLD_COLOR]}
+                />
+              }
+            >
+              {/* Top Bar with Points and Scanner */}
+              <View style={styles.header}>
+                <View>
+                  <Text style={styles.greeting}>Hola, {profile?.username || 'Atleta'}</Text>
+                  <TouchableOpacity style={styles.pointsContainer} onPress={() => goToRankings()}>
+                    <Ionicons name="flash" size={16} color="#FFD700" />
+                    <Text style={styles.pointsText}>{profile?.total_points || 0} PTS</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.headerIcons}>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => goToScanner()}
+                  >
+                    <Ionicons name="qr-code-outline" size={24} color="#FFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.profileButton}
+                    onPress={goToProfile}
+                  >
+                    {profile?.photo_url ? (
+                      <Image
+                        source={{ uri: profile.photo_url }}
+                        style={styles.avatar}
+                      />
+                    ) : (
+                      <Ionicons name="person-circle-outline" size={32} color="#FFF" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-                    {/* Crowd Meter */}
-                    <CrowdMeter count={geofenceUsers.length} users={geofenceUsers} />
+              {/* Crowd Meter */}
+              <CrowdMeter count={geofenceUsers.length} users={geofenceUsers} />
 
-                    {/* Radar Location Permission Reminder */}
-                    <LocationPermissionNotice onAction={goToLocationPermission} />
+              {/* Radar Location Permission Reminder */}
+              <LocationPermissionNotice onAction={goToLocationPermission} />
 
-                    {/* Promo Carousel */}
-                    <View style={{ marginTop: 16 }}>
-                        <PromoCarousel data={data.promos} onPressItem={handleBannerPress} />
-                    </View>
+              {/* Promo Carousel */}
+              <View style={{ marginTop: 16 }}>
+                <PromoCarousel data={data.promos} onPressItem={handleBannerPress} />
+              </View>
 
-                    {/* Upcoming Events */}
-                    <EventsTimeline data={data.events} onPressItem={handleEventPress} />
+              {/* Upcoming Events */}
+              <EventsTimeline data={data.events} onPressItem={handleEventPress} />
 
-                    {/* Top 3 Rankings */}
-                    <TopThreePodium 
-                      data={data.leaderboard.slice(0, 3)} 
-                      onSeeAll={() => router.push('/rankings')}
-                    />
+              {/* Top 3 Rankings */}
+              <TopThreePodium
+                data={data.leaderboard.slice(0, 3)}
+                onSeeAll={() => router.push('/rankings')}
+              />
 
-                    {/* Nutrition Plan */}
-                    <NutritionCard data={data.nutrition} onPress={goToNutrition} />
+              {/* Nutrition Plan */}
+              <NutritionCard data={data.nutrition} onPress={goToNutrition} />
 
-                    {/* Bottom Padding for Tab Bar */}
-                    <View style={{ height: 80 }} />
-              </ScrollView>
-            </SafeAreaView>
-         </LinearGradient>
+              {/* Bottom Padding for Tab Bar */}
+              <View style={{ height: 80 }} />
+            </ScrollView>
+          </SafeAreaView>
+        </LinearGradient>
       </ImageBackground>
     </View>
   );
@@ -301,7 +309,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   safeArea: {
-      flex: 1,
+    flex: 1,
   },
   scrollContent: {
     paddingBottom: 20,

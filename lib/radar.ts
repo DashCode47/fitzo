@@ -1,4 +1,4 @@
-import { RADAR_PUBLISHABLE_KEY, RADAR_SECRET_KEY } from '@/env';
+import { RADAR_PUBLISHABLE_KEY, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/env';
 import { Platform } from 'react-native';
 
 // We use a lazy-loaded Radar object to prevent the 'RNRadar not found' crash on import
@@ -74,7 +74,7 @@ export const RadarService = {
       if (status === 'NOT_DETERMINED') {
         const foregroundStatus = await Radar.requestPermissions(false);
         if (foregroundStatus === 'GRANTED_FOREGROUND' && Platform.OS === 'android') {
-             await Radar.requestPermissions(true);
+          await Radar.requestPermissions(true);
         }
         return foregroundStatus;
       }
@@ -119,19 +119,27 @@ export const RadarService = {
   },
 
   getGeofenceUsers: async (tag: string, externalId: string) => {
-    if (!RADAR_SECRET_KEY) {
-      console.warn('[RadarService] RADAR_SECRET_KEY not set, cannot query API');
-      return [];
-    }
     try {
-      const res = await fetch(
-        `https://api.radar.io/v1/geofences/${tag}/${externalId}/users`,
-        { headers: { Authorization: RADAR_SECRET_KEY } }
-      );
-      const json = await res.json();
-      return json.users || [];
-    } catch (e) {
-      console.error('[RadarService] getGeofenceUsers failed:', e);
+      // Direct fetch call mimicking the successful curl
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/radar-geofence-users`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tag, externalId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('[RadarService] Edge Function Error Body:', data);
+        return [];
+      }
+
+      return data?.users || [];
+    } catch (error: any) {
+      console.error('[RadarService] fetch Exception:', error.message);
       return [];
     }
   },
