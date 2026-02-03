@@ -6,7 +6,7 @@ import { NutritionAPI } from '@/api/nutrition';
 import { UserAPI } from '@/api/user';
 import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
 import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
-import { MOCK_CROWD, MOCK_EVENTS, MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
+import { MOCK_EVENTS, MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { RadarService } from '@/lib/radar';
 import { supabase } from '@/lib/supabase';
@@ -80,9 +80,10 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [geofenceUsers, setGeofenceUsers] = useState<any[]>([]);
+
   const [data, setData] = useState<any>({
     user: MOCK_USER,
-    crowd: MOCK_CROWD,
     promos: [],
     events: MOCK_EVENTS,
     leaderboard: MOCK_LEADERBOARD,
@@ -146,21 +147,20 @@ export default function HomeScreen() {
       await UserAPI.syncProfile(session.user);
 
       // 2. Refresh data in background
-      const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition, newCrowd] = await Promise.all([
+      const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition, radarUsers] = await Promise.all([
         UserAPI.getProfile(session.user.id).catch(() => profile),
         BannersAPI.getBanners().catch(() => promos || []),
         ContentAPI.getEvents().catch(() => events || MOCK_EVENTS),
         LeaderboardAPI.getLeaderboard().catch(() => leaderboard || MOCK_LEADERBOARD),
         NutritionAPI.getActiveDiet(session.user.id).catch(() => activeDiet),
-        ContentAPI.getCrowdStatus().catch(() => MOCK_CROWD)
+        RadarService.getGeofenceUsers('usersTest', 'userId'),
       ]);
       if (newProfile) setProfile(newProfile);
       if (newPromos) setPromos(newPromos);
       if (newEvents) setEvents(newEvents);
       if (newLeaderboard) setLeaderboard(newLeaderboard);
       if (newNutrition !== undefined) setActiveDiet(newNutrition);
-
-      setData((prev: any) => ({ ...prev, crowd: newCrowd }));
+      setGeofenceUsers(radarUsers);
 
     } catch (e) {
       console.error("[HomeScreen] Refresh failed:", e);
@@ -254,7 +254,7 @@ export default function HomeScreen() {
                     </View>
 
                     {/* Crowd Meter */}
-                    <CrowdMeter data={data.crowd} />
+                    <CrowdMeter count={geofenceUsers.length} users={geofenceUsers} />
 
                     {/* Radar Location Permission Reminder */}
                     <LocationPermissionNotice onAction={goToLocationPermission} />

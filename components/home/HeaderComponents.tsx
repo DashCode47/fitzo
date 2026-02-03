@@ -40,26 +40,48 @@ export const TopBar = ({ user, onPressProfile }: TopBarProps) => (
 );
 
 interface CrowdMeterProps {
-  data: { status: string; percentage: number; description: string };
+  count: number;
+  maxCapacity?: number;
+  users?: { _id?: string; userId?: string; metadata?: { name?: string } }[];
 }
-export const CrowdMeter = ({ data }: CrowdMeterProps) => (
-  <View style={styles.crowdContainer}>
-    <View style={styles.crowdCard}>
-      <View style={styles.crowdContent}>
-        <View style={styles.crowdIconContainer}>
+export const CrowdMeter = ({ count, maxCapacity = 80, users = [] }: CrowdMeterProps) => {
+  const percentage = Math.min(Math.round((count / maxCapacity) * 100), 100);
+  const status = percentage > 80 ? 'Alta' : percentage > 50 ? 'Media' : 'Baja';
+  const barColor = percentage > 80 ? '#ef4444' : percentage > 50 ? '#eab308' : '#22c55e';
+
+  return (
+    <View style={styles.crowdContainer}>
+      <View style={styles.crowdCard}>
+        <View style={styles.crowdContent}>
+          <View style={styles.crowdIconContainer}>
             <MaterialIcons name="groups" size={24} color={PRIMARY_COLOR} />
-        </View>
-        <View style={styles.crowdInfo}>
+          </View>
+          <View style={styles.crowdInfo}>
             <Text style={styles.crowdLabel}>AFLUENCIA</Text>
-            <Text style={styles.crowdStatus}>{data.status} <Text style={styles.crowdPercent}>({data.percentage}%)</Text></Text>
+            <Text style={styles.crowdStatus}>
+              {status} <Text style={styles.crowdPercent}>{count} / {maxCapacity}</Text>
+            </Text>
+          </View>
+          <View style={styles.miniProgressBar}>
+            <View style={[styles.miniProgressBarFill, { width: `${percentage}%`, backgroundColor: barColor }]} />
+          </View>
         </View>
-        <View style={styles.miniProgressBar}>
-            <View style={[styles.miniProgressBarFill, { width: `${data.percentage}%`, backgroundColor: data.percentage > 80 ? '#ef4444' : data.percentage > 50 ? '#eab308' : '#22c55e' }]} />
-        </View>
+        {users.length > 0 && (
+          <View style={styles.crowdUsersList}>
+            {users.map((u, i) => (
+              <View key={u._id || i} style={styles.crowdUserChip}>
+                <View style={styles.crowdUserDot} />
+                <Text style={styles.crowdUserName}>
+                  {u.metadata?.name || u.userId || 'Unknown'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 import { Banner } from '@/api/banners';
 
@@ -209,6 +231,10 @@ const styles = StyleSheet.create({
       overflow: 'hidden' 
   },
   miniProgressBarFill: { height: '100%', borderRadius: 3 },
+  crowdUsersList: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  crowdUserChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(13, 242, 89, 0.08)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  crowdUserDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e', marginRight: 6 },
+  crowdUserName: { color: '#ccc', fontSize: 11 },
 
   // PromoCarousel
   carouselContent: { paddingHorizontal: 16, gap: 16, paddingBottom: 16 },

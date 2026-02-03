@@ -1,4 +1,4 @@
-import { RADAR_PUBLISHABLE_KEY } from '@/env';
+import { RADAR_PUBLISHABLE_KEY, RADAR_SECRET_KEY } from '@/env';
 import { Platform } from 'react-native';
 
 // We use a lazy-loaded Radar object to prevent the 'RNRadar not found' crash on import
@@ -116,5 +116,23 @@ export const RadarService = {
     if (!isRadarAvailable) return;
     Radar.onLocationUpdated(null);
     Radar.onEventsReceived(null);
-  }
+  },
+
+  getGeofenceUsers: async (tag: string, externalId: string) => {
+    if (!RADAR_SECRET_KEY) {
+      console.warn('[RadarService] RADAR_SECRET_KEY not set, cannot query API');
+      return [];
+    }
+    try {
+      const res = await fetch(
+        `https://api.radar.io/v1/geofences/${tag}/${externalId}/users`,
+        { headers: { Authorization: RADAR_SECRET_KEY } }
+      );
+      const json = await res.json();
+      return json.users || [];
+    } catch (e) {
+      console.error('[RadarService] getGeofenceUsers failed:', e);
+      return [];
+    }
+  },
 };
