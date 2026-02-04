@@ -8,12 +8,13 @@ import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
 import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
 import { MOCK_EVENTS, MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { useGymOccupancy } from '@/hooks/useGymOccupancy';
 import { RadarService } from '@/lib/radar';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/utils/async';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -63,7 +64,6 @@ function LocationPermissionNotice({ onAction }: { onAction: () => void }) {
 }
 
 export default function HomeScreen() {
-  const segments = useSegments();
   const router = useRouter();
   const { goToLogin, goToProfile, goToNutrition, goToScanner, goToRankings, goToLocationPermission } = useAppNavigation();
 
@@ -80,7 +80,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [geofenceUsers, setGeofenceUsers] = useState<any[]>([]);
+  // Realtime gym occupancy from Supabase
+  const { count: gymCount, maxCapacity } = useGymOccupancy();
 
   const [data, setData] = useState<any>({
     user: MOCK_USER,
@@ -161,14 +162,7 @@ export default function HomeScreen() {
       if (newLeaderboard) setLeaderboard(newLeaderboard);
       if (newNutrition !== undefined) setActiveDiet(newNutrition);
 
-      // 3. Fetch Radar data independently
-      RadarService.getGeofenceUsers('usersTest', 'userId')
-        .then(res => {
-          setGeofenceUsers(res);
-        })
-        .catch((err) => {
-          console.error("[HomeScreen] Radar fetch failed:", err.message || err);
-        });
+      // Gym occupancy is now handled by useGymOccupancy hook via Realtime
 
     } catch (e) {
       console.error("[HomeScreen] Refresh failed:", e);
@@ -261,8 +255,8 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              {/* Crowd Meter */}
-              <CrowdMeter count={geofenceUsers.length} users={geofenceUsers} />
+              {/* Crowd Meter - Realtime from Supabase */}
+              <CrowdMeter count={gymCount} maxCapacity={maxCapacity} />
 
               {/* Radar Location Permission Reminder */}
               <LocationPermissionNotice onAction={goToLocationPermission} />
