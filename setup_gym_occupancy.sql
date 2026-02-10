@@ -22,7 +22,7 @@ CREATE POLICY "Lectura publica de ocupacion" ON public.gym_occupancy
 
 -- 4. Insertar el registro de tu Geofence especifico
 INSERT INTO public.gym_occupancy (geofence_id, current_count, max_capacity)
-VALUES ('69726786d7349b0a1f4d1afc', 0, 80)
+VALUES ('697297907c769f5824965c8a', 0, 80)
 ON CONFLICT (geofence_id) DO UPDATE SET updated_at = NOW();
 
 -- 5. Crear funcion RPC para actualizar el conteo de forma atomica

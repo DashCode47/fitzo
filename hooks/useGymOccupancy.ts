@@ -1,3 +1,4 @@
+import { GEOFENCE_ID } from '@/env';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 
@@ -9,7 +10,7 @@ export interface GymOccupancy {
   updated_at: string;
 }
 
-const DEFAULT_GEOFENCE_ID = '69726786d7349b0a1f4d1afc';
+const DEFAULT_GEOFENCE_ID = GEOFENCE_ID;
 
 export function useGymOccupancy(geofenceId: string = DEFAULT_GEOFENCE_ID) {
   const [occupancy, setOccupancy] = useState<GymOccupancy | null>(null);

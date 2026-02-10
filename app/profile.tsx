@@ -10,18 +10,19 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ImageBackground, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
-    Easing,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GOLD_COLOR = '#C5A356';
 
+import { GEOFENCE_ID } from '@/env';
 import { RadarService } from '@/lib/radar';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -43,6 +44,11 @@ export default function ProfileScreen() {
     type: 'error' as 'error' | 'success' | 'confirm',
     onConfirm: () => {}
   });
+
+  // Radar Debug state
+  const [geofenceStatus, setGeofenceStatus] = useState<'INSIDE' | 'OUTSIDE' | 'UNKNOWN'>('UNKNOWN');
+  const [debugLogs, setDebugLogs] = useState<{ id: string; time: string; event: string }[]>([]);
+  const [trackingMode, setTrackingMode] = useState<'Idle' | 'Continuous' | 'Responsive' | 'Efficient'>('Idle');
 
   const glowValue = useSharedValue(0);
 
@@ -126,6 +132,8 @@ export default function ProfileScreen() {
                 email: profile.email 
             });
             RadarService.startTracking('continuous');
+            setTrackingMode('Continuous');
+            addDebugLog('Tracking iniciado: Modo Continuo');
             Alert.alert("Sincronización Radar", "Ubicación enviada al dashboard (Modo Continuo activo).");
         }
     } catch (error) {
@@ -134,6 +142,42 @@ export default function ProfileScreen() {
         setLoading(false);
     }
   };
+
+  const addDebugLog = (event: string) => {
+    setDebugLogs(prev => [
+        { id: Math.random().toString(), time: new Date().toLocaleTimeString(), event },
+        ...prev.slice(0, 19) // Keep last 20
+    ]);
+  };
+
+  useEffect(() => {
+    // Listen for Radar events
+    RadarService.onEvents((result: any) => {
+        console.log('[Profile] Radar event received:', result);
+        const events = result.events || [];
+        events.forEach((event: any) => {
+            if (event.type === 'user.entered_geofence') {
+                if (event.geofence?._id === GEOFENCE_ID) {
+                    setGeofenceStatus('INSIDE');
+                    addDebugLog('ENTRADA detectada (Local)');
+                }
+            } else if (event.type === 'user.exited_geofence') {
+                if (event.geofence?._id === GEOFENCE_ID) {
+                    setGeofenceStatus('OUTSIDE');
+                    addDebugLog('SALIDA detectada (Local)');
+                }
+            }
+        });
+    });
+
+    RadarService.onLocation((result: any) => {
+        addDebugLog(`Ubicación: ${result.location.latitude.toFixed(4)}, ${result.location.longitude.toFixed(4)}`);
+    });
+
+    return () => {
+        RadarService.off();
+    };
+  }, []);
 
   if (loading && !profile) {
     return (
@@ -269,11 +313,57 @@ export default function ProfileScreen() {
 
                     {/* Radar Tools (Debug) */}
                     <View style={[styles.infoSection, { borderColor: GOLD_COLOR, borderWidth: 1 }]}>
-                        <Text style={[styles.infoLabel, { color: GOLD_COLOR, marginBottom: 10 }]}>Herramientas de Radar (Debug)</Text>
-                        <TouchableOpacity style={styles.debugItem} onPress={handleRadarSync}>
-                            <MaterialIcons name="sync" size={20} color={GOLD_COLOR} />
-                            <Text style={styles.debugText}>Sincronizar Ubicación (Live)</Text>
+                        <Text style={[styles.infoLabel, { color: GOLD_COLOR, marginBottom: 15 }]}>
+                            Radar Intelligence (Debug)
+                        </Text>
+                        
+                        {/* Live Status Visualizer */}
+                        <View style={styles.statusRow}>
+                            <View style={styles.statusIndicator}>
+                                <View style={[
+                                    styles.statusDot, 
+                                    { backgroundColor: geofenceStatus === 'INSIDE' ? '#0df259' : geofenceStatus === 'OUTSIDE' ? '#ef4444' : '#555' }
+                                ]} />
+                                <Text style={styles.statusMainText}>
+                                    {geofenceStatus === 'INSIDE' ? 'DENTRO DEL GYM' : geofenceStatus === 'OUTSIDE' ? 'FUERA DEL GYM' : 'BUSCANDO ESTADO...'}
+                                </Text>
+                            </View>
+                            <Text style={styles.trackingModeText}>{trackingMode}</Text>
+                        </View>
+
+                        <View style={styles.debugInfoBox}>
+                            <Text style={styles.debugLabel}>GEOFENCE ID:</Text>
+                            <Text style={styles.debugValue}>{GEOFENCE_ID}</Text>
+                        </View>
+
+                        <TouchableOpacity 
+                            style={[styles.debugItem, { backgroundColor: 'rgba(13, 242, 89, 0.1)', borderColor: 'rgba(13, 242, 89, 0.3)', borderWidth: 1 }]} 
+                            onPress={handleRadarSync}
+                        >
+                            <MaterialIcons name="share-location" size={20} color="#0df259" />
+                            <Text style={[styles.debugText, { color: '#0df259' }]}>Sincronizar Ubicación (Live)</Text>
                         </TouchableOpacity>
+
+                        {/* Debug Log */}
+                        <View style={styles.logContainer}>
+                            <View style={styles.logHeader}>
+                                <Text style={styles.logTitle}>Historial de Eventos</Text>
+                                <TouchableOpacity onPress={() => setDebugLogs([])}>
+                                    <Text style={styles.clearText}>Limpiar</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.logContent}>
+                                {debugLogs.length === 0 ? (
+                                    <Text style={styles.emptyLogText}>No hay eventos registrados</Text>
+                                ) : (
+                                    debugLogs.map(log => (
+                                        <Text key={log.id} style={styles.logEntry}>
+                                            <Text style={styles.logTime}>[{log.time}]</Text> {log.event}
+                                        </Text>
+                                    ))
+                                )}
+                            </View>
+                        </View>
                     </View>
 
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -524,5 +614,110 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 1,
+  },
+  // Radar Debug Styles
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+  },
+  statusMainText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  trackingModeText: {
+    color: GOLD_COLOR,
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    backgroundColor: 'rgba(197, 163, 86, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  debugInfoBox: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  debugLabel: {
+    color: '#888',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  debugValue: {
+    color: GOLD_COLOR,
+    fontSize: 11,
+    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  debugItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+  debugText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  logContainer: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  logHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    paddingBottom: 4,
+  },
+  logTitle: {
+    color: '#aaa',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  clearText: {
+    color: GOLD_COLOR,
+    fontSize: 11,
+  },
+  logContent: {
+    maxHeight: 120,
+  },
+  logEntry: {
+    color: '#ccc',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  logTime: {
+    color: GOLD_COLOR,
+    fontWeight: 'bold',
+  },
+  emptyLogText: {
+    color: '#555',
+    fontSize: 11,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 10,
   },
 });

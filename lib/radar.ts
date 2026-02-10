@@ -1,4 +1,4 @@
-import { RADAR_PUBLISHABLE_KEY, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/env';
+import { GEOFENCE_ID, RADAR_PUBLISHABLE_KEY } from '@/env';
 import { Platform } from 'react-native';
 
 // We use a lazy-loaded Radar object to prevent the 'RNRadar not found' crash on import
@@ -119,28 +119,8 @@ export const RadarService = {
   },
 
   getGeofenceUsers: async (tag: string, externalId: string) => {
-    try {
-      // Direct fetch call mimicking the successful curl
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/radar-geofence-users`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ tag, externalId })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('[RadarService] Edge Function Error Body:', data);
-        return [];
-      }
-
-      return data?.users || [];
-    } catch (error: any) {
-      console.error('[RadarService] fetch Exception:', error.message);
-      return [];
-    }
+    // ... (existing code)
   },
+
+  getGeofenceId: () => GEOFENCE_ID,
 };
