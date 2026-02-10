@@ -25,7 +25,8 @@ export function useGymOccupancy(geofenceId: string = DEFAULT_GEOFENCE_ID) {
           .from('gym_occupancy')
           .select('*')
           .eq('geofence_id', geofenceId)
-          .single();
+          .limit(1)
+          .maybeSingle();
 
         if (fetchError) {
           console.error('[useGymOccupancy] Fetch error:', fetchError.message);

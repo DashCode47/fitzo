@@ -104,12 +104,44 @@ export const RadarService = {
 
   onLocation: (callback: (result: any) => void) => {
     if (!isRadarAvailable) return;
-    Radar.onLocationUpdated(callback);
+    Radar.onLocationUpdated((result: any) => {
+      if (result?.location && typeof result.location === 'string') {
+        try {
+          result.location = JSON.parse(result.location);
+        } catch (e) {
+          console.warn('[Radar] Failed to parse location string:', result.location);
+        }
+      }
+      if (result?.user && typeof result.user === 'string') {
+        try {
+          result.user = JSON.parse(result.user);
+        } catch (e) {
+          console.warn('[Radar] Failed to parse user string:', result.user);
+        }
+      }
+      callback(result);
+    });
   },
 
   onEvents: (callback: (result: any) => void) => {
     if (!isRadarAvailable) return;
-    Radar.onEventsReceived(callback);
+    Radar.onEventsReceived((result: any) => {
+      if (result?.events && typeof result.events === 'string') {
+        try {
+          result.events = JSON.parse(result.events);
+        } catch (e) {
+          console.warn('[Radar] Failed to parse events string:', result.events);
+        }
+      }
+      if (result?.user && typeof result.user === 'string') {
+        try {
+          result.user = JSON.parse(result.user);
+        } catch (e) {
+          console.warn('[Radar] Failed to parse user string:', result.user);
+        }
+      }
+      callback(result);
+    });
   },
 
   off: () => {

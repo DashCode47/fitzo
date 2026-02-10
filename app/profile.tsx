@@ -42,7 +42,7 @@ export default function ProfileScreen() {
     title: '',
     message: '',
     type: 'error' as 'error' | 'success' | 'confirm',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   // Radar Debug state
@@ -103,7 +103,7 @@ export default function ProfileScreen() {
         setModalVisible(false);
         try {
           await AuthAPI.logout();
-          clearAll(); 
+          clearAll();
           goToLogin();
         } catch (error) {
           console.error("Logout failed:", error);
@@ -119,63 +119,70 @@ export default function ProfileScreen() {
 
   const handleRadarSync = async () => {
     try {
-        setLoading(true);
-        const status = await RadarService.requestPermissions();
-        if (status === 'DENIED') {
-            Alert.alert("Permisos Denegados", "Por favor habilita la ubicación en los ajustes para usar el geofencing.");
-            return;
-        }
+      setLoading(true);
+      const status = await RadarService.requestPermissions();
+      if (status === 'DENIED') {
+        Alert.alert("Permisos Denegados", "Por favor habilita la ubicación en los ajustes para usar el geofencing.");
+        return;
+      }
 
-        if (profile?.id) {
-            await RadarService.activate(profile.id, { 
-                name: profile.username,
-                email: profile.email 
-            });
-            RadarService.startTracking('continuous');
-            setTrackingMode('Continuous');
-            addDebugLog('Tracking iniciado: Modo Continuo');
-            Alert.alert("Sincronización Radar", "Ubicación enviada al dashboard (Modo Continuo activo).");
-        }
+      if (profile?.id) {
+        await RadarService.activate(profile.id, {
+          name: profile.username,
+          email: profile.email
+        });
+        RadarService.startTracking('continuous');
+        setTrackingMode('Continuous');
+        addDebugLog('Tracking iniciado: Modo Continuo');
+        Alert.alert("Sincronización Radar", "Ubicación enviada al dashboard (Modo Continuo activo).");
+      }
     } catch (error) {
-        console.error("Radar sync error:", error);
+      console.error("Radar sync error:", error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   const addDebugLog = (event: string) => {
     setDebugLogs(prev => [
-        { id: Math.random().toString(), time: new Date().toLocaleTimeString(), event },
-        ...prev.slice(0, 19) // Keep last 20
+      { id: Math.random().toString(), time: new Date().toLocaleTimeString(), event },
+      ...prev.slice(0, 19) // Keep last 20
     ]);
   };
 
   useEffect(() => {
     // Listen for Radar events
     RadarService.onEvents((result: any) => {
-        console.log('[Profile] Radar event received:', result);
-        const events = result.events || [];
-        events.forEach((event: any) => {
-            if (event.type === 'user.entered_geofence') {
-                if (event.geofence?._id === GEOFENCE_ID) {
-                    setGeofenceStatus('INSIDE');
-                    addDebugLog('ENTRADA detectada (Local)');
-                }
-            } else if (event.type === 'user.exited_geofence') {
-                if (event.geofence?._id === GEOFENCE_ID) {
-                    setGeofenceStatus('OUTSIDE');
-                    addDebugLog('SALIDA detectada (Local)');
-                }
-            }
-        });
+      console.log('[Profile] Radar event received:', result);
+      const events = result.events || [];
+      events.forEach((event: any) => {
+        if (event.type === 'user.entered_geofence') {
+          if (event.geofence?._id === GEOFENCE_ID) {
+            setGeofenceStatus('INSIDE');
+            addDebugLog('ENTRADA detectada (Local)');
+          }
+        } else if (event.type === 'user.exited_geofence') {
+          if (event.geofence?._id === GEOFENCE_ID) {
+            setGeofenceStatus('OUTSIDE');
+            addDebugLog('SALIDA detectada (Local)');
+          }
+        }
+      });
     });
 
     RadarService.onLocation((result: any) => {
-        addDebugLog(`Ubicación: ${result.location.latitude.toFixed(4)}, ${result.location.longitude.toFixed(4)}`);
+      if (result?.location?.latitude !== undefined && result?.location?.longitude !== undefined) {
+        addDebugLog(`Ubicación: ${Number(result.location.latitude).toFixed(4)}, ${Number(result.location.longitude).toFixed(4)}`);
+      } else if (result?.latitude !== undefined && result?.longitude !== undefined) {
+        // Fallback if result IS the location object
+        addDebugLog(`Ubicación: ${Number(result.latitude).toFixed(4)}, ${Number(result.longitude).toFixed(4)}`);
+      } else {
+        console.warn('[Radar] Invalid location update received:', result);
+      }
     });
 
     return () => {
-        RadarService.off();
+      RadarService.off();
     };
   }, []);
 
@@ -192,20 +199,20 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if ((profile?.total_points || 0) > 0) {
-        const rotationDuration = 4000 - (intensity * 3500); // 4s down to 0.5s
-        pointsRotation.value = withRepeat(
-            withTiming(360, { duration: rotationDuration, easing: Easing.linear }),
-            -1,
-            false
-        );
+      const rotationDuration = 4000 - (intensity * 3500); // 4s down to 0.5s
+      pointsRotation.value = withRepeat(
+        withTiming(360, { duration: rotationDuration, easing: Easing.linear }),
+        -1,
+        false
+      );
     } else {
-        pointsRotation.value = 0;
+      pointsRotation.value = 0;
     }
   }, [profile?.total_points]);
 
   const animatedPointsStyle = useAnimatedStyle(() => {
     const glow = interpolate(intensity, [0, 1], [0, 15]);
-    
+
     return {
       transform: [{ rotate: `${pointsRotation.value}deg` }],
       opacity: intensity > 0 ? 1 : 0,
@@ -221,14 +228,14 @@ export default function ProfileScreen() {
   const role = profile?.role || 'CLIENT';
   const status = profile?.status || 'ACTIVE';
   const points = profile?.total_points || 0;
-  
+
   // Cache busting for avatar
   const photoUrl = profile?.photo_url ? `${profile.photo_url}?t=${avatarTimestamp}` : null;
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <CustomModal 
+      <CustomModal
         visible={modalVisible}
         title={modalConfig.title}
         message={modalConfig.message}
@@ -236,158 +243,158 @@ export default function ProfileScreen() {
         onClose={() => setModalVisible(false)}
         onConfirm={modalConfig.onConfirm}
       />
-      <ImageBackground 
-        source={require('../assets/images/login.jpg')} 
+      <ImageBackground
+        source={require('../assets/images/login.jpg')}
         style={styles.backgroundImage}
       >
-         <LinearGradient
-            colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
-            style={styles.gradientOverlay}
-         >
-            <SafeAreaView style={styles.safeArea}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={goBack} style={styles.backButton}>
-                      <MaterialIcons name="arrow-back" size={24} color="white" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>MI PERFIL</Text>
-                    <View style={{ width: 40 }} /> 
-                </View>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
+          style={styles.gradientOverlay}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={goBack} style={styles.backButton}>
+                <MaterialIcons name="arrow-back" size={24} color="white" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>MI PERFIL</Text>
+              <View style={{ width: 40 }} />
+            </View>
 
-                <View style={styles.content}>
-                    <View style={styles.avatarSection}>
-                        <View style={styles.avatarContainer}>
-                            {photoUrl ? (
-                                <View>
-                                    <Image source={{ uri: photoUrl }} style={styles.avatar} />
-                                    {uploading && (
-                                        <View style={styles.uploadingOverlay}>
-                                            <ActivityIndicator size="small" color={GOLD_COLOR} />
-                                        </View>
-                                    )}
-                                </View>
-                            ) : (
-                                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                    {uploading ? (
-                                        <ActivityIndicator size="small" color={GOLD_COLOR} />
-                                    ) : (
-                                        <Text style={styles.avatarInitials}>
-                                            {username?.[0]?.toUpperCase()}
-                                        </Text>
-                                    )}
-                                </View>
-                            )}
-                            <TouchableOpacity 
-                                style={styles.editBadge} 
-                                onPress={handleUpdateAvatar}
-                                disabled={uploading}
-                            >
-                                <MaterialIcons name="photo-camera" size={14} color="black" />
-                            </TouchableOpacity>
+            <View style={styles.content}>
+              <View style={styles.avatarSection}>
+                <View style={styles.avatarContainer}>
+                  {photoUrl ? (
+                    <View>
+                      <Image source={{ uri: photoUrl }} style={styles.avatar} />
+                      {uploading && (
+                        <View style={styles.uploadingOverlay}>
+                          <ActivityIndicator size="small" color={GOLD_COLOR} />
                         </View>
-                        <Animated.Text style={[styles.name, animatedNameStyle]}>
-                            {username}
-                        </Animated.Text>
-                        <Text style={styles.role}>{role}</Text>
-                        
-                        <View style={styles.pointsWrapper}>
-                            <Animated.View style={[styles.pointsBorder, animatedPointsStyle]}>
-                                <LinearGradient
-                                    colors={[GOLD_COLOR, 'transparent', GOLD_COLOR, 'transparent']}
-                                    style={styles.gradientBorder}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                />
-                            </Animated.View>
-                            <View style={styles.pointsBadgeInner}>
-                                <Ionicons name="flash" size={16} color={GOLD_COLOR} />
-                                <Text style={styles.pointsText}>{points} PUNTOS</Text>
-                            </View>
-                        </View>
+                      )}
                     </View>
-
-                    <View style={styles.infoSection}>
-                        <InfoItem icon="email" label="Correo" value={email} />
-                        <InfoItem icon="phone" label="Teléfono" value={phone} />
-                        <InfoItem icon="verified-user" label="Estado" value={status} />
-                    </View>
-
-                    {/* Radar Tools (Debug) */}
-                    <View style={[styles.infoSection, { borderColor: GOLD_COLOR, borderWidth: 1 }]}>
-                        <Text style={[styles.infoLabel, { color: GOLD_COLOR, marginBottom: 15 }]}>
-                            Radar Intelligence (Debug)
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                      {uploading ? (
+                        <ActivityIndicator size="small" color={GOLD_COLOR} />
+                      ) : (
+                        <Text style={styles.avatarInitials}>
+                          {username?.[0]?.toUpperCase()}
                         </Text>
-                        
-                        {/* Live Status Visualizer */}
-                        <View style={styles.statusRow}>
-                            <View style={styles.statusIndicator}>
-                                <View style={[
-                                    styles.statusDot, 
-                                    { backgroundColor: geofenceStatus === 'INSIDE' ? '#0df259' : geofenceStatus === 'OUTSIDE' ? '#ef4444' : '#555' }
-                                ]} />
-                                <Text style={styles.statusMainText}>
-                                    {geofenceStatus === 'INSIDE' ? 'DENTRO DEL GYM' : geofenceStatus === 'OUTSIDE' ? 'FUERA DEL GYM' : 'BUSCANDO ESTADO...'}
-                                </Text>
-                            </View>
-                            <Text style={styles.trackingModeText}>{trackingMode}</Text>
-                        </View>
-
-                        <View style={styles.debugInfoBox}>
-                            <Text style={styles.debugLabel}>GEOFENCE ID:</Text>
-                            <Text style={styles.debugValue}>{GEOFENCE_ID}</Text>
-                        </View>
-
-                        <TouchableOpacity 
-                            style={[styles.debugItem, { backgroundColor: 'rgba(13, 242, 89, 0.1)', borderColor: 'rgba(13, 242, 89, 0.3)', borderWidth: 1 }]} 
-                            onPress={handleRadarSync}
-                        >
-                            <MaterialIcons name="share-location" size={20} color="#0df259" />
-                            <Text style={[styles.debugText, { color: '#0df259' }]}>Sincronizar Ubicación (Live)</Text>
-                        </TouchableOpacity>
-
-                        {/* Debug Log */}
-                        <View style={styles.logContainer}>
-                            <View style={styles.logHeader}>
-                                <Text style={styles.logTitle}>Historial de Eventos</Text>
-                                <TouchableOpacity onPress={() => setDebugLogs([])}>
-                                    <Text style={styles.clearText}>Limpiar</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <View style={styles.logContent}>
-                                {debugLogs.length === 0 ? (
-                                    <Text style={styles.emptyLogText}>No hay eventos registrados</Text>
-                                ) : (
-                                    debugLogs.map(log => (
-                                        <Text key={log.id} style={styles.logEntry}>
-                                            <Text style={styles.logTime}>[{log.time}]</Text> {log.event}
-                                        </Text>
-                                    ))
-                                )}
-                            </View>
-                        </View>
+                      )}
                     </View>
-
-                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                        <MaterialIcons name="logout" size={24} color="black" />
-                        <Text style={styles.logoutText}>CERRAR SESIÓN</Text>
-                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.editBadge}
+                    onPress={handleUpdateAvatar}
+                    disabled={uploading}
+                  >
+                    <MaterialIcons name="photo-camera" size={14} color="black" />
+                  </TouchableOpacity>
                 </View>
-            </SafeAreaView>
-         </LinearGradient>
+                <Animated.Text style={[styles.name, animatedNameStyle]}>
+                  {username}
+                </Animated.Text>
+                <Text style={styles.role}>{role}</Text>
+
+                <View style={styles.pointsWrapper}>
+                  <Animated.View style={[styles.pointsBorder, animatedPointsStyle]}>
+                    <LinearGradient
+                      colors={[GOLD_COLOR, 'transparent', GOLD_COLOR, 'transparent']}
+                      style={styles.gradientBorder}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    />
+                  </Animated.View>
+                  <View style={styles.pointsBadgeInner}>
+                    <Ionicons name="flash" size={16} color={GOLD_COLOR} />
+                    <Text style={styles.pointsText}>{points} PUNTOS</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.infoSection}>
+                <InfoItem icon="email" label="Correo" value={email} />
+                <InfoItem icon="phone" label="Teléfono" value={phone} />
+                <InfoItem icon="verified-user" label="Estado" value={status} />
+              </View>
+
+              {/* Radar Tools (Debug) */}
+              <View style={[styles.infoSection, { borderColor: GOLD_COLOR, borderWidth: 1 }]}>
+                <Text style={[styles.infoLabel, { color: GOLD_COLOR, marginBottom: 15 }]}>
+                  Radar Intelligence (Debug)
+                </Text>
+
+                {/* Live Status Visualizer */}
+                <View style={styles.statusRow}>
+                  <View style={styles.statusIndicator}>
+                    <View style={[
+                      styles.statusDot,
+                      { backgroundColor: geofenceStatus === 'INSIDE' ? '#0df259' : geofenceStatus === 'OUTSIDE' ? '#ef4444' : '#555' }
+                    ]} />
+                    <Text style={styles.statusMainText}>
+                      {geofenceStatus === 'INSIDE' ? 'DENTRO DEL GYM' : geofenceStatus === 'OUTSIDE' ? 'FUERA DEL GYM' : 'BUSCANDO ESTADO...'}
+                    </Text>
+                  </View>
+                  <Text style={styles.trackingModeText}>{trackingMode}</Text>
+                </View>
+
+                <View style={styles.debugInfoBox}>
+                  <Text style={styles.debugLabel}>GEOFENCE ID:</Text>
+                  <Text style={styles.debugValue}>{GEOFENCE_ID}</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.debugItem, { backgroundColor: 'rgba(13, 242, 89, 0.1)', borderColor: 'rgba(13, 242, 89, 0.3)', borderWidth: 1 }]}
+                  onPress={handleRadarSync}
+                >
+                  <MaterialIcons name="share-location" size={20} color="#0df259" />
+                  <Text style={[styles.debugText, { color: '#0df259' }]}>Sincronizar Ubicación (Live)</Text>
+                </TouchableOpacity>
+
+                {/* Debug Log */}
+                <View style={styles.logContainer}>
+                  <View style={styles.logHeader}>
+                    <Text style={styles.logTitle}>Historial de Eventos</Text>
+                    <TouchableOpacity onPress={() => setDebugLogs([])}>
+                      <Text style={styles.clearText}>Limpiar</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.logContent}>
+                    {debugLogs.length === 0 ? (
+                      <Text style={styles.emptyLogText}>No hay eventos registrados</Text>
+                    ) : (
+                      debugLogs.map(log => (
+                        <Text key={log.id} style={styles.logEntry}>
+                          <Text style={styles.logTime}>[{log.time}]</Text> {log.event}
+                        </Text>
+                      ))
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <MaterialIcons name="logout" size={24} color="black" />
+                <Text style={styles.logoutText}>CERRAR SESIÓN</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
       </ImageBackground>
     </View>
   );
 }
 
 const InfoItem = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
-    <View style={styles.infoItem}>
-        <View style={styles.iconBox}>
-            <MaterialIcons name={icon} size={20} color={GOLD_COLOR} />
-        </View>
-        <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>{label}</Text>
-            <Text style={styles.infoValue}>{value}</Text>
-        </View>
+  <View style={styles.infoItem}>
+    <View style={styles.iconBox}>
+      <MaterialIcons name={icon} size={20} color={GOLD_COLOR} />
     </View>
+    <View style={styles.infoContent}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  </View>
 );
 
 const styles = StyleSheet.create({
@@ -396,10 +403,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
   },
   loadingContainer: {
-      flex: 1,
-      backgroundColor: 'black',
-      justifyContent: 'center',
-      alignItems: 'center'
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   backgroundImage: {
     flex: 1,
@@ -410,8 +417,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   safeArea: {
-      flex: 1,
-      paddingTop: Platform.OS === 'android' ? 30 : 0
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? 30 : 0
   },
   header: {
     flexDirection: 'row',
@@ -451,14 +458,14 @@ const styles = StyleSheet.create({
     borderColor: GOLD_COLOR,
   },
   avatarPlaceholder: {
-      backgroundColor: '#333',
-      justifyContent: 'center',
-      alignItems: 'center',
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarInitials: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      color: GOLD_COLOR,
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: GOLD_COLOR,
   },
   onlineBadge: {
     width: 20,

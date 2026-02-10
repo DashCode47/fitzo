@@ -10,6 +10,13 @@
         "preview": {
             "android": {
                 "buildType": "apk"
+            },
+            "env": {
+                "EXPO_PUBLIC_SUPABASE_URL": "https://tknrskcfyumkvywfaiye.supabase.co",
+                "EXPO_PUBLIC_SUPABASE_ANON_KEY": "***REMOVED-SECRET***",
+                "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "***REMOVED-SECRET***",
+                "EXPO_PUBLIC_RADAR_SECRET_KEY": "***REMOVED-SECRET***",
+                "EXPO_PUBLIC_GEOFENCE_ID": "69726786d7349b0a1f4d1afc"
             }
         },
         "production": {}
