@@ -244,11 +244,11 @@ export default function ProfileScreen() {
         onConfirm={modalConfig.onConfirm}
       />
       <ImageBackground
-        source={require('../assets/images/login.jpg')}
+        source={require('../assets/images/bg.jpg')}
         style={styles.backgroundImage}
       >
         <LinearGradient
-          colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
+          colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.6)']}
           style={styles.gradientOverlay}
         >
           <SafeAreaView style={styles.safeArea}>

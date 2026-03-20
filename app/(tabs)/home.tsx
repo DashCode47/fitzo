@@ -203,11 +203,11 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
       <ImageBackground
-        source={require('../../assets/images/login.jpg')}
+        source={require('../../assets/images/bg.jpg')}
         style={styles.backgroundImage}
       >
         <LinearGradient
-          colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)']}
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
           style={styles.gradientOverlay}
         >
           <SafeAreaView style={styles.safeArea}>

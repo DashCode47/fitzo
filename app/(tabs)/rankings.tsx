@@ -9,14 +9,14 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    ImageBackground,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -116,11 +116,11 @@ export default function RankingsScreen() {
         buttonText="ENTENDIDO"
       />
       <ImageBackground
-        source={require('../../assets/images/login.jpg')}
+        source={require('../../assets/images/bg.jpg')}
         style={styles.backgroundImage}
       >
         <LinearGradient
-          colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)']}
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
           style={styles.gradientOverlay}
         >
           <SafeAreaView style={styles.safeArea}>
