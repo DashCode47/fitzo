@@ -1,60 +1,70 @@
+import { theme } from '@/constants/theme';
+import { HapticTab } from '@/components/haptic-tab';
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const GOLD_COLOR = '#C5A356';
+function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
+  return (
+    <Ionicons
+      name={name}
+      size={22}
+      color={focused ? theme.accent : theme.textMuted}
+    />
+  );
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: GOLD_COLOR,
-        tabBarInactiveTintColor: '#888',
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.textMuted,
         tabBarStyle: {
-          backgroundColor: '#000',
+          backgroundColor: theme.bgCard,
           borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.1)',
-          height: 60,
-          paddingBottom: 10,
+          borderTopColor: theme.borderSubtle,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: 'bold',
-        }
-      }}>
+          fontWeight: '600',
+          letterSpacing: 0.3,
+        },
+      }}
+    >
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+          title: 'Inicio',
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="store"
         options={{
           title: 'Tienda',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="cart.fill" color={color} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bag' : 'bag-outline'} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="nutrition"
         options={{
           title: 'Nutrición',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="fork.knife" color={color} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'restaurant' : 'restaurant-outline'} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="rankings"
         options={{
           title: 'Ranking',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="trophy.fill" color={color} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'trophy' : 'trophy-outline'} focused={focused} />,
         }}
       />
     </Tabs>

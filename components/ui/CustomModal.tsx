@@ -1,5 +1,6 @@
 
-import { FontAwesome } from '@expo/vector-icons';
+import { theme } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -17,77 +18,63 @@ interface CustomModalProps {
 
 const { width } = Dimensions.get('window');
 
-export const CustomModal = ({ 
-  visible, 
-  title, 
-  message, 
-  onClose, 
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TYPE_CONFIG: Record<string, { icon: IoniconName; color: string; bgColor: string }> = {
+  success: { icon: 'checkmark-circle',  color: theme.success,        bgColor: 'rgba(52,211,153,0.12)' },
+  error:   { icon: 'close-circle',      color: theme.error,          bgColor: 'rgba(248,113,113,0.12)' },
+  info:    { icon: 'information-circle', color: theme.accent,         bgColor: theme.accentDim },
+  confirm: { icon: 'help-circle',       color: theme.warning,        bgColor: 'rgba(251,191,36,0.12)' },
+};
+
+export const CustomModal = ({
+  visible,
+  title,
+  message,
+  onClose,
   onConfirm,
-  type = 'error', 
+  type = 'error',
   buttonText,
-  cancelText = 'CANCELAR'
+  cancelText = 'Cancelar',
 }: CustomModalProps) => {
   const isConfirm = type === 'confirm';
-  const isSuccess = type === 'success';
-  const defaultButtonText = type === 'error' ? 'INTENTAR DE NUEVO' : isConfirm ? 'CONFIRMAR' : 'CONTINUAR';
-  
-  const getIcon = () => {
-    switch(type) {
-      case 'success': return 'check-circle';
-      case 'confirm': return 'question-circle';
-      case 'info': return 'info-circle';
-      default: return 'exclamation-circle';
-    }
-  };
+  const cfg = TYPE_CONFIG[type] ?? TYPE_CONFIG.error;
+  const defaultButtonText = isConfirm ? 'Confirmar' : type === 'error' ? 'Intentar de nuevo' : 'Entendido';
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.centeredView}>
-        <View style={styles.overlay} />
-        
-        <View style={[
-          styles.modalView, 
-          isSuccess && styles.successGlow,
-          type === 'error' && styles.errorGlow
-        ]}>
-            <LinearGradient
-                colors={['#1A1A1A', '#0A0A0A']}
-                style={styles.gradientBorder}
-            >
-                <View style={styles.iconContainer}>
-                     <FontAwesome 
-                        name={getIcon()} 
-                        size={50} 
-                        color="#C5A356" 
-                     />
-                </View>
-                
-                <Text style={styles.modalTitle}>{title}</Text>
-                <Text style={styles.modalText}>{message}</Text>
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+      <View style={styles.backdrop}>
 
-                <View style={styles.buttonContainer}>
-                    {isConfirm && (
-                        <TouchableOpacity
-                            style={[styles.button, styles.cancelButton]}
-                            onPress={onClose}
-                        >
-                            <Text style={styles.cancelTextStyle}>{cancelText}</Text>
-                        </TouchableOpacity>
-                    )}
-                    
-                    <TouchableOpacity
-                        style={[styles.button, isConfirm && styles.confirmButton]}
-                        onPress={onConfirm || onClose}
-                    >
-                        <Text style={styles.textStyle}>{buttonText || defaultButtonText}</Text>
-                    </TouchableOpacity>
-                </View>
-            </LinearGradient>
+        <View style={[styles.card, { borderColor: `${cfg.color}33` }]}>
+
+          {/* Icon */}
+          <View style={[styles.iconWrap, { backgroundColor: cfg.bgColor }]}>
+            <Ionicons name={cfg.icon} size={36} color={cfg.color} />
+          </View>
+
+          {/* Text */}
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.message}>{message}</Text>
+
+          {/* Buttons */}
+          <View style={[styles.btnRow, isConfirm && { gap: 10 }]}>
+            {isConfirm && (
+              <TouchableOpacity style={styles.cancelBtn} onPress={onClose} activeOpacity={0.75}>
+                <Text style={styles.cancelText}>{cancelText}</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.primaryBtn, isConfirm && { flex: 1 }]} onPress={onConfirm || onClose} activeOpacity={0.85}>
+              <LinearGradient
+                colors={type === 'error' ? ['#F87171', '#EF4444'] : type === 'confirm' ? ['#FBBF24', '#F59E0B'] : theme.gradients.accent}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.primaryBtnGradient}
+              >
+                <Text style={styles.primaryBtnText}>{buttonText || defaultButtonText}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
         </View>
       </View>
     </Modal>
@@ -95,97 +82,94 @@ export const CustomModal = ({
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
+  backdrop: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingHorizontal: 24,
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-  },
-  modalView: {
-    width: width * 0.85,
-    borderRadius: 25,
-    overflow: 'hidden',
-    elevation: 20,
-    borderWidth: 1.5,
-    borderColor: 'rgba(197, 163, 86, 0.3)',
-  },
-  successGlow: {
-    borderColor: '#C5A356',
-    shadowColor: '#C5A356',
-    shadowOffset: { width: 0, height: 0 },
+  card: {
+    width: '100%',
+    maxWidth: width * 0.88,
+    backgroundColor: theme.bgCard,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 28,
+    alignItems: 'center',
+    gap: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
-    shadowRadius: 20,
+    shadowRadius: 32,
+    elevation: 20,
   },
-  errorGlow: {
-    borderColor: '#FF4444',
+
+  // Icon
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
-  gradientBorder: {
-      padding: 30,
-      alignItems: 'center',
-  },
-  iconContainer: {
-      marginBottom: 20,
-      shadowColor: '#C5A356',
-      shadowOpacity: 0.8,
-      shadowRadius: 15,
-      shadowOffset: { width: 0, height: 0 },
-  },
-  modalTitle: {
-    marginBottom: 12,
+
+  // Text
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: theme.textPrimary,
     textAlign: 'center',
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    letterSpacing: -0.3,
+    marginBottom: 8,
   },
-  modalText: {
-    marginBottom: 30,
+  message: {
+    fontSize: 14,
+    color: theme.textSecondary,
     textAlign: 'center',
-    fontSize: 15,
-    color: '#AAA',
-    lineHeight: 22,
+    lineHeight: 21,
+    marginBottom: 28,
   },
-  buttonContainer: {
+
+  // Buttons
+  btnRow: {
     width: '100%',
     flexDirection: 'row',
-    gap: 12,
   },
-  button: {
+  primaryBtn: {
     flex: 1,
-    backgroundColor: '#C5A356',
-    borderRadius: 25,
-    paddingVertical: 14,
-    justifyContent: 'center',
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  primaryBtnGradient: {
+    height: 48,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  confirmButton: {
-    backgroundColor: '#C5A356',
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  textStyle: {
-    color: 'black',
-    fontWeight: '900',
-    textAlign: 'center',
+  primaryBtnText: {
+    color: '#fff',
     fontSize: 14,
-    letterSpacing: 1.5,
-  },
-  cancelTextStyle: {
-    color: 'white',
     fontWeight: '700',
-    textAlign: 'center',
+  },
+  cancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.surface,
+  },
+  cancelText: {
+    color: theme.textSecondary,
     fontSize: 14,
-    letterSpacing: 1,
+    fontWeight: '600',
   },
 });

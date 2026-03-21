@@ -2,91 +2,80 @@
 import { NutritionAPI, UserStats } from '@/api/nutrition';
 import { CustomModal } from '@/components/ui/CustomModal';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { theme } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
+import { useAppStore } from '@/store/useAppStore';
 import { withTimeout } from '@/utils/async';
 import { calculateCalories } from '@/utils/nutritionCalc';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const GOLD_COLOR = '#C5A356';
-const DARK_BG = '#000';
-const CARD_BG = '#1A1A1A';
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+type Goal = 'cut' | 'bulk' | 'maintain';
+type Activity = 'sedentary' | 'moderate' | 'active';
+type Gender = 'M' | 'F';
 
-import { useAppStore } from '@/store/useAppStore';
+const GOAL_LABELS: Record<Goal, string> = { cut: 'Perder grasa', maintain: 'Mantenimiento', bulk: 'Ganar músculo' };
+const ACTIVITY_LABELS: Record<Activity, string> = { sedentary: 'Sedentario', moderate: 'Moderado', active: 'Activo' };
+const MACRO_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
+  Prot: 'barbell-outline',
+  Carb: 'leaf-outline',
+  Fat:  'water-outline',
+};
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function NutritionScreen() {
-  const {
-    profile,
-    activeDiet: diet, setActiveDiet: setDiet,
-    userStats: stats, setUserStats: setStats,
-    isHydrated
-  } = useAppStore();
+  const { profile, activeDiet: diet, setActiveDiet: setDiet, userStats: stats, setUserStats: setStats, isHydrated } = useAppStore();
 
   const [loading, setLoading] = useState(!isHydrated || (!stats && !diet));
   const [submitting, setSubmitting] = useState(false);
 
-  // Form state
   const [weight, setWeight] = useState(stats?.weight?.toString() || '');
   const [height, setHeight] = useState(stats?.height?.toString() || '');
   const [age, setAge] = useState(stats?.age?.toString() || '');
-  const [gender, setGender] = useState<'M' | 'F'>(stats?.gender || 'M');
-  const [activityLevel, setActivityLevel] = useState<'sedentary' | 'moderate' | 'active'>(stats?.activity_level || 'moderate');
-  const [goal, setGoal] = useState<'cut' | 'bulk' | 'maintain'>(stats?.goal || 'maintain');
+  const [gender, setGender] = useState<Gender>(stats?.gender || 'M');
+  const [activityLevel, setActivityLevel] = useState<Activity>(stats?.activity_level || 'moderate');
+  const [goal, setGoal] = useState<Goal>(stats?.goal || 'maintain');
 
-  // Modal state
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalConfig, setModalConfig] = useState({
-    title: '',
-    message: '',
-    type: 'success' as 'success' | 'error'
-  });
-
-  // Selected options state: { [mealIndex]: optionIndex }
+  const [modalConfig, setModalConfig] = useState({ title: '', message: '', type: 'success' as 'success' | 'error' });
   const [selectedOptions, setSelectedOptions] = useState<{ [key: number]: number }>({});
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
       if (!isHydrated) setLoading(true);
-
       let userId = profile?.id;
-
       try {
         const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
-        if (session?.user) {
-          userId = session.user.id;
-        }
+        if (session?.user) userId = session.user.id;
       } catch (err) {
-        console.warn('[NutritionScreen] Session fetch timeout/error, trying fallback to profile ID', err);
+        console.warn('[NutritionScreen] Session fetch error', err);
       }
-
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
+      if (!userId) { setLoading(false); return; }
 
       const [newStats, newDiet] = await Promise.all([
         NutritionAPI.getUserStats(userId).catch(() => stats),
         NutritionAPI.getActiveDiet(userId).catch(() => diet),
       ]);
 
-      // Auto-assign: If stats exist but no diet is assigned yet, match them now.
       let finalDiet = newDiet;
       if (newStats && !newDiet) {
-        const calcResult = calculateCalories(
-          newStats.weight,
-          newStats.height,
-          newStats.age,
-          newStats.gender,
-          newStats.activity_level,
-          newStats.goal
-        );
-        await withTimeout(NutritionAPI.assignBestDietPlan(userId, calcResult.calories));
+        const calc = calculateCalories(newStats.weight, newStats.height, newStats.age, newStats.gender, newStats.activity_level, newStats.goal);
+        await withTimeout(NutritionAPI.assignBestDietPlan(userId, calc.calories));
         finalDiet = await withTimeout(NutritionAPI.getActiveDiet(userId));
       }
 
@@ -100,9 +89,8 @@ export default function NutritionScreen() {
         setGoal(newStats.goal);
       }
       if (finalDiet) setDiet(finalDiet);
-
     } catch (error) {
-      console.error('[NutritionScreen] Error loading data:', error);
+      console.error('[NutritionScreen]', error);
     } finally {
       setLoading(false);
     }
@@ -111,70 +99,31 @@ export default function NutritionScreen() {
   const handleSaveStats = async () => {
     const { data: { session } } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
     if (!session?.user) return;
-
     if (!weight || !height || !age) {
-      setModalConfig({
-        title: 'CAMPOS INCOMPLETOS',
-        message: 'Por favor completa todos los campos para calcular tu plan.',
-        type: 'error'
-      });
+      setModalConfig({ title: 'Campos incompletos', message: 'Por favor completa todos los campos para calcular tu plan.', type: 'error' });
       setModalVisible(true);
       return;
     }
-
     try {
       setSubmitting(true);
-      const weightNum = parseFloat(weight);
-      const heightInCm = parseFloat(height);
-      const ageNum = parseInt(age);
-
-      const calcResult = calculateCalories(
-        weightNum,
-        heightInCm,
-        ageNum,
-        gender,
-        activityLevel,
-        goal
-      );
-
-      const newStats: UserStats = {
-        user_id: session.user.id,
-        weight: weightNum,
-        height: heightInCm,
-        age: ageNum,
-        gender,
-        activity_level: activityLevel,
-        goal: calcResult.finalGoal,
-        allergies: []
-      };
-
-      const savedStats = await withTimeout(NutritionAPI.saveUserStats(newStats));
-      setStats(savedStats);
-
-      // 2. Automated Matching Logic
-      await withTimeout(NutritionAPI.assignBestDietPlan(session.user.id, calcResult.calories));
-
-      // 3. Reload Diet
+      const calc = calculateCalories(parseFloat(weight), parseFloat(height), parseInt(age), gender, activityLevel, goal);
+      const newStats: UserStats = { user_id: session.user.id, weight: parseFloat(weight), height: parseFloat(height), age: parseInt(age), gender, activity_level: activityLevel, goal: calc.finalGoal, allergies: [] };
+      const saved = await withTimeout(NutritionAPI.saveUserStats(newStats));
+      setStats(saved);
+      await withTimeout(NutritionAPI.assignBestDietPlan(session.user.id, calc.calories));
       const activeDiet = await withTimeout(NutritionAPI.getActiveDiet(session.user.id));
       setDiet(activeDiet);
 
-      let successMessage = 'Tus datos se han guardado y hemos asignado el mejor plan para tu meta.';
-      if (calcResult.isOverridden) {
-        successMessage = 'Basado en tu índice de masa corporal actual, recomendamos priorizar la pérdida de grasa antes de iniciar una etapa de volumen muscular. Hemos ajustado tu plan para mejorar tu salud.';
-      }
-
       setModalConfig({
-        title: calcResult.isOverridden ? 'Sugerencia de Salud' : '¡PLAN ACTUALIZADO!',
-        message: successMessage,
-        type: 'success'
+        title: calc.isOverridden ? 'Sugerencia de salud' : '¡Plan actualizado!',
+        message: calc.isOverridden
+          ? 'Basado en tu IMC, recomendamos priorizar pérdida de grasa. Hemos ajustado tu plan para mejorar tu salud.'
+          : 'Tus datos se guardaron y asignamos el mejor plan para tu meta.',
+        type: 'success',
       });
       setModalVisible(true);
     } catch (error: any) {
-      setModalConfig({
-        title: 'ERROR AL GUARDAR',
-        message: error.message || 'No pudimos guardar tus datos físicos. Inténtalo de nuevo.',
-        type: 'error'
-      });
+      setModalConfig({ title: 'Error al guardar', message: error.message || 'No pudimos guardar tus datos. Inténtalo de nuevo.', type: 'error' });
       setModalVisible(true);
     } finally {
       setSubmitting(false);
@@ -183,578 +132,762 @@ export default function NutritionScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={GOLD_COLOR} />
+      <View style={styles.root}>
+        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
 
-  const renderOnboarding = () => (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Configuración Nutricional</Text>
-      <Text style={styles.subtitle}>Cuéntanos un poco sobre ti para calcular tu plan ideal.</Text>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Peso (kg)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: 75"
-          placeholderTextColor="#666"
-          keyboardType="numeric"
-          value={weight}
-          onChangeText={setWeight}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Altura (cm)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: 175"
-          placeholderTextColor="#666"
-          keyboardType="numeric"
-          value={height}
-          onChangeText={setHeight}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Edad</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: 25"
-          placeholderTextColor="#666"
-          keyboardType="numeric"
-          value={age}
-          onChangeText={setAge}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Género</Text>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={[styles.chip, gender === 'M' && styles.activeChip]}
-            onPress={() => setGender('M')}
-          >
-            <Text style={[styles.chipText, gender === 'M' && styles.activeChipText]}>Hombre</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.chip, gender === 'F' && styles.activeChip]}
-            onPress={() => setGender('F')}
-          >
-            <Text style={[styles.chipText, gender === 'F' && styles.activeChipText]}>Mujer</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Nivel de Actividad</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-          {['sedentary', 'moderate', 'active'].map((level) => (
-            <TouchableOpacity
-              key={level}
-              style={[styles.chip, activityLevel === level && styles.activeChip]}
-              onPress={() => setActivityLevel(level as any)}
-            >
-              <Text style={[styles.chipText, activityLevel === level && styles.activeChipText]}>
-                {level === 'sedentary' ? 'Sedentario' : level === 'moderate' ? 'Moderado' : 'Activo'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Objetivo</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-          {['cut', 'maintain', 'bulk'].map((g) => (
-            <TouchableOpacity
-              key={g}
-              style={[styles.chip, goal === g && styles.activeChip]}
-              onPress={() => setGoal(g as any)}
-            >
-              <Text style={[styles.chipText, goal === g && styles.activeChipText]}>
-                {g === 'cut' ? 'Perder Grasa' : g === 'maintain' ? 'Mantenimiento' : 'Ganar Músculo'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={handleSaveStats} disabled={submitting}>
-        {submitting ? (
-          <ActivityIndicator color={DARK_BG} />
-        ) : (
-          <Text style={styles.saveButtonText}>Calcular Plan</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
-  );
-
-  const renderDashboard = () => {
-    const calcResult = calculateCalories(
-      stats!.weight,
-      stats!.height,
-      stats!.age,
-      stats!.gender,
-      stats!.activity_level,
-      stats!.goal
-    );
-
-    return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Tu Plan Nutricional</Text>
-          <TouchableOpacity onPress={() => setStats(null)}>
-            <Text style={styles.editLink}>Editar perfil</Text>
-          </TouchableOpacity>
-        </View>
-
-        <LinearGradient colors={[GOLD_COLOR, '#8B733D']} style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <View>
-              <Text style={styles.summaryLabel}>Calorías Diarias Objetivas</Text>
-              <Text style={styles.caloriesText}>{calcResult.calories} kcal</Text>
-            </View>
-            <TouchableOpacity style={styles.miniUpdateButton} onPress={() => setStats(null)}>
-              <IconSymbol name="dumbbell.fill" size={20} color={GOLD_COLOR} />
-              <Text style={styles.miniUpdateText}>ACTUALIZAR</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.summaryDesc}>
-            Basado en tu objetivo de {stats?.goal === 'cut' ? 'perder grasa' : stats?.goal === 'bulk' ? 'ganar músculo' : 'mantenimiento'}.
-          </Text>
-        </LinearGradient>
-
-        {calcResult.isOverridden && (
-          <View style={styles.warningCard}>
-            <IconSymbol name="dumbbell.fill" size={24} color={GOLD_COLOR} />
-            <Text style={styles.warningText}>
-              Hemos ajustado tu objetivo a pérdida de grasa para priorizar tu salud debido a tu índice de masa corporal.
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mi Dieta Asignada</Text>
-          {diet ? (
-            <View>
-              <View style={styles.dietInfoCard}>
-                <Text style={styles.dietName}>{diet.name}</Text>
-                <View style={styles.macrosRow}>
-                  <View style={styles.macroBadge}>
-                    <Text style={styles.macroValue}>{diet.macros?.protein || '-'}</Text>
-                    <Text style={styles.macroLabel}>Prot</Text>
-                  </View>
-                  <View style={styles.macroBadge}>
-                    <Text style={styles.macroValue}>{diet.macros?.carbs || '-'}</Text>
-                    <Text style={styles.macroLabel}>Carb</Text>
-                  </View>
-                  <View style={styles.macroBadge}>
-                    <Text style={styles.macroValue}>{diet.macros?.fats || '-'}</Text>
-                    <Text style={styles.macroLabel}>Fat</Text>
-                  </View>
-                </View>
-              </View>
-
-              {(!diet.meals || diet.meals.length === 0) ? (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>Esta dieta no tiene comidas definidas aún.</Text>
-                </View>
-              ) : (
-                diet.meals.map((meal, idx) => {
-                  const selectedIdx = selectedOptions[idx] || 0;
-                  const currentOption = meal.options?.[selectedIdx];
-
-                  return (
-                    <View key={idx} style={styles.mealCard}>
-                      <View style={styles.mealHeader}>
-                        <View>
-                          <Text style={styles.mealTitle}>{meal.title}</Text>
-                          {meal.time && <Text style={styles.mealTime}>{meal.time}</Text>}
-                        </View>
-
-                        {meal.options?.length > 1 && (
-                          <View style={styles.optionsBadge}>
-                            <Text style={styles.optionsBadgeText}>
-                              {meal.options.length} OPCIONES
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {meal.options?.length > 1 && (
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsScroll}>
-                          {meal.options.map((opt, optIdx) => (
-                            <TouchableOpacity
-                              key={optIdx}
-                              style={[styles.optionChip, selectedIdx === optIdx && styles.activeOptionChip]}
-                              onPress={() => setSelectedOptions(prev => ({ ...prev, [idx]: optIdx }))}
-                            >
-                              <Text style={[styles.optionChipText, selectedIdx === optIdx && styles.activeOptionChipText]}>
-                                {opt.name}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      )}
-
-                      {currentOption ? (
-                        <View style={styles.optionContainer}>
-                          <Text style={styles.optionName}>{currentOption.name}</Text>
-                          {currentOption.foods?.map((food, foodIdx) => (
-                            <Text key={foodIdx} style={styles.foodItem}>• {food}</Text>
-                          ))}
-                        </View>
-                      ) : (
-                        <Text style={styles.emptyText}>No hay ingredientes en esta opción.</Text>
-                      )}
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          ) : (
-            <View style={styles.emptyCard}>
-              <IconSymbol name="dumbbell.fill" size={48} color="#444" />
-              <Text style={styles.emptyText}>Tu entrenador aún no ha asignado un plan específico.</Text>
-              <Text style={styles.emptySubtext}>Sigue tus calorías mientras tanto.</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-    );
-  };
-
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <CustomModal
-        visible={modalVisible}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-        onClose={() => setModalVisible(false)}
-      />
-      {!stats ? renderOnboarding() : renderDashboard()}
-    </SafeAreaView>
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <CustomModal
+          visible={modalVisible}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          onClose={() => setModalVisible(false)}
+        />
+        {!stats ? (
+          <Onboarding
+            weight={weight} setWeight={setWeight}
+            height={height} setHeight={setHeight}
+            age={age} setAge={setAge}
+            gender={gender} setGender={setGender}
+            activityLevel={activityLevel} setActivityLevel={setActivityLevel}
+            goal={goal} setGoal={setGoal}
+            onSave={handleSaveStats}
+            submitting={submitting}
+          />
+        ) : (
+          <Dashboard
+            stats={stats}
+            diet={diet}
+            onEdit={() => setStats(null)}
+            selectedOptions={selectedOptions}
+            setSelectedOptions={setSelectedOptions}
+          />
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+function Onboarding({
+  weight, setWeight, height, setHeight, age, setAge,
+  gender, setGender, activityLevel, setActivityLevel,
+  goal, setGoal, onSave, submitting,
+}: any) {
+  return (
+    <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+      {/* Header */}
+      <View style={styles.pageHeader}>
+        <View style={styles.pageIconWrap}>
+          <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pageIcon}>
+            <Ionicons name="nutrition-outline" size={24} color="#fff" />
+          </LinearGradient>
+        </View>
+        <Text style={styles.pageTitle}>Perfil Nutricional</Text>
+        <Text style={styles.pageSubtitle}>Cuéntanos sobre ti para calcular tu plan ideal</Text>
+      </View>
+
+      {/* Metrics */}
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Medidas corporales</Text>
+        <View style={styles.metricsRow}>
+          <MetricInput label="Peso" unit="kg" value={weight} onChange={setWeight} placeholder="75" />
+          <MetricInput label="Altura" unit="cm" value={height} onChange={setHeight} placeholder="175" />
+          <MetricInput label="Edad" unit="años" value={age} onChange={setAge} placeholder="25" />
+        </View>
+      </View>
+
+      {/* Gender */}
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Género</Text>
+        <View style={styles.chipRow}>
+          {(['M', 'F'] as Gender[]).map(g => (
+            <SelectChip key={g} label={g === 'M' ? 'Hombre' : 'Mujer'} active={gender === g} onPress={() => setGender(g)} flex />
+          ))}
+        </View>
+      </View>
+
+      {/* Activity */}
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Nivel de actividad</Text>
+        <View style={styles.chipRow}>
+          {(Object.keys(ACTIVITY_LABELS) as Activity[]).map(l => (
+            <SelectChip key={l} label={ACTIVITY_LABELS[l]} active={activityLevel === l} onPress={() => setActivityLevel(l)} flex />
+          ))}
+        </View>
+      </View>
+
+      {/* Goal */}
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Objetivo</Text>
+        <View style={styles.chipRow}>
+          {(Object.keys(GOAL_LABELS) as Goal[]).map(g => (
+            <SelectChip key={g} label={GOAL_LABELS[g]} active={goal === g} onPress={() => setGoal(g)} flex />
+          ))}
+        </View>
+      </View>
+
+      {/* Save */}
+      <TouchableOpacity style={styles.primaryBtn} onPress={onSave} disabled={submitting} activeOpacity={0.85}>
+        <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGradient}>
+          {submitting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text style={styles.primaryBtnText}>Calcular mi plan</Text>
+              <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
+            </>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+
+    </ScrollView>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+function Dashboard({ stats, diet, onEdit, selectedOptions, setSelectedOptions }: any) {
+  const calc = calculateCalories(stats.weight, stats.height, stats.age, stats.gender, stats.activity_level, stats.goal);
+
+  return (
+    <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
+      {/* Page header */}
+      <View style={styles.dashHeader}>
+        <View>
+          <Text style={styles.pageTitle}>Tu plan</Text>
+          <Text style={styles.pageSubtitle}>Nutricional personalizado</Text>
+        </View>
+        <TouchableOpacity style={styles.editBtn} onPress={onEdit}>
+          <Ionicons name="create-outline" size={16} color={theme.accent} />
+          <Text style={styles.editBtnText}>Editar</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Calories card */}
+      <View style={styles.caloriesCard}>
+        <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.caloriesGradient}>
+          <View style={styles.caloriesTop}>
+            <View>
+              <Text style={styles.caloriesLabel}>Calorías diarias</Text>
+              <Text style={styles.caloriesValue}>{calc.calories}</Text>
+              <Text style={styles.caloriesUnit}>kcal / día</Text>
+            </View>
+            <View style={styles.goalBadge}>
+              <Text style={styles.goalBadgeText}>{GOAL_LABELS[stats.goal as Goal] || stats.goal}</Text>
+            </View>
+          </View>
+          <Text style={styles.caloriesDesc}>
+            {stats.weight} kg · {stats.height} cm · {stats.age} años · {stats.gender === 'M' ? 'Hombre' : 'Mujer'}
+          </Text>
+        </LinearGradient>
+      </View>
+
+      {/* Override warning */}
+      {calc.isOverridden && (
+        <View style={styles.warningCard}>
+          <Ionicons name="information-circle-outline" size={20} color={theme.warning} />
+          <Text style={styles.warningText}>
+            Hemos ajustado tu objetivo a pérdida de grasa para priorizar tu salud según tu IMC.
+          </Text>
+        </View>
+      )}
+
+      {/* Diet section */}
+      <Text style={styles.sectionTitle}>Dieta asignada</Text>
+
+      {diet ? (
+        <>
+          {/* Macros */}
+          <View style={styles.card}>
+            <Text style={styles.dietName}>{diet.name}</Text>
+            <View style={styles.macrosRow}>
+              {[
+                { key: 'Prot', value: diet.macros?.protein },
+                { key: 'Carb', value: diet.macros?.carbs },
+                { key: 'Fat',  value: diet.macros?.fats },
+              ].map(m => (
+                <View key={m.key} style={styles.macroBadge}>
+                  <Ionicons name={MACRO_ICONS[m.key]} size={16} color={theme.accent} />
+                  <Text style={styles.macroValue}>{m.value || '–'}</Text>
+                  <Text style={styles.macroLabel}>{m.key}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Meals */}
+          {(!diet.meals || diet.meals.length === 0) ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>Esta dieta no tiene comidas definidas aún.</Text>
+            </View>
+          ) : (
+            diet.meals.map((meal: any, idx: number) => {
+              const selIdx = selectedOptions[idx] || 0;
+              const current = meal.options?.[selIdx];
+              return (
+                <View key={idx} style={styles.mealCard}>
+                  {/* Meal header */}
+                  <View style={styles.mealHeader}>
+                    <View style={styles.mealTitleRow}>
+                      <View style={styles.mealDot} />
+                      <Text style={styles.mealTitle}>{meal.title}</Text>
+                    </View>
+                    <View style={styles.mealMeta}>
+                      {meal.time && (
+                        <View style={styles.timePill}>
+                          <Ionicons name="time-outline" size={11} color={theme.textMuted} />
+                          <Text style={styles.timeText}>{meal.time}</Text>
+                        </View>
+                      )}
+                      {meal.options?.length > 1 && (
+                        <View style={styles.optionsBadge}>
+                          <Text style={styles.optionsBadgeText}>{meal.options.length} opciones</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Option selector */}
+                  {meal.options?.length > 1 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {meal.options.map((opt: any, optIdx: number) => (
+                          <TouchableOpacity
+                            key={optIdx}
+                            style={[styles.optionChip, selIdx === optIdx && styles.optionChipActive]}
+                            onPress={() => setSelectedOptions((prev: any) => ({ ...prev, [idx]: optIdx }))}
+                          >
+                            <Text style={[styles.optionChipText, selIdx === optIdx && styles.optionChipTextActive]}>
+                              {opt.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  )}
+
+                  {/* Foods */}
+                  {current ? (
+                    <View style={styles.foodsBox}>
+                      <Text style={styles.optionName}>{current.name}</Text>
+                      {current.foods?.map((food: string, fi: number) => (
+                        <View key={fi} style={styles.foodRow}>
+                          <View style={styles.foodBullet} />
+                          <Text style={styles.foodItem}>{food}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.emptyText}>No hay ingredientes en esta opción.</Text>
+                  )}
+                </View>
+              );
+            })
+          )}
+        </>
+      ) : (
+        <View style={styles.emptyCard}>
+          <Ionicons name="nutrition-outline" size={40} color={theme.textMuted} />
+          <Text style={styles.emptyTitle}>Sin plan asignado</Text>
+          <Text style={styles.emptyText}>Tu entrenador aún no ha asignado un plan específico.</Text>
+        </View>
+      )}
+
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
+// ─── Small components ─────────────────────────────────────────────────────────
+function MetricInput({ label, unit, value, onChange, placeholder }: any) {
+  return (
+    <View style={styles.metricInput}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <View style={styles.metricBox}>
+        <TextInput
+          style={styles.metricField}
+          placeholder={placeholder}
+          placeholderTextColor={theme.textMuted}
+          keyboardType="numeric"
+          value={value}
+          onChangeText={onChange}
+        />
+        <Text style={styles.metricUnit}>{unit}</Text>
+      </View>
+    </View>
+  );
+}
+
+function SelectChip({ label, active, onPress, flex }: { label: string; active: boolean; onPress: () => void; flex?: boolean }) {
+  return (
+    <TouchableOpacity
+      style={[styles.selectChip, active && styles.selectChipActive, flex && { flex: 1 }]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      {active && (
+        <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+      )}
+      <Text style={[styles.selectChipText, active && styles.selectChipTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
+  root: {
     flex: 1,
-    backgroundColor: DARK_BG,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: DARK_BG,
+    backgroundColor: theme.bgDeep,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  container: {
-    flex: 1,
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 220,
   },
-  content: {
+  scroll: {
     padding: 20,
     paddingBottom: 40,
   },
-  header: {
+
+  // ── Page header ─────────────────────────────────────────────────────────────
+  pageHeader: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+    marginBottom: 8,
+  },
+  pageIconWrap: {
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 10,
+    marginBottom: 4,
+  },
+  pageIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    letterSpacing: -0.5,
+    textAlign: 'center',
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    textAlign: 'center',
+  },
+
+  // ── Dashboard header ─────────────────────────────────────────────────────────
+  dashHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 16,
+    paddingTop: 12,
+  },
+  editBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: GOLD_COLOR,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#AAA',
-    marginBottom: 30,
-  },
-  editLink: {
-    color: GOLD_COLOR,
-    fontWeight: '600',
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#CCC',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  input: {
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
-    padding: 15,
-    color: '#FFF',
-    fontSize: 16,
+    gap: 4,
+    backgroundColor: theme.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: theme.accentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  row: {
+  editBtnText: {
+    color: theme.accent,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // ── Card ─────────────────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    padding: 16,
+    marginBottom: 12,
+  },
+  cardLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+
+  // ── Metrics ──────────────────────────────────────────────────────────────────
+  metricsRow: {
     flexDirection: 'row',
     gap: 10,
   },
-  chipScroll: {
-    flexDirection: 'row',
+  metricInput: {
+    flex: 1,
   },
-  chip: {
-    backgroundColor: CARD_BG,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 10,
+  metricLabel: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  metricBox: {
+    backgroundColor: theme.surface,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: theme.borderMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  activeChip: {
-    backgroundColor: GOLD_COLOR,
-    borderColor: GOLD_COLOR,
+  metricField: {
+    flex: 1,
+    color: theme.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
   },
-  chipText: {
-    color: '#888',
+  metricUnit: {
+    color: theme.textMuted,
+    fontSize: 11,
     fontWeight: '600',
   },
-  activeChipText: {
-    color: DARK_BG,
+
+  // ── Chips ────────────────────────────────────────────────────────────────────
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  saveButton: {
-    backgroundColor: GOLD_COLOR,
-    paddingVertical: 18,
+  selectChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    backgroundColor: theme.surface,
     alignItems: 'center',
-    marginTop: 20,
+    overflow: 'hidden',
   },
-  saveButtonText: {
-    color: DARK_BG,
-    fontSize: 18,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+  selectChipActive: {
+    borderColor: theme.accent,
   },
-  summaryCard: {
-    padding: 25,
+  selectChipText: {
+    color: theme.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  selectChipTextActive: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+
+  // ── Primary button ────────────────────────────────────────────────────────────
+  primaryBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 8,
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  primaryBtnGradient: {
+    height: 52,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+
+  // ── Calories card ─────────────────────────────────────────────────────────────
+  caloriesCard: {
     borderRadius: 20,
-    marginBottom: 30,
-    elevation: 5,
-    shadowColor: GOLD_COLOR,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 12,
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 10,
   },
-  summaryHeader: {
+  caloriesGradient: {
+    padding: 22,
+  },
+  caloriesTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  miniUpdateButton: {
-    backgroundColor: DARK_BG,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  miniUpdateText: {
-    color: GOLD_COLOR,
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  summaryLabel: {
-    color: 'rgba(0,0,0,0.6)',
+  caloriesLabel: {
+    fontSize: 11,
     fontWeight: '700',
+    color: 'rgba(255,255,255,0.65)',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 5,
+    marginBottom: 4,
   },
-  caloriesText: {
-    fontSize: 42,
+  caloriesValue: {
+    fontSize: 48,
     fontWeight: '900',
-    color: DARK_BG,
-    marginBottom: 10,
+    color: '#fff',
+    letterSpacing: -2,
+    lineHeight: 52,
   },
-  summaryDesc: {
-    color: 'rgba(0,0,0,0.8)',
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginTop: 5,
-  },
-  section: {
-    marginTop: 10,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 15,
-  },
-  dietName: {
-    fontSize: 18,
-    color: GOLD_COLOR,
-    marginBottom: 15,
+  caloriesUnit: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    marginTop: 2,
   },
-  mealCard: {
-    backgroundColor: CARD_BG,
+  goalBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+  },
+  goalBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  caloriesDesc: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+  },
+
+  // ── Warning ───────────────────────────────────────────────────────────────────
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: 'rgba(251,191,36,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(251,191,36,0.25)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  warningText: {
+    flex: 1,
+    color: theme.warning,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+
+  // ── Section title ─────────────────────────────────────────────────────────────
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    letterSpacing: -0.2,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+
+  // ── Diet info ─────────────────────────────────────────────────────────────────
+  dietName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.accent,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 14,
+  },
+  macrosRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  macroBadge: {
+    flex: 1,
+    backgroundColor: theme.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    padding: 10,
+    alignItems: 'center',
+    gap: 4,
+  },
+  macroValue: {
+    color: theme.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  macroLabel: {
+    color: theme.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+
+  // ── Meal card ─────────────────────────────────────────────────────────────────
+  mealCard: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    padding: 16,
+    marginBottom: 10,
   },
   mealHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
+  },
+  mealTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mealDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.accent,
   },
   mealTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: GOLD_COLOR,
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.textPrimary,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  mealTime: {
-    color: '#666',
-    fontSize: 12,
+  mealMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.surface,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  timeText: {
+    color: theme.textMuted,
+    fontSize: 11,
     fontWeight: '600',
   },
   optionsBadge: {
-    backgroundColor: 'rgba(197, 163, 86, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    backgroundColor: theme.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(197, 163, 86, 0.3)',
+    borderColor: theme.accentBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   optionsBadgeText: {
-    color: GOLD_COLOR,
+    color: theme.accent,
     fontSize: 10,
-    fontWeight: '900',
-  },
-  optionsScroll: {
-    marginBottom: 15,
-    flexDirection: 'row',
+    fontWeight: '700',
   },
   optionChip: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 15,
-    marginRight: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: theme.borderMuted,
+    backgroundColor: theme.surface,
   },
-  activeOptionChip: {
-    borderColor: GOLD_COLOR,
-    backgroundColor: 'rgba(197, 163, 86, 0.1)',
+  optionChipActive: {
+    borderColor: theme.accent,
+    backgroundColor: theme.accentDim,
   },
   optionChipText: {
-    color: '#888',
+    color: theme.textSecondary,
     fontSize: 12,
     fontWeight: '600',
   },
-  activeOptionChipText: {
-    color: GOLD_COLOR,
+  optionChipTextActive: {
+    color: theme.accent,
   },
-  optionContainer: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    padding: 15,
-    borderRadius: 15,
+  foodsBox: {
+    backgroundColor: theme.surface,
+    borderRadius: 12,
+    padding: 14,
+    gap: 2,
   },
   optionName: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 10,
+    color: theme.textPrimary,
+    marginBottom: 8,
+  },
+  foodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  foodBullet: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.accent,
+    opacity: 0.6,
   },
   foodItem: {
-    color: '#AAA',
-    fontSize: 14,
-    marginBottom: 2,
-    paddingLeft: 10,
+    color: theme.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
   },
+
+  // ── Empty ─────────────────────────────────────────────────────────────────────
   emptyCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 20,
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderStyle: 'dashed',
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: theme.borderSubtle,
+    borderStyle: 'dashed',
+    padding: 36,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    color: theme.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 4,
   },
   emptyText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 15,
-  },
-  dietInfoCard: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.1)',
-  },
-  macrosRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  macroBadge: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    padding: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  macroValue: {
-    color: GOLD_COLOR,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  macroLabel: {
-    color: '#666',
-    fontSize: 10,
-    textTransform: 'uppercase',
-    marginTop: 2,
-    fontWeight: '700',
-  },
-  emptySubtext: {
-    color: '#666',
-    fontSize: 14,
-    marginTop: 5,
-  },
-  warningCard: {
-    backgroundColor: 'rgba(197, 163, 86, 0.1)',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(197, 163, 86, 0.3)',
-  },
-  warningText: {
-    color: GOLD_COLOR,
+    color: theme.textSecondary,
     fontSize: 13,
-    flex: 1,
+    textAlign: 'center',
     lineHeight: 18,
-    fontWeight: '500',
   },
 });

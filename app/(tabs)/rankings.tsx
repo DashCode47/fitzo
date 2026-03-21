@@ -1,6 +1,7 @@
 
 import { LeaderboardAPI } from '@/api/leaderboard';
 import { CustomModal } from '@/components/ui/CustomModal';
+import { theme } from '@/constants/theme';
 import { useAppStore } from '@/store/useAppStore';
 import { withTimeout } from '@/utils/async';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,7 +13,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,9 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const GOLD_COLOR = '#C5A356';
-const SILVER_COLOR = '#C0C0C0';
-const BRONZE_COLOR = '#CD7F32';
+const RANK_COLORS = ['#C5A356', '#A8A8B3', '#CD7F32'] as const;
 
 export default function RankingsScreen() {
   const router = useRouter();
@@ -33,361 +31,431 @@ export default function RankingsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [infoModalVisible, setInfoModalVisible] = useState(false);
 
-  useEffect(() => {
-    loadLeaderboard();
-  }, []);
+  useEffect(() => { loadLeaderboard(); }, []);
 
   const loadLeaderboard = async () => {
     try {
-      console.log('[RankingsScreen] loadLeaderboard called. Loading:', loading);
       setLoading(true);
       setError(false);
-      // Add timeout to prevent infinite loading
-      const data = await withTimeout(
-        LeaderboardAPI.getLeaderboard(),
-        15000, 
-        'Error cargando ranking'
-      );
-      
-      console.log('[RankingsScreen] Data received:', data?.length);
-      // Ensure data has the required fields for the new UI
-      const enrichedData = data.map((item: any, index: number) => ({
+      const data = await withTimeout(LeaderboardAPI.getLeaderboard(), 15000, 'Error cargando ranking');
+      const enriched = data.map((item: any, index: number) => ({
         ...item,
         rank: index + 1,
-        // Fallbacks for mocks if real data is missing these fields
         streak: item.streak || Math.floor(Math.random() * 20),
         badges: item.badges || [],
       }));
-      setLeaderboard(enrichedData);
+      setLeaderboard(enriched);
     } catch (error: any) {
-      console.error('[RankingsScreen] Error loading leaderboard:', error);
-      if (error.message) {
-          console.error('[RankingsScreen] Error message:', error.message);
-      }
+      console.error('[RankingsScreen]', error);
       setError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const renderBadge = (rank: number) => {
-    if (rank === 1) return <MaterialCommunityIcons name="trophy-variant" size={24} color={GOLD_COLOR} />;
-    if (rank === 2) return <MaterialCommunityIcons name="trophy-variant" size={24} color={SILVER_COLOR} />;
-    if (rank === 3) return <MaterialCommunityIcons name="trophy-variant" size={24} color={BRONZE_COLOR} />;
-    return <Text style={styles.rankNumber}>{rank}</Text>;
-  };
+  // My position in the ranking
+  const myRank = leaderboard.findIndex(item => item.name === profile?.username) + 1;
 
-  const renderLeaderboardItem = ({ item }: { item: any }) => (
-    <View style={styles.leaderboardRow}>
-      <View style={styles.rankContainer}>
-        {renderBadge(item.rank)}
-      </View>
-      <Image source={{ uri: item.avatar || 'https://via.placeholder.com/150' }} style={styles.avatar} />
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.name}</Text>
-        <View style={styles.streakContainer}>
-          <Ionicons name="flame" size={14} color="#FF4500" />
-          <Text style={styles.streakText}>{item.streak} días</Text>
+  const renderItem = ({ item, index }: { item: any; index: number }) => {
+    const isTop3 = item.rank <= 3;
+    const rankColor = isTop3 ? RANK_COLORS[item.rank - 1] : null;
+    const isMe = item.name === profile?.username;
+
+    return (
+      <View style={[
+        styles.row,
+        isTop3 && styles.rowTop3,
+        isMe && styles.rowMe,
+        index === 0 && styles.rowFirst,
+      ]}>
+        {/* Rank */}
+        <View style={styles.rankCol}>
+          {isTop3 ? (
+            <MaterialCommunityIcons
+              name="trophy-variant"
+              size={20}
+              color={rankColor!}
+            />
+          ) : (
+            <Text style={[styles.rankNum, isMe && { color: theme.accent }]}>{item.rank}</Text>
+          )}
+        </View>
+
+        {/* Avatar */}
+        <View style={[styles.avatarWrap, isTop3 && { borderColor: rankColor! }]}>
+          <Image
+            source={{ uri: item.avatar || 'https://i.pravatar.cc/150' }}
+            style={styles.avatar}
+          />
+        </View>
+
+        {/* Info */}
+        <View style={styles.info}>
+          <Text style={[styles.name, isMe && { color: theme.accent }]} numberOfLines={1}>
+            {item.name}{isMe ? ' (tú)' : ''}
+          </Text>
+          <View style={styles.streakRow}>
+            <Ionicons name="flame" size={12} color="#FF6B35" />
+            <Text style={styles.streakText}>{item.streak} días</Text>
+          </View>
+        </View>
+
+        {/* Score */}
+        <View style={styles.scoreCol}>
+          <Text style={[styles.score, isTop3 && { color: rankColor! }]}>
+            {item.score.toLocaleString()}
+          </Text>
+          <Text style={styles.scoreLabel}>pts</Text>
         </View>
       </View>
-      <View style={styles.pointsContainer}>
-        <Text style={styles.pointsValue}>{item.score.toLocaleString()}</Text>
-        <Text style={styles.pointsLabel}>PTS</Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar style="light" />
-      <CustomModal 
+      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+
+      <CustomModal
         visible={modalVisible}
-        title="RECOMPENSAS"
+        title="Recompensas"
         message="¡Sigue entrenando para desbloquear tu próxima recompensa!"
         type="success"
         onClose={() => setModalVisible(false)}
       />
-      <CustomModal 
+      <CustomModal
         visible={infoModalVisible}
-        title="CÓMO OBTENER PUNTOS"
-        message={`Escanea códigos QR por:\n\n1. Asistencia\n2. Completar Rutina\n3. Reseña en Google\n4. Invitar Amigo\n5. Comprar`}
+        title="¿Cómo ganar puntos?"
+        message={`Escanea códigos QR por:\n\n• Asistencia\n• Completar rutina\n• Reseña en Google\n• Invitar a un amigo\n• Comprar en tienda`}
         type="info"
         onClose={() => setInfoModalVisible(false)}
-        buttonText="ENTENDIDO"
+        buttonText="Entendido"
       />
-      <ImageBackground
-        source={require('../../assets/images/bg.jpg')}
-        style={styles.backgroundImage}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
-          style={styles.gradientOverlay}
-        >
-          <SafeAreaView style={styles.safeArea}>
-            {/* Header section with User Card */}
-            <View style={styles.header}>
-              <View style={styles.titleContainer}>
-                <Text style={styles.title}>IRON LEGENDS</Text>
-                <TouchableOpacity onPress={() => setInfoModalVisible(true)} style={styles.infoButton}>
-                  <Ionicons name="information-circle-outline" size={24} color={GOLD_COLOR} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.userCard}>
-                <View style={styles.userCardContent}>
-                  <View>
-                    <Text style={styles.userRankTitle}>TU RANGO</Text>
-                    <Text style={styles.userRankValue}>ELITE</Text>
-                  </View>
-                  <View style={styles.divider} />
-                  <View>
-                    <Text style={styles.userRankTitle}>TOTAL</Text>
-                    <Text style={styles.userRankValue}>{profile?.total_points?.toLocaleString() || '0'} PTS</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
 
-            {/* Sticky Action Buttons */}
-            <View style={styles.actionButtonsRow}>
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={() => router.push('/scanner')}
-              >
-                <Ionicons name="qr-code" size={20} color="black" />
-                <Text style={styles.actionButtonText}>ASISTENCIA</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: '#333' }]}
-                onPress={() => setModalVisible(true)}
-              >
-                <Ionicons name="gift" size={20} color={GOLD_COLOR} />
-                <Text style={[styles.actionButtonText, { color: GOLD_COLOR }]}>RECOMPENSA</Text>
-              </TouchableOpacity>
-            </View>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
 
-            <View style={styles.listHeader}>
-              <Text style={styles.listTitle}>RANKING MENSUAL</Text>
-            </View>
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Rankings</Text>
+            <Text style={styles.headerSubtitle}>Ranking mensual</Text>
+          </View>
+          <TouchableOpacity style={styles.infoBtn} onPress={() => setInfoModalVisible(true)}>
+            <Ionicons name="information-circle-outline" size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-            {loading ? (
-              <ActivityIndicator size="large" color={GOLD_COLOR} style={{ marginTop: 50 }} />
-            ) : error ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="cloud-offline" size={50} color="#666" style={{ marginBottom: 10 }} />
-                <Text style={styles.errorText}>No pudimos cargar el ranking.</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={loadLeaderboard}>
-                    <Text style={styles.retryButtonText}>INTENTAR DE NUEVO</Text>
-                    <Ionicons name="refresh" size={16} color="black" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <FlatList
-                data={leaderboard}
-                keyExtractor={(item) => item.id}
-                renderItem={renderLeaderboardItem}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-              />
-            )}
-          </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
+        {/* ── My stats card ── */}
+        <View style={styles.myCard}>
+          <View style={styles.myCardStat}>
+            <Text style={styles.myCardLabel}>Tu posición</Text>
+            <Text style={styles.myCardValue}>{myRank > 0 ? `#${myRank}` : '–'}</Text>
+          </View>
+          <View style={styles.myCardDivider} />
+          <View style={styles.myCardStat}>
+            <Text style={styles.myCardLabel}>Tus puntos</Text>
+            <Text style={[styles.myCardValue, { color: theme.accent }]}>
+              {profile?.total_points?.toLocaleString() || '0'}
+            </Text>
+          </View>
+          <View style={styles.myCardDivider} />
+          <View style={styles.myCardStat}>
+            <Text style={styles.myCardLabel}>Rango</Text>
+            <Text style={styles.myCardValue}>ELITE</Text>
+          </View>
+        </View>
+
+        {/* ── Action buttons ── */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.primaryAction} onPress={() => router.push('/scanner')} activeOpacity={0.85}>
+            <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryActionGradient}>
+              <Ionicons name="qr-code" size={18} color="#fff" />
+              <Text style={styles.primaryActionText}>Registrar asistencia</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryAction} onPress={() => setModalVisible(true)} activeOpacity={0.85}>
+            <Ionicons name="gift-outline" size={18} color={theme.accent} />
+            <Text style={styles.secondaryActionText}>Recompensa</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── List ── */}
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 60 }} />
+        ) : error ? (
+          <View style={styles.errorState}>
+            <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
+            <Text style={styles.errorTitle}>Sin conexión</Text>
+            <Text style={styles.errorText}>No pudimos cargar el ranking.</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadLeaderboard}>
+              <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.retryBtnGradient}>
+                <Ionicons name="refresh" size={14} color="#fff" />
+                <Text style={styles.retryBtnText}>Reintentar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={leaderboard}
+            keyExtractor={item => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: theme.bgDeep,
   },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 220,
   },
-  gradientOverlay: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
+
+  // ── Header ────────────────────────────────────────────────────────────────
   header: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: 'white',
-    letterSpacing: 2,
-    textShadowColor: GOLD_COLOR,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 20,
-  },
-  infoButton: {
-    padding: 5,
-  },
-  userCard: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  userCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  userRankTitle: {
-    fontSize: 10,
-    color: '#888',
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    textAlign: 'center',
-  },
-  userRankValue: {
-    fontSize: 20,
-    color: GOLD_COLOR,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  divider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  actionButtonsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginBottom: 24,
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GOLD_COLOR,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: 'black',
-    letterSpacing: 0.5,
-  },
-  listHeader: {
-    paddingHorizontal: 24,
-    marginBottom: 12,
-  },
-  listTitle: {
-    fontSize: 14,
+  headerLeft: { gap: 2 },
+  headerTitle: {
+    fontSize: 24,
     fontWeight: '800',
-    color: 'white',
-    letterSpacing: 1,
-    opacity: 0.6,
+    color: theme.textPrimary,
+    letterSpacing: -0.5,
   },
-  listContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 100,
+  headerSubtitle: {
+    fontSize: 13,
+    color: theme.textMuted,
   },
-  leaderboardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 12,
+  infoBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  rankContainer: {
-    width: 32,
+    borderColor: theme.borderSubtle,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  rankNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#888',
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
-    marginRight: 12,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 2,
-  },
-  streakContainer: {
+
+  // ── My card ───────────────────────────────────────────────────────────────
+  myCard: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    marginHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginBottom: 14,
+  },
+  myCardStat: {
+    flex: 1,
     alignItems: 'center',
     gap: 4,
   },
-  streakText: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '500',
+  myCardLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.textMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  pointsContainer: {
-    alignItems: 'flex-end',
-  },
-  pointsValue: {
+  myCardValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: GOLD_COLOR,
+    color: theme.textPrimary,
+    letterSpacing: -0.5,
   },
-  pointsLabel: {
-    fontSize: 9,
-    color: '#888',
-    fontWeight: 'bold',
+  myCardDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: theme.borderSubtle,
   },
-  errorContainer: {
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  primaryAction: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 50,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  errorText: {
-    color: '#AAA',
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  retryButton: {
+  primaryActionGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: GOLD_COLOR,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
+    justifyContent: 'center',
+    gap: 8,
+    height: 44,
+  },
+  primaryActionText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  secondaryAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    backgroundColor: theme.accentDim,
+  },
+  secondaryActionText: {
+    color: theme.accent,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // ── List ──────────────────────────────────────────────────────────────────
+  list: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
     gap: 8,
   },
-  retryButtonText: {
-    color: 'black',
-    fontWeight: '900',
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    gap: 12,
+  },
+  rowFirst: {
+    // first item, no extra margin needed
+  },
+  rowTop3: {
+    borderColor: theme.borderMuted,
+  },
+  rowMe: {
+    borderColor: theme.accentBorder,
+    backgroundColor: theme.accentDim,
+  },
+  rankCol: {
+    width: 28,
+    alignItems: 'center',
+  },
+  rankNum: {
     fontSize: 14,
-    letterSpacing: 1,
+    fontWeight: '800',
+    color: theme.textMuted,
+  },
+  avatarWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: theme.borderMuted,
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
+  },
+  info: {
+    flex: 1,
+    gap: 3,
+  },
+  name: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  streakText: {
+    fontSize: 11,
+    color: theme.textMuted,
+    fontWeight: '500',
+  },
+  scoreCol: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  score: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: theme.textPrimary,
+  },
+  scoreLabel: {
+    fontSize: 9,
+    color: theme.textMuted,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+
+  // ── Error state ───────────────────────────────────────────────────────────
+  errorState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingBottom: 60,
+  },
+  errorTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginTop: 4,
+  },
+  errorText: {
+    color: theme.textSecondary,
+    fontSize: 14,
+  },
+  retryBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 8,
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  retryBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+  },
+  retryBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

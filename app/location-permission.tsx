@@ -1,13 +1,13 @@
 
 import { RadarService } from '@/lib/radar';
+import { theme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const GOLD_COLOR = '#C5A356';
 
 export default function LocationPermissionScreen() {
   const router = useRouter();
@@ -16,183 +16,206 @@ export default function LocationPermissionScreen() {
     const status = await RadarService.requestPermissions();
     if (status === 'GRANTED_FOREGROUND' || status === 'GRANTED_BACKGROUND') {
       RadarService.startTracking();
-      router.back();
-    } else {
-      // If denied, maybe show a hint or just go back
-      router.back();
     }
+    router.back();
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#000', '#1a1a1a']}
-        style={styles.gradient}
-      >
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
-            <View style={styles.iconContainer}>
-              <View style={styles.radarPulse}>
-                <Ionicons name="location" size={80} color={GOLD_COLOR} />
-              </View>
-            </View>
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
 
-            <Text style={styles.title}>SUBE AL SIGUIENTE NIVEL</Text>
-            <Text style={styles.subtitle}>
-              Activa la ubicación para que Iron Body detecte automáticamente tu entrada al gimnasio.
-            </Text>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.content}>
 
-            <View style={styles.benefitList}>
-              <BenefitItem 
-                icon="flash" 
-                text="Gana puntos extra por cada entrenamiento detectado." 
-              />
-              <BenefitItem 
-                icon="calendar" 
-                text="Registro automático de asistencia sin necesidad de QR." 
-              />
-              <BenefitItem 
-                icon="notifications" 
-                text="Recibe retos exclusivos al entrar." 
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.primaryButton} 
-              onPress={handleAllowPermissions}
-            >
-              <Text style={styles.primaryButtonText}>ACTIVAR UBICACIÓN</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.secondaryButton} 
-              onPress={() => router.back()}
-            >
-              <Text style={styles.secondaryButtonText}>POR AHORA NO</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.disclaimer}>
-              Tu ubicación solo se usará para geovallas del gimnasio. Respetamos tu privacidad.
-            </Text>
+          {/* ── Icon ── */}
+          <View style={styles.iconWrap}>
+            <LinearGradient
+              colors={theme.gradients.accent}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.iconGradient}
+            />
+            <Ionicons name="location" size={48} color="#fff" />
           </View>
-        </SafeAreaView>
-      </LinearGradient>
+
+          {/* ── Copy ── */}
+          <Text style={styles.title}>Activa tu ubicación</Text>
+          <Text style={styles.subtitle}>
+            Detectamos tu entrada al gimnasio automáticamente para registrar asistencia y darte puntos.
+          </Text>
+
+          {/* ── Benefits ── */}
+          <View style={styles.benefitList}>
+            <BenefitItem icon="flash" text="Gana puntos extra por cada sesión detectada." />
+            <BenefitItem icon="checkmark-circle" text="Registro de asistencia sin necesidad de QR." />
+            <BenefitItem icon="gift" text="Recibe retos exclusivos al entrar al gym." />
+          </View>
+
+          {/* ── Actions ── */}
+          <TouchableOpacity style={styles.primaryBtn} onPress={handleAllowPermissions} activeOpacity={0.85}>
+            <LinearGradient
+              colors={theme.gradients.accent}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.primaryBtnGradient}
+            >
+              <Ionicons name="location" size={18} color="#fff" />
+              <Text style={styles.primaryBtnText}>Activar ubicación</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.skipBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Text style={styles.skipText}>Por ahora no</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.disclaimer}>
+            Tu ubicación solo se usa para detectar entradas al gimnasio. No compartimos tus datos.
+          </Text>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
 
-const BenefitItem = ({ icon, text }: { icon: any, text: string }) => (
-  <View style={styles.benefitItem}>
-    <View style={styles.benefitIcon}>
-      <Ionicons name={icon} size={20} color={GOLD_COLOR} />
+function BenefitItem({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }) {
+  return (
+    <View style={styles.benefitItem}>
+      <View style={styles.benefitIconBox}>
+        <Ionicons name={icon} size={16} color={theme.accent} />
+      </View>
+      <Text style={styles.benefitText}>{text}</Text>
     </View>
-    <Text style={styles.benefitText}>{text}</Text>
-  </View>
-);
+  );
+}
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    backgroundColor: theme.bgDeep,
   },
-  gradient: {
-    flex: 1,
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 260,
   },
   safeArea: {
     flex: 1,
   },
   content: {
     flex: 1,
-    padding: 30,
+    paddingHorizontal: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 0,
   },
-  iconContainer: {
-    marginBottom: 40,
+
+  // ── Icon ──────────────────────────────────────────────────────────────────
+  iconWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 36,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 32,
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 12,
   },
-  radarPulse: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(197, 163, 86, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(197, 163, 86, 0.3)',
+  iconGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
+
+  // ── Copy ──────────────────────────────────────────────────────────────────
   title: {
-    color: 'white',
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 26,
+    fontWeight: '800',
+    color: theme.textPrimary,
     textAlign: 'center',
-    marginBottom: 16,
-    letterSpacing: 1,
+    letterSpacing: -0.5,
+    marginBottom: 12,
   },
   subtitle: {
-    color: '#aaa',
-    fontSize: 16,
+    fontSize: 15,
+    color: theme.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 40,
-    paddingHorizontal: 10,
+    lineHeight: 22,
+    marginBottom: 36,
   },
+
+  // ── Benefits ──────────────────────────────────────────────────────────────
   benefitList: {
     width: '100%',
-    marginBottom: 50,
+    gap: 14,
+    marginBottom: 44,
   },
   benefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 14,
   },
-  benefitIcon: {
+  benefitIconBox: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(197, 163, 86, 0.2)',
+    borderRadius: 11,
+    backgroundColor: theme.accentDim,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    flexShrink: 0,
   },
   benefitText: {
-    color: '#e0e0e0',
-    fontSize: 15,
     flex: 1,
+    fontSize: 14,
+    color: theme.textSecondary,
     lineHeight: 20,
   },
-  primaryButton: {
-    backgroundColor: GOLD_COLOR,
+
+  // ── Buttons ───────────────────────────────────────────────────────────────
+  primaryBtn: {
     width: '100%',
-    paddingVertical: 18,
-    borderRadius: 30,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 8,
+    marginBottom: 14,
+  },
+  primaryBtnGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: GOLD_COLOR,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
   },
-  primaryButtonText: {
-    color: 'black',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 1,
+  primaryBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
-  secondaryButton: {
+  skipBtn: {
     paddingVertical: 12,
+    marginBottom: 24,
   },
-  secondaryButtonText: {
-    color: '#666',
+  skipText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    color: theme.textMuted,
+    fontWeight: '500',
   },
+
+  // ── Disclaimer ────────────────────────────────────────────────────────────
   disclaimer: {
-    color: '#444',
     fontSize: 12,
+    color: theme.textMuted,
     textAlign: 'center',
-    marginTop: 30,
-    paddingHorizontal: 20,
+    lineHeight: 18,
+    paddingHorizontal: 12,
   },
 });

@@ -1,10 +1,12 @@
 
 import { UserAPI } from '@/api/user';
 import { CustomModal } from '@/components/ui/CustomModal';
+import { theme } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
@@ -18,7 +20,6 @@ export default function Scanner() {
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Modal State
   const [modalVisible, setModalVisible] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     title: '',
@@ -32,33 +33,18 @@ export default function Scanner() {
     setLoading(true);
 
     try {
-      const { data: result, error } = await supabase.rpc('process_qr_scan', {
-        qr_code: data,
-      });
-
+      const { data: result, error } = await supabase.rpc('process_qr_scan', { qr_code: data });
       if (error) throw error;
 
       if (result.success) {
-        setModalConfig({
-          title: '¡ÉXITO!',
-          message: result.message,
-          type: 'success',
-        });
+        setModalConfig({ title: '¡Éxito!', message: result.message, type: 'success' });
         await refreshProfile();
       } else {
-        setModalConfig({
-          title: 'QR INVÁLIDO',
-          message: result.message,
-          type: 'error',
-        });
+        setModalConfig({ title: 'QR inválido', message: result.message, type: 'error' });
       }
     } catch (e: any) {
       console.error('Scan error:', e);
-      setModalConfig({
-        title: 'ERROR',
-        message: 'No se pudo procesar el código. Intenta de nuevo.',
-        type: 'error',
-      });
+      setModalConfig({ title: 'Error', message: 'No se pudo procesar el código. Intenta de nuevo.', type: 'error' });
     } finally {
       setLoading(false);
       setModalVisible(true);
@@ -74,63 +60,96 @@ export default function Scanner() {
     }
   };
 
+  // ── Permission loading ────────────────────────────────────────────────────
   if (!permission) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#C5A356" />
+      <View style={styles.permissionRoot}>
+        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
 
+  // ── Permission denied ─────────────────────────────────────────────────────
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Necesitamos permiso para usar la cámara</Text>
-        <TouchableOpacity style={styles.backButton} onPress={requestPermission}>
-          <Text style={styles.backButtonText}>PEDIR PERMISO</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.backButton, { marginTop: 10, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#C5A356' }]}
-          onPress={() => router.back()}
-        >
-          <Text style={[styles.backButtonText, { color: '#C5A356' }]}>VOLVER</Text>
-        </TouchableOpacity>
+      <View style={styles.permissionRoot}>
+        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+        <SafeAreaView style={styles.permissionContent} edges={['top', 'bottom']}>
+          <View style={styles.permissionIconWrap}>
+            <Ionicons name="camera-outline" size={48} color={theme.accent} />
+          </View>
+          <Text style={styles.permissionTitle}>Acceso a la cámara</Text>
+          <Text style={styles.permissionSubtitle}>
+            Necesitamos permiso para escanear códigos QR y registrar tu asistencia.
+          </Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={requestPermission} activeOpacity={0.85}>
+            <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGradient}>
+              <Ionicons name="camera" size={18} color="#fff" />
+              <Text style={styles.primaryBtnText}>Permitir cámara</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.skipBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Text style={styles.skipText}>Volver</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
       </View>
     );
   }
 
+  // ── Scanner view ──────────────────────────────────────────────────────────
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar style="light" />
 
       <CameraView
         style={StyleSheet.absoluteFillObject}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-        barcodeScannerSettings={{
-          barcodeTypes: ['qr'],
-        }}
+        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
       />
 
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-              <Ionicons name="close" size={30} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>ESCANEAR RECOMPENSA</Text>
-          </View>
+      {/* Dark overlay */}
+      <View style={styles.overlay} />
 
-          <View style={styles.scannerContainer}>
-            <View style={styles.scannerFrame}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()} activeOpacity={0.8}>
+            <Ionicons name="close" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Escanear QR</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* ── Frame ── */}
+        <View style={styles.frameArea}>
+          {loading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={theme.accent} />
+              <Text style={styles.loadingText}>Procesando...</Text>
+            </View>
+          ) : (
+            <View style={styles.frame}>
+              {/* Corners */}
               <View style={[styles.corner, styles.topLeft]} />
               <View style={[styles.corner, styles.topRight]} />
               <View style={[styles.corner, styles.bottomLeft]} />
               <View style={[styles.corner, styles.bottomRight]} />
             </View>
+          )}
+        </View>
+
+        {/* ── Helper text ── */}
+        <View style={styles.footer}>
+          <View style={styles.helperPill}>
+            <Ionicons name="qr-code-outline" size={14} color="rgba(255,255,255,0.7)" />
             <Text style={styles.helperText}>Apunta al código QR del establecimiento</Text>
           </View>
-        </SafeAreaView>
-      </View>
+        </View>
+
+      </SafeAreaView>
 
       <CustomModal
         visible={modalVisible}
@@ -146,80 +165,197 @@ export default function Scanner() {
   );
 }
 
+const FRAME_SIZE = 240;
+const CORNER_SIZE = 36;
+const CORNER_WIDTH = 3;
+
 const styles = StyleSheet.create({
-  container: {
+  // ── Permission screens ─────────────────────────────────────────────────────
+  permissionRoot: {
+    flex: 1,
+    backgroundColor: theme.bgDeep,
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 220,
+  },
+  permissionContent: {
+    flex: 1,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 0,
+  },
+  permissionIconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    backgroundColor: theme.accentDim,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  permissionTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    textAlign: 'center',
+    letterSpacing: -0.4,
+    marginBottom: 10,
+  },
+  permissionSubtitle: {
+    fontSize: 15,
+    color: theme.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 36,
+  },
+  primaryBtn: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 8,
+    marginBottom: 14,
+  },
+  primaryBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+  },
+  primaryBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  skipBtn: {
+    paddingVertical: 12,
+  },
+  skipText: {
+    fontSize: 14,
+    color: theme.textMuted,
+    fontWeight: '500',
+  },
+
+  // ── Scanner view ───────────────────────────────────────────────────────────
+  root: {
     flex: 1,
     backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   safeArea: {
     flex: 1,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
-  closeButton: {
-    padding: 5,
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 20,
-    letterSpacing: 1,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: -0.3,
   },
-  scannerContainer: {
+
+  // Frame area
+  frameArea: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  scannerFrame: {
-    width: 250,
-    height: 250,
-    borderWidth: 0,
+  frame: {
+    width: FRAME_SIZE,
+    height: FRAME_SIZE,
     position: 'relative',
   },
   corner: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderColor: '#C5A356',
-    borderWidth: 4,
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
+    borderColor: theme.accent,
+    borderWidth: CORNER_WIDTH,
+    borderRadius: 4,
   },
-  topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
-  topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
-  bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
-  bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
-  helperText: {
-    color: '#FFF',
-    marginTop: 40,
-    fontSize: 16,
-    textAlign: 'center',
+  topLeft: {
+    top: 0, left: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    borderTopLeftRadius: 10,
+  },
+  topRight: {
+    top: 0, right: 0,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+    borderTopRightRadius: 10,
+  },
+  bottomLeft: {
+    bottom: 0, left: 0,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 10,
+  },
+  bottomRight: {
+    bottom: 0, right: 0,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    borderBottomRightRadius: 10,
+  },
+
+  // Loading box
+  loadingBox: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Footer
+  footer: {
+    paddingBottom: 48,
+    alignItems: 'center',
+  },
+  helperPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  errorText: {
-    color: '#FFF',
-    fontSize: 18,
-    marginBottom: 20,
+  helperText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '500',
   },
-  backButton: {
-    backgroundColor: '#C5A356',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  backButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
-  }
 });

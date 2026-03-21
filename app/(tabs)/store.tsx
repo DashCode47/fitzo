@@ -1,5 +1,6 @@
 import { StoreAPI } from '@/api/store';
-import { MaterialIcons } from '@expo/vector-icons';
+import { theme } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
@@ -8,24 +9,24 @@ import {
   Dimensions,
   FlatList,
   Image,
-  ImageBackground,
   StyleSheet,
   Text,
-  View
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - 48) / 2;
-const GOLD_COLOR = '#C5A356';
+const GAP = 12;
+const H_PAD = 20;
+const COLUMN_WIDTH = (width - H_PAD * 2 - GAP) / 2;
 
 export default function StoreScreen() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  useEffect(() => { loadProducts(); }, []);
 
   const loadProducts = async () => {
     try {
@@ -38,158 +39,309 @@ export default function StoreScreen() {
     }
   };
 
+  // Derive unique categories from products
+  const categories = ['Todos', ...Array.from(new Set(products.map((p: any) => p.category).filter(Boolean)))];
+  const filtered = !activeCategory || activeCategory === 'Todos'
+    ? products
+    : products.filter((p: any) => p.category === activeCategory);
+
   const renderProduct = ({ item }: { item: any }) => (
-    <View style={styles.productCard}>
-      <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
-      <View style={styles.productInfo}>
-        <Text style={styles.category} numberOfLines={1}>{item.category}</Text>
-        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        {item.description && <Text style={styles.description} numberOfLines={2}>{item.description}</Text>}
-        <Text style={styles.productPrice}>{item.price}$</Text>
+    <TouchableOpacity style={styles.card} activeOpacity={0.85}>
+      {/* Image */}
+      <View style={styles.imageWrap}>
+        <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+        {/* Category pill on image */}
+        {item.category && (
+          <View style={styles.categoryPill}>
+            <Text style={styles.categoryPillText}>{item.category.toUpperCase()}</Text>
+          </View>
+        )}
       </View>
-    </View>
+
+      {/* Info */}
+      <View style={styles.cardBody}>
+        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+        {item.description && (
+          <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+        )}
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>${item.price}</Text>
+          <View style={styles.addBtn}>
+            <Ionicons name="add" size={16} color="#fff" />
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={GOLD_COLOR} />
+      <View style={styles.loadingRoot}>
+        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar style="light" />
-      <ImageBackground
-        source={require('../../assets/images/bg.jpg')}
-        style={styles.backgroundImage}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
-          style={styles.gradientOverlay}
-        >
-          <SafeAreaView style={styles.safeArea} edges={['top']}>
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>TIENDA</Text>
-              <MaterialIcons name="storefront" size={24} color={GOLD_COLOR} />
-            </View>
+      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
 
-            <FlatList
-              data={products}
-              renderItem={renderProduct}
-              keyExtractor={(item) => item.id.toString()}
-              numColumns={2}
-              contentContainerStyle={styles.listContent}
-              columnWrapperStyle={styles.columnWrapper}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No hay productos disponibles actualmente.</Text>
-                </View>
-              }
-            />
-          </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Tienda</Text>
+            <Text style={styles.headerSubtitle}>{filtered.length} productos</Text>
+          </View>
+          <TouchableOpacity style={styles.headerIcon}>
+            <Ionicons name="bag-outline" size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Category filter ── */}
+        {categories.length > 1 && (
+          <FlatList
+            data={categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={item => item}
+            contentContainerStyle={styles.filterList}
+            style={styles.filterListContainer}
+            renderItem={({ item }) => {
+              const isActive = (!activeCategory && item === 'Todos') || activeCategory === item;
+              return (
+                <TouchableOpacity
+                  style={[styles.filterChip, isActive && styles.filterChipActive]}
+                  onPress={() => setActiveCategory(item === 'Todos' ? null : item)}
+                  activeOpacity={0.75}
+                >
+                  {isActive && (
+                    <LinearGradient
+                      colors={theme.gradients.accent}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  )}
+                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )}
+
+        {/* ── Grid ── */}
+        <FlatList
+          data={filtered}
+          renderItem={renderProduct}
+          keyExtractor={item => item.id.toString()}
+          numColumns={2}
+          contentContainerStyle={styles.grid}
+          columnWrapperStyle={styles.gridRow}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="bag-remove-outline" size={48} color={theme.textMuted} />
+              <Text style={styles.emptyText}>No hay productos disponibles.</Text>
+            </View>
+          }
+        />
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: theme.bgDeep,
   },
-  backgroundImage: {
+  loadingRoot: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  gradientOverlay: {
-    flex: 1,
+    backgroundColor: theme.bgDeep,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   safeArea: {
     flex: 1,
+    width: '100%',
   },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: 'black',
-    justifyContent: 'center',
-    alignItems: 'center',
+  topGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
   },
+
+  // ── Header ────────────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: H_PAD,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: 'white',
-    letterSpacing: 2,
-    marginRight: 8,
+    fontSize: 24,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    letterSpacing: -0.5,
   },
-  listContent: {
-    padding: 16,
+  headerSubtitle: {
+    fontSize: 13,
+    color: theme.textMuted,
+    marginTop: 2,
+  },
+  headerIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // ── Filter chips ──────────────────────────────────────────────────────────
+  filterListContainer: {
+    flexGrow: 0,
+    maxHeight: 44,
+  },
+  filterList: {
+    paddingHorizontal: H_PAD,
+    gap: 8,
+    alignItems: 'center',
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    backgroundColor: theme.surface,
+    overflow: 'hidden',
+    height: 32,
+    justifyContent: 'center',
+  },
+  filterChipActive: {
+    borderColor: theme.accent,
+  },
+  filterChipText: {
+    fontSize: 13,
+    color: theme.textSecondary,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+
+  // ── Grid ──────────────────────────────────────────────────────────────────
+  grid: {
+    paddingHorizontal: H_PAD,
     paddingBottom: 100,
   },
-  columnWrapper: {
+  gridRow: {
+    gap: GAP,
     justifyContent: 'space-between',
   },
-  productCard: {
+
+  // ── Product card ──────────────────────────────────────────────────────────
+  card: {
     width: COLUMN_WIDTH,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    marginBottom: 16,
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    marginBottom: GAP + 4,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: theme.borderSubtle,
   },
-  productImage: {
+  imageWrap: {
     width: '100%',
     height: COLUMN_WIDTH,
-    backgroundColor: '#111',
+    backgroundColor: theme.surface,
+    position: 'relative',
   },
-  productInfo: {
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryPill: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: theme.accentDim,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  categoryPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: theme.accent,
+    letterSpacing: 0.5,
+  },
+  cardBody: {
     padding: 12,
-  },
-  category: {
-    fontSize: 10,
-    color: GOLD_COLOR,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 4,
+    gap: 4,
   },
   productName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    lineHeight: 17,
   },
   description: {
     fontSize: 11,
-    color: '#aaa',
-    marginBottom: 8,
-    lineHeight: 14,
+    color: theme.textMuted,
+    lineHeight: 15,
   },
-  productPrice: {
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  price: {
     fontSize: 16,
-    fontWeight: '900',
-    color: 'white',
+    fontWeight: '800',
+    color: theme.textPrimary,
   },
-  emptyContainer: {
-    flex: 1,
+  addBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  // ── Empty ─────────────────────────────────────────────────────────────────
+  empty: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 100,
+    paddingTop: 80,
+    gap: 12,
   },
   emptyText: {
-    color: '#888',
-    fontSize: 16,
+    color: theme.textMuted,
+    fontSize: 15,
     textAlign: 'center',
   },
 });

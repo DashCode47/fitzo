@@ -2,14 +2,13 @@
 import { AuthAPI } from '@/api/auth';
 import { UserAPI } from '@/api/user';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { FontAwesome } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
-  ImageBackground,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -23,8 +22,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomModal } from '@/components/ui/CustomModal';
+import { Brand, theme } from '@/constants/theme';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const { accent: ACCENT, bgDeep: BG_DEEP, bgCard: BG_CARD, surface: SURFACE,
+        textPrimary: TEXT_PRIMARY, textSecondary: TEXT_SECONDARY, textMuted: TEXT_MUTED } = theme;
 
 export default function LoginScreen() {
   const { goToRegister, goToHome } = useAppNavigation();
@@ -37,7 +39,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -48,53 +49,38 @@ export default function LoginScreen() {
         setErrorVisible(true);
         return;
       }
-
       setLoading(true);
       try {
-        // 1. Lookup Email
         const data = await AuthAPI.lookupEmailByCedula(nationalId);
         if (!data.email) throw new Error('Cédula no encontrada');
         setEmail(data.email);
-
-        // 2. Send OTP
         await AuthAPI.signInWithOtp(data.email);
-
         Keyboard.dismiss();
         setStep('OTP');
-        setSuccessMessage(`Se ha enviado un código a su correo registrado: ${data.email}`);
+        setSuccessMessage(`Código enviado a: ${data.email}`);
         setSuccessVisible(true);
       } catch (error: any) {
-        console.log(error);
         setErrorMessage(error.response?.data?.message || 'Cédula no registrada o inválida');
         setErrorVisible(true);
       } finally {
         setLoading(false);
       }
     } else {
-      // Step === OTP
       if (!otp) {
         setErrorMessage('Por favor ingrese el código de verificación');
         setErrorVisible(true);
         return;
       }
-
       setLoading(true);
       try {
-        console.log('[LoginScreen] Verifying OTP...');
         const result = await AuthAPI.verifyOtp(email, otp);
-        console.log('[LoginScreen] OTP Verification Success:', result);
-
-        // Initial Sync to populate profiles table
         if (result.session?.user) {
           await UserAPI.syncProfile(result.session.user).catch(err => {
             console.error('[LoginScreen] Initial sync failed:', err);
           });
         }
-
-        console.log('[LoginScreen] Navigating to Home...');
         goToHome();
       } catch (error: any) {
-        console.error('[LoginScreen] OTP Verification Failed:', error);
         setErrorMessage('Código incorrecto o expirado');
         setErrorVisible(true);
       } finally {
@@ -110,8 +96,9 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar style="light" />
+
       <CustomModal
         visible={errorVisible}
         title="ERROR DE ACCESO"
@@ -126,216 +113,327 @@ export default function LoginScreen() {
         buttonText="ENTENDIDO"
         onClose={() => {
           setSuccessVisible(false);
-          // Autofocus OTP input after closing modal
           setTimeout(() => otpInputRef.current?.focus(), 500);
         }}
       />
-      <ImageBackground
-        source={require('../assets/images/login.jpg')}
-        style={styles.backgroundImage}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']}
-          style={styles.gradientOverlay}
+
+      {/* Background gradient */}
+      <LinearGradient
+        colors={theme.gradients.bg}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Subtle radial glow behind logo */}
+      <View style={styles.glowCircle} pointerEvents="none" />
+
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
-            >
-              <SafeAreaView style={styles.content}>
-                {/* Logo Section */}
-                <View style={styles.logoContainer}>
-                  <Text style={styles.logoText}>IRON</Text>
-                  <Text style={styles.logoSubText}>BODY</Text>
+          <SafeAreaView style={styles.safe}>
+
+            {/* ── Logo ── */}
+            <View style={styles.logoSection}>
+              <View style={styles.logoIconWrap}>
+                <LinearGradient
+                  colors={theme.gradients.accent}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.logoIconGradient}
+                >
+                  <Ionicons name="flash" size={28} color="#fff" />
+                </LinearGradient>
+              </View>
+              <Text style={styles.brandName}>{Brand.name}</Text>
+              <Text style={styles.brandTagline}>{Brand.tagline}</Text>
+            </View>
+
+            {/* ── Card ── */}
+            <View style={styles.card}>
+
+              {/* Step indicator */}
+              <View style={styles.stepRow}>
+                <View style={[styles.stepDot, step === 'ID' && styles.stepDotActive]} />
+                <View style={[styles.stepLine, step === 'OTP' && styles.stepLineActive]} />
+                <View style={[styles.stepDot, step === 'OTP' && styles.stepDotActive]} />
+              </View>
+
+              <Text style={styles.cardTitle}>
+                {step === 'ID' ? 'Bienvenido' : 'Verifica tu identidad'}
+              </Text>
+              <Text style={styles.cardSubtitle}>
+                {step === 'ID'
+                  ? 'Ingresa tu cédula para continuar'
+                  : `Revisa tu correo y pega el código`}
+              </Text>
+
+              {/* Input */}
+              {step === 'ID' ? (
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="card-outline" size={18} color={TEXT_SECONDARY} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Número de cédula"
+                    maxLength={10}
+                    placeholderTextColor={TEXT_MUTED}
+                    value={nationalId}
+                    onChangeText={setNationalId}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                  />
                 </View>
+              ) : (
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color={ACCENT} style={styles.inputIcon} />
+                  <TextInput
+                    ref={otpInputRef}
+                    style={[styles.input, { letterSpacing: 6, fontSize: 20 }]}
+                    placeholder="· · · · · ·"
+                    placeholderTextColor={TEXT_MUTED}
+                    value={otp}
+                    onChangeText={setOtp}
+                    keyboardType="number-pad"
+                    textContentType="oneTimeCode"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    maxLength={8}
+                    selectionColor={ACCENT}
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                  />
+                </View>
+              )}
 
-                {/* Form Section */}
-                <View style={styles.formContainer}>
-
-                  {step === 'ID' ? (
-                    /* ID Input */
-                    <View style={styles.inputWrapper}>
-                      <FontAwesome name="id-card" size={20} color="#C5A356" style={styles.inputIcon} />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Número de Cédula"
-                        maxLength={10}
-                        placeholderTextColor="#888"
-                        value={nationalId}
-                        onChangeText={setNationalId}
-                        keyboardType="numeric"
-                        returnKeyType="done"
-                        onSubmitEditing={handleLogin}
-                      />
-                    </View>
+              {/* Primary button */}
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={handleLogin}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={theme.gradients.accent}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryBtnGradient}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    /* OTP Input */
-                    <View style={styles.inputWrapper}>
-                      <FontAwesome name="lock" size={20} color="#C5A356" style={styles.inputIcon} />
-                      <TextInput
-                        ref={otpInputRef}
-                        style={styles.input}
-                        placeholder="Código de Verificación (OTP)"
-                        placeholderTextColor="#888"
-                        value={otp}
-                        onChangeText={setOtp}
-                        keyboardType="number-pad"
-                        textContentType="oneTimeCode"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        spellCheck={false}
-                        maxLength={8}
-                        selectionColor="#C5A356"
-                        returnKeyType="done"
-                        onSubmitEditing={handleLogin}
-                      />
-                    </View>
-                  )}
-
-                  {/* Login Button */}
-                  <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-                    {loading ? (
-                      <ActivityIndicator color="black" />
-                    ) : (
-                      <Text style={styles.loginButtonText}>
-                        {step === 'ID' ? 'INGRESAR' : 'VERIFICAR'}
+                    <>
+                      <Text style={styles.primaryBtnText}>
+                        {step === 'ID' ? 'Continuar' : 'Verificar'}
                       </Text>
-                    )}
-                  </TouchableOpacity>
-
-                  {step === 'OTP' && (
-                    <TouchableOpacity style={styles.secondaryButton} onPress={handleBack} disabled={loading}>
-                      <Text style={styles.secondaryButtonText}>Volver</Text>
-                    </TouchableOpacity>
+                      <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
+                    </>
                   )}
+                </LinearGradient>
+              </TouchableOpacity>
 
-                  {step === 'ID' && (
-                    <TouchableOpacity style={styles.registerLink} onPress={goToRegister}>
-                      <Text style={styles.registerText}>
-                        ¿No tienes cuenta? <Text style={styles.linkText}>Crea una aquí</Text>
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+              {/* Secondary actions */}
+              {step === 'OTP' && (
+                <TouchableOpacity style={styles.ghostBtn} onPress={handleBack} disabled={loading}>
+                  <Ionicons name="arrow-back" size={14} color={TEXT_SECONDARY} />
+                  <Text style={styles.ghostBtnText}>Volver</Text>
+                </TouchableOpacity>
+              )}
 
-                  <Text style={styles.disclaimerText}>
-                    Al continuar, aceptas nuestros <Text style={styles.linkText}>Términos y Condiciones</Text> y <Text style={styles.linkText}>Política de Privacidad</Text>.
+              {step === 'ID' && (
+                <TouchableOpacity style={styles.ghostBtn} onPress={goToRegister}>
+                  <Text style={styles.ghostBtnText}>
+                    ¿No tienes cuenta?{' '}
+                    <Text style={styles.accentText}>Regístrate</Text>
                   </Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-                </View>
-              </SafeAreaView>
-            </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
-        </LinearGradient>
-      </ImageBackground>
+            {/* Footer */}
+            <Text style={styles.footer}>
+              Al continuar aceptas nuestros{' '}
+              <Text style={styles.accentText}>Términos</Text>
+              {' '}y{' '}
+              <Text style={styles.accentText}>Privacidad</Text>
+            </Text>
+
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: BG_DEEP,
   },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+  glowCircle: {
+    position: 'absolute',
+    top: -height * 0.15,
+    alignSelf: 'center',
+    width: width * 1.2,
+    height: width * 1.2,
+    borderRadius: width * 0.6,
+    backgroundColor: theme.accentGlow,
   },
-  gradientOverlay: {
+  safe: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
+    paddingHorizontal: 24,
     justifyContent: 'center',
-    paddingHorizontal: 30,
+    gap: 32,
   },
-  logoContainer: {
+
+  // ── Logo ──────────────────────────────────────────────────────────────────
+  logoSection: {
     alignItems: 'center',
-    marginBottom: 60,
+    gap: 8,
   },
-  logoText: {
-    fontSize: 64,
-    fontWeight: '900',
-    color: 'white',
-    letterSpacing: -2,
-    includeFontPadding: false,
+  logoIconWrap: {
+    marginBottom: 4,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  logoSubText: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: 'white',
-    letterSpacing: 8,
-    marginTop: -10, // Pull it up closer to IRON
+  logoIconGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  formContainer: {
-    width: '100%',
+  brandName: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    letterSpacing: -1,
   },
+  brandTagline: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+    letterSpacing: 0.3,
+  },
+
+  // ── Card ──────────────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: BG_CARD,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: TEXT_MUTED,
+  },
+  stepDotActive: {
+    backgroundColor: ACCENT,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+  },
+  stepLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: TEXT_MUTED,
+  },
+  stepLineActive: {
+    backgroundColor: ACCENT,
+  },
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    letterSpacing: -0.5,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+    marginTop: -8,
+  },
+
+  // ── Input ─────────────────────────────────────────────────────────────────
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 25, // Pill shape
+    backgroundColor: SURFACE,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#444',
-    marginBottom: 20,
-    paddingHorizontal: 15,
-    height: 50,
+    borderColor: theme.borderMuted,
+    paddingHorizontal: 16,
+    height: 52,
   },
   inputIcon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    color: 'white',
+    color: TEXT_PRIMARY,
     fontSize: 16,
   },
-  loginButton: {
-    backgroundColor: '#C5A356', // Gold color from image
-    borderRadius: 25,
-    height: 50,
+
+  // ── Buttons ───────────────────────────────────────────────────────────────
+  primaryBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  primaryBtnGradient: {
+    height: 52,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#C5A356',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
   },
-  loginButtonText: {
-    color: 'black',
+  primaryBtnText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-    letterSpacing: 1,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  secondaryButton: {
-    marginTop: 15,
+  ghostBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
   },
-  secondaryButtonText: {
-    color: '#ccc',
+  ghostBtnText: {
+    color: TEXT_SECONDARY,
     fontSize: 14,
-  },
-  registerLink: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  registerText: {
-    color: '#ccc',
-    fontSize: 14,
-  },
-  disclaimerText: {
-    marginTop: 20,
-    color: '#aaa',
-    fontSize: 12,
     textAlign: 'center',
-    paddingHorizontal: 20,
   },
-  linkText: {
-    color: '#C5A356', // Gold color
-    fontWeight: 'bold',
+
+  // ── Misc ──────────────────────────────────────────────────────────────────
+  accentText: {
+    color: ACCENT,
+    fontWeight: '600',
+  },
+  footer: {
+    textAlign: 'center',
+    color: TEXT_MUTED,
+    fontSize: 12,
   },
 });

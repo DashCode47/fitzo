@@ -1,76 +1,82 @@
 import { AuthAPI } from '@/api/auth';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { FontAwesome } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    ImageBackground,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomModal } from '@/components/ui/CustomModal';
+import { theme } from '@/constants/theme';
 
-const { width } = Dimensions.get('window');
+const { accent: ACCENT, bgDeep: BG_DEEP, bgCard: BG_CARD, surface: SURFACE,
+        textPrimary: TEXT_PRIMARY, textSecondary: TEXT_SECONDARY, textMuted: TEXT_MUTED } = theme;
+
+type Field = {
+  key: keyof typeof INITIAL_FORM;
+  label: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  keyboard?: React.ComponentProps<typeof TextInput>['keyboardType'];
+  maxLength?: number;
+  autoCapitalize?: React.ComponentProps<typeof TextInput>['autoCapitalize'];
+};
+
+const INITIAL_FORM = {
+  email: '',
+  firstName: '',
+  lastName: '',
+  nationalId: '',
+  phone: '',
+};
+
+const FIELDS: Field[] = [
+  { key: 'email',      label: 'Correo electrónico', icon: 'mail-outline',   keyboard: 'email-address', autoCapitalize: 'none' },
+  { key: 'firstName',  label: 'Nombre',              icon: 'person-outline' },
+  { key: 'lastName',   label: 'Apellido',             icon: 'person-outline' },
+  { key: 'nationalId', label: 'Cédula',               icon: 'card-outline',   keyboard: 'numeric', maxLength: 10 },
+  { key: 'phone',      label: 'Teléfono',             icon: 'call-outline',   keyboard: 'phone-pad' },
+];
 
 export default function RegisterScreen() {
   const { goBack } = useAppNavigation();
-  
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    nationalId: '',
-    phone: '',
-  });
-
+  const [formData, setFormData] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (key: keyof typeof INITIAL_FORM, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
   };
 
   const handleRegister = async () => {
-    if (!formData.email || !formData.firstName || !formData.lastName || !formData.nationalId || !formData.phone) {
-      console.warn("[RegisterScreen] Validation failed: Missing required fields.");
-      setErrorMessage('Por favor complete todos los campos obligatorios');
+    const { email, firstName, lastName, nationalId, phone } = formData;
+    if (!email || !firstName || !lastName || !nationalId || !phone) {
+      setErrorMessage('Por favor complete todos los campos');
       setErrorVisible(true);
       return;
     }
-
     setLoading(true);
     try {
-      const payload = {
-        ...formData,
-        password: formData.nationalId, // Default password
-      };
-
-      await AuthAPI.registerUser(payload);
-      
-      setSuccessMessage("¡Registro exitoso! Te hemos enviado un correo de confirmación. Por favor, revisa tu bandeja de entrada y pulsa el enlace para activar tu cuenta.");
+      await AuthAPI.registerUser({ ...formData, password: nationalId });
+      setSuccessMessage('¡Registro exitoso! Revisa tu correo para activar tu cuenta.');
       setSuccessVisible(true);
     } catch (error: any) {
-      console.error('[RegisterScreen] Registration failed:', error);
-      console.error('[RegisterScreen] Error details:', JSON.stringify(error, null, 2));
-      setErrorMessage(error.message || 'Error en el registro. Verifique sus datos.');
+      setErrorMessage(error.message || 'Error en el registro. Verifica tus datos.');
       setErrorVisible(true);
     } finally {
       setLoading(false);
@@ -78,222 +84,328 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar style="light" />
-      <CustomModal 
+
+      <CustomModal
         visible={errorVisible}
         title="ERROR"
         message={errorMessage}
         onClose={() => setErrorVisible(false)}
       />
-      <CustomModal 
+      <CustomModal
         visible={successVisible}
         title="REGISTRO EXITOSO"
         message={successMessage}
         type="success"
         buttonText="IR AL LOGIN"
-        onClose={() => {
-            setSuccessVisible(false);
-            goBack();
-        }}
+        onClose={() => { setSuccessVisible(false); goBack(); }}
       />
-      <ImageBackground 
-        source={require('../assets/images/login.jpg')} // Reusing login background
-        style={styles.backgroundImage}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
-          style={styles.gradientOverlay}
+
+      <LinearGradient
+        colors={theme.gradients.bg}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Top glow */}
+      <LinearGradient
+        colors={theme.gradients.topGlow}
+        style={styles.topGlow}
+        pointerEvents="none"
+      />
+
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <KeyboardAvoidingView 
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
+          <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+            <ScrollView
+              contentContainerStyle={styles.scroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-            <ScrollView contentContainerStyle={styles.content}>
-              {/* Header */}
-            <View style={styles.headerContainer}>
-              <Text style={styles.title}>CREAR CUENTA</Text>
-              <Text style={styles.subtitle}>Únete a Iron Body</Text>
-            </View>
 
-            {/* Form */}
-            <View style={styles.formContainer}>
-              
-              <View style={styles.inputWrapper}>
-                <FontAwesome name="envelope" size={18} color="#C5A356" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  placeholderTextColor="#888"
-                  value={formData.email}
-                  onChangeText={(text) => handleChange('email', text)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
+              {/* ── Header ── */}
+              <View style={styles.header}>
+                <TouchableOpacity style={styles.backBtn} onPress={goBack}>
+                  <Ionicons name="arrow-back" size={20} color={TEXT_SECONDARY} />
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.row}>
-                <View style={[styles.inputWrapper, { flex: 1, marginRight: 10 }]}>
-                    <FontAwesome name="user" size={18} color="#C5A356" style={styles.inputIcon} />
-                    <TextInput
-                    style={styles.input}
-                    placeholder="Nombre"
-                    placeholderTextColor="#888"
+              {/* ── Hero ── */}
+              <View style={styles.hero}>
+                <View style={styles.iconWrap}>
+                  <LinearGradient
+                    colors={theme.gradients.accent}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.iconGradient}
+                  >
+                    <Ionicons name="person-add" size={26} color="#fff" />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.heroTitle}>Crea tu cuenta</Text>
+                <Text style={styles.heroSubtitle}>Completa los datos para empezar</Text>
+              </View>
+
+              {/* ── Card ── */}
+              <View style={styles.card}>
+
+                {/* Name row */}
+                <View style={styles.row}>
+                  <InputField
+                    field={FIELDS[1]}
                     value={formData.firstName}
-                    onChangeText={(text) => handleChange('firstName', text)}
-                    />
-                </View>
-                <View style={[styles.inputWrapper, { flex: 1 }]}>
-                    <FontAwesome name="user" size={18} color="#C5A356" style={styles.inputIcon} />
-                    <TextInput
-                    style={styles.input}
-                    placeholder="Apellido"
-                    placeholderTextColor="#888"
+                    onChange={handleChange}
+                    style={{ flex: 1, marginRight: 8 }}
+                  />
+                  <InputField
+                    field={FIELDS[2]}
                     value={formData.lastName}
-                    onChangeText={(text) => handleChange('lastName', text)}
-                    />
+                    onChange={handleChange}
+                    style={{ flex: 1 }}
+                  />
                 </View>
+
+                {/* Remaining fields */}
+                {[FIELDS[0], FIELDS[3], FIELDS[4]].map(field => (
+                  <InputField
+                    key={field.key}
+                    field={field}
+                    value={formData[field.key]}
+                    onChange={handleChange}
+                  />
+                ))}
+
+                {/* Info hint */}
+                <View style={styles.hint}>
+                  <Ionicons name="information-circle-outline" size={14} color={TEXT_MUTED} />
+                  <Text style={styles.hintText}>
+                    Tu cédula se usará como contraseña temporal
+                  </Text>
+                </View>
+
+                {/* Submit */}
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={handleRegister}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={theme.gradients.accent}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.primaryBtnGradient}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <>
+                        <Text style={styles.primaryBtnText}>Crear cuenta</Text>
+                        <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.inputWrapper}>
-                <FontAwesome name="id-card" size={18} color="#C5A356" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  maxLength={10}
-                  placeholder="Cédula (National ID)"
-                  placeholderTextColor="#888"
-                  value={formData.nationalId}
-                  onChangeText={(text) => handleChange('nationalId', text)}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.inputWrapper}>
-                <FontAwesome name="phone" size={18} color="#C5A356" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Teléfono"
-                  placeholderTextColor="#888"
-                  value={formData.phone}
-                  onChangeText={(text) => handleChange('phone', text)}
-                  keyboardType="phone-pad"
-                />
-              </View>
-
-              {/* Register Button */}
-              <TouchableOpacity style={styles.registerButton} onPress={handleRegister} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="black" />
-                ) : (
-                  <Text style={styles.registerButtonText}>REGISTRARSE</Text>
-                )}
+              {/* Footer */}
+              <TouchableOpacity style={styles.loginLink} onPress={goBack}>
+                <Text style={styles.loginLinkText}>
+                  ¿Ya tienes cuenta? <Text style={styles.accentText}>Inicia sesión</Text>
+                </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.backButton} onPress={goBack}>
-                <Text style={styles.backButtonText}>Volver al Login</Text>
-              </TouchableOpacity>
-
-            </View>
-          </ScrollView>
-            </SafeAreaView>
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
-      </LinearGradient>
-    </ImageBackground>
-  </View>
-);
+            </ScrollView>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </View>
+  );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'black',
-  },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  gradientOverlay: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 30,
-    paddingVertical: 60,
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: 'white',
-    letterSpacing: 1,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#ccc',
-    marginTop: 5,
-  },
-  formContainer: {
-    width: '100%',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  inputWrapper: {
+// ─── InputField helper ────────────────────────────────────────────────────────
+function InputField({
+  field,
+  value,
+  onChange,
+  style,
+}: {
+  field: Field;
+  value: string;
+  onChange: (key: keyof typeof INITIAL_FORM, value: string) => void;
+  style?: object;
+}) {
+  return (
+    <View style={[fieldStyles.wrapper, style]}>
+      <Ionicons name={field.icon} size={16} color={TEXT_SECONDARY} style={fieldStyles.icon} />
+      <TextInput
+        style={fieldStyles.input}
+        placeholder={field.label}
+        placeholderTextColor={TEXT_MUTED}
+        value={value}
+        onChangeText={text => onChange(field.key, text)}
+        keyboardType={field.keyboard ?? 'default'}
+        maxLength={field.maxLength}
+        autoCapitalize={field.autoCapitalize ?? 'words'}
+      />
+    </View>
+  );
+}
+
+const fieldStyles = StyleSheet.create({
+  wrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 25,
+    backgroundColor: SURFACE,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#444',
-    marginBottom: 20,
-    paddingHorizontal: 15,
-    height: 50,
+    borderColor: theme.borderMuted,
+    paddingHorizontal: 14,
+    height: 52,
+    marginBottom: 12,
   },
-  inputIcon: {
+  icon: {
     marginRight: 10,
-    width: 20,
-    textAlign: 'center',
   },
   input: {
     flex: 1,
-    color: 'white',
-    fontSize: 16,
+    color: TEXT_PRIMARY,
+    fontSize: 15,
   },
-  registerButton: {
-    backgroundColor: '#C5A356',
-    borderRadius: 25,
-    height: 50,
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: BG_DEEP,
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 260,
+  },
+  scroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  header: {
+    paddingTop: 8,
+    marginBottom: 8,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#C5A356',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-    marginTop: 20,
   },
-  registerButtonText: {
-    color: 'black',
-    fontSize: 16,
-    fontWeight: 'bold',
-    letterSpacing: 1,
+
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  hero: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 8,
   },
-  backButton: {
-    marginTop: 20,
+  iconWrap: {
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
+    marginBottom: 4,
+  },
+  iconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  backButtonText: {
-    color: '#C5A356',
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    letterSpacing: -0.5,
+  },
+  heroSubtitle: {
     fontSize: 14,
+    color: TEXT_SECONDARY,
+  },
+
+  // ── Card ──────────────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: BG_CARD,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 16,
+    gap: 0,
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  hintText: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+  },
+
+  // ── Button ────────────────────────────────────────────────────────────────
+  primaryBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  primaryBtnGradient: {
+    height: 52,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  loginLink: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  loginLinkText: {
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+  },
+  accentText: {
+    color: ACCENT,
     fontWeight: '600',
   },
 });
