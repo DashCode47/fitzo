@@ -49,6 +49,8 @@ interface AppState {
   routines: Routine[] | null;
   activeWorkout: ActiveWorkout | null;
   workoutLogs: WorkoutLog[] | null;
+  hasMoreLogs: boolean;
+  logsOffset: number;
   userSchedule: UserSchedule[] | null;
 
   // Hydration state
@@ -64,6 +66,9 @@ interface AppState {
   setRoutines: (routines: Routine[]) => void;
   setActiveWorkout: (workout: ActiveWorkout | null) => void;
   setWorkoutLogs: (logs: WorkoutLog[]) => void;
+  appendWorkoutLogs: (logs: WorkoutLog[], hasMore: boolean) => void;
+  setLogsOffset: (offset: number) => void;
+  resetWorkoutLogs: () => void;
   setUserSchedule: (schedule: UserSchedule[]) => void;
   setHydrated: (val: boolean) => void;
   
@@ -85,7 +90,9 @@ export const useAppStore = create<AppState>()(
       leaderboard: null,
       routines: null,
       activeWorkout: null,
-      workoutLogs: null,
+      workoutLogs: [],
+      hasMoreLogs: true,
+      logsOffset: 0,
       userSchedule: null,
       isHydrated: false,
 
@@ -98,6 +105,13 @@ export const useAppStore = create<AppState>()(
       setRoutines: (routines) => set({ routines }),
       setActiveWorkout: (activeWorkout) => set({ activeWorkout }),
       setWorkoutLogs: (workoutLogs) => set({ workoutLogs }),
+      appendWorkoutLogs: (newLogs, hasMore) => set((state) => ({ 
+        workoutLogs: [...(state.workoutLogs || []), ...newLogs],
+        hasMoreLogs: hasMore,
+        logsOffset: (state.logsOffset || 0) + newLogs.length
+      })),
+      setLogsOffset: (logsOffset) => set({ logsOffset }),
+      resetWorkoutLogs: () => set({ workoutLogs: [], logsOffset: 0, hasMoreLogs: true }),
       setUserSchedule: (userSchedule) => set({ userSchedule }),
       setHydrated: (isHydrated) => set({ isHydrated }),
 

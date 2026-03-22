@@ -1,3 +1,4 @@
+
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { supabase } from '@/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,32 +12,33 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { theme } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
-
-const GOLD_COLOR = '#C5A356';
 
 const SLIDES = [
   {
     id: '1',
-    title: 'BIENVENIDO A IRON BODY',
+    title: 'BIENVENIDO A\nIRON BODY',
     description: 'Tu transformación comienza hoy.\nEntrena con los mejores equipos y programas.',
-    image: require('../assets/images/login.jpg'),
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1200',
   },
   {
     id: '2',
-    title: 'SEGUIMIENTO TOTAL',
+    title: 'SEGUIMIENTO\nTOTAL',
     description: 'Monitorea tu progreso, marcas personales\ny nutrición en tiempo real.',
-    image: require('../assets/images/login.jpg'),
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200',
   },
   {
     id: '3',
-    title: 'MÁXIMO POTENCIAL',
+    title: 'MÁXIMO\nPOTENCIAL',
     description: 'Únete a la elite del fitness y comparte tus logros con nuestra comunidad.',
-    image: require('../assets/images/login.jpg'),
+    image: 'https://images.unsplash.com/photo-1541534741688-6078c64b5903?q=80&w=1200',
   },
 ];
 
@@ -67,15 +69,15 @@ export default function OnboardingScreen() {
     } catch (e) {
       console.error("[Onboarding] Session check error:", e);
     } finally {
-      // Small delay for smooth transition if needed
       setCheckingAuth(false);
     }
   };
 
   if (checkingAuth) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={GOLD_COLOR} />
+      <View style={styles.loadingContainer}>
+        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
@@ -90,25 +92,26 @@ export default function OnboardingScreen() {
 
   const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
     <View style={styles.slide}>
-      <ImageBackground source={item.image} style={styles.image}>
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)', 'black']}
-          style={styles.gradient}
-        >
-          <SafeAreaView style={styles.content}>
-            <View style={styles.textContainer}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.description}>{item.description}</Text>
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
+      <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+      <LinearGradient
+        colors={['transparent', 'rgba(7, 7, 15, 0.5)', theme.bgDeep, 'black']}
+        style={styles.gradient}
+      >
+        <SafeAreaView style={styles.content}>
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.description}>{item.description}</Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+      
       <FlatList
         ref={flatListRef}
         data={SLIDES}
@@ -135,16 +138,29 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        {/* Buttons */}
-        <TouchableOpacity style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>
-            {currentIndex === SLIDES.length - 1 ? 'COMENZAR' : 'SIGUIENTE'}
-          </Text>
+        {/* Action Button */}
+        <TouchableOpacity style={styles.mainBtn} onPress={handleNext} activeOpacity={0.9}>
+            <LinearGradient
+                colors={theme.gradients.accent}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.btnGradient}
+            >
+                <Text style={styles.buttonText}>
+                    {currentIndex === SLIDES.length - 1 ? 'COMENZAR AHORA' : 'SIGUIENTE'}
+                </Text>
+                <Ionicons 
+                    name={currentIndex === SLIDES.length - 1 ? 'flash' : 'arrow-forward'} 
+                    size={20} 
+                    color="#fff" 
+                    style={{ marginLeft: 8 }}
+                />
+            </LinearGradient>
         </TouchableOpacity>
 
         {currentIndex < SLIDES.length - 1 && (
           <TouchableOpacity style={styles.skipButton} onPress={goToLogin}>
-            <Text style={styles.skipText}>SALTAR</Text>
+            <Text style={styles.skipText}>SALTAR INTRO</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -157,84 +173,108 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'black',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: height * 0.4,
+    zIndex: 1,
+  },
   slide: {
     width,
     height,
   },
   image: {
-    flex: 1,
-    resizeMode: 'cover',
+    ...StyleSheet.absoluteFillObject,
+    width,
+    height: height * 0.7,
   },
   gradient: {
-    flex: 1,
-    justifyContent: 'center',
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
   },
   content: {
     paddingHorizontal: 40,
-    paddingTop: 80,
-    paddingBottom: 220, // More space for footer buttons and dots
+    paddingBottom: 240,
   },
   textContainer: {
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '900',
     color: 'white',
     textAlign: 'center',
-    letterSpacing: 2,
-    marginBottom: 20,
+    letterSpacing: -1,
+    lineHeight: 38,
+    marginBottom: 16,
+    textTransform: 'uppercase',
   },
   description: {
     fontSize: 16,
-    color: '#ccc',
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
     lineHeight: 24,
+    maxWidth: '90%',
   },
   footer: {
     position: 'absolute',
     bottom: 50,
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 30,
+    zIndex: 10,
   },
   pagination: {
     flexDirection: 'row',
-    marginBottom: 30,
+    marginBottom: 40,
+    gap: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    marginHorizontal: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   activeDot: {
-    backgroundColor: GOLD_COLOR,
-    width: 24,
+    backgroundColor: theme.accent,
+    width: 20,
   },
-  button: {
-    backgroundColor: GOLD_COLOR,
+  mainBtn: {
     width: '100%',
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: 60,
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 8,
     marginBottom: 20,
   },
+  btnGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   buttonText: {
-    color: 'black',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   skipButton: {
     padding: 10,
   },
   skipText: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: theme.textMuted,
+    fontSize: 12,
+    fontWeight: '800',
     letterSpacing: 1,
   },
 });

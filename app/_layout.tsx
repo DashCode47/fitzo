@@ -49,12 +49,20 @@ export default function RootLayout() {
     // Escuchar eventos de Radar (entradas/salidas)
     RadarService.onEvents((result) => {
       const { events } = result;
+      if (!Array.isArray(events)) return;
       events.forEach((event: any) => {
         if (event.type === 'user.entered_geofence') {
           Alert.alert(
             "¡Bienvenido!",
-            `Has entrado a: ${event.geofence.description || 'Gimnasio'}`,
+            `Has entrado a: ${event.geofence?.description || 'Gimnasio'}`,
             [{ text: "Entrenar 🦾" }]
+          );
+        } else if (event.type === 'user.exited_geofence') {
+          console.log(`[Radar] User exited geofence: ${event.geofence?._id}`);
+          Alert.alert(
+            "¡Hasta pronto!",
+            "Has salido del gimnasio. ¡Buen entrenamiento!",
+            [{ text: "OK" }]
           );
         }
       });

@@ -12,7 +12,6 @@ const corsHeaders = {
 serve(async (req) => {
   console.log(`[radar-webhook] Request received: ${req.method}`)
 
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -21,7 +20,6 @@ serve(async (req) => {
     const payload = await req.json()
     console.log('[radar-webhook] Webhook payload:', JSON.stringify(payload))
 
-    // Radar webhooks can send single event or array of events
     const events = payload.events || (payload.event ? [payload.event] : [])
 
     if (!events || events.length === 0) {
@@ -32,7 +30,6 @@ serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client with service role (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     const results: { eventType: string; geofenceId: string; userId: string; action: string }[] = []
@@ -53,64 +50,88 @@ serve(async (req) => {
       const userId = user?.userId || 'unknown'
 
       if (eventType === 'user.entered_geofence') {
-        // Increment current_count atomically
-        const { error } = await supabase.rpc('update_gym_occupancy', {
-          p_geofence_id: geofenceId,
-          p_delta: 1
-        })
+        // Cerrar visitas previas abiertas del mismo usuario (evitar duplicados)
+        await supabase
+          .from('gym_visits')
+          .update({
+            exited_at: new Date().toISOString(),
+            exit_method: 'replaced_by_new_entry'
+          })
+          .eq('user_id', userId)
+          .eq('geofence_id', geofenceId)
+          .is('exited_at', null)
 
-        if (error) {
-          console.error('[radar-webhook] Error incrementing:', error.message)
-          // Fallback: manual update
-          const { data: currentData } = await supabase
-            .from('gym_occupancy')
-            .select('current_count')
-            .eq('geofence_id', geofenceId)
-            .single()
+        // Crear nueva visita con salida esperada en 80 min
+        const expectedExit = new Date(Date.now() + 80 * 60 * 1000).toISOString()
+        const { error: visitError } = await supabase
+          .from('gym_visits')
+          .insert({
+            user_id: userId,
+            geofence_id: geofenceId,
+            entered_at: new Date().toISOString(),
+            expected_exit_at: expectedExit,
+          })
 
-          if (currentData) {
-            await supabase
-              .from('gym_occupancy')
-              .update({
-                current_count: currentData.current_count + 1,
-                updated_at: new Date().toISOString()
-              })
-              .eq('geofence_id', geofenceId)
-          }
+        if (visitError) {
+          console.error('[radar-webhook] Error inserting visit:', visitError.message)
         }
 
-        results.push({ eventType, geofenceId, userId, action: 'incremented' })
-        console.log(`[radar-webhook] User ${userId} entered geofence ${geofenceId}`)
+        // Recalcular count basado en visitas abiertas
+        const { count } = await supabase
+          .from('gym_visits')
+          .select('*', { count: 'exact', head: true })
+          .eq('geofence_id', geofenceId)
+          .is('exited_at', null)
+
+        await supabase
+          .from('gym_occupancy')
+          .update({
+            current_count: count ?? 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('geofence_id', geofenceId)
+
+        results.push({ eventType, geofenceId, userId, action: 'entered' })
+        console.log(`[radar-webhook] User ${userId} entered geofence ${geofenceId}. Open visits: ${count}`)
 
       } else if (eventType === 'user.exited_geofence') {
-        // Decrement current_count atomically (never below 0)
-        const { error } = await supabase.rpc('update_gym_occupancy', {
-          p_geofence_id: geofenceId,
-          p_delta: -1
-        })
+        // Cerrar la visita abierta del usuario
+        const { data: closedVisit, error: exitError } = await supabase
+          .from('gym_visits')
+          .update({
+            exited_at: new Date().toISOString(),
+            exit_method: 'radar'
+          })
+          .eq('user_id', userId)
+          .eq('geofence_id', geofenceId)
+          .is('exited_at', null)
+          .select()
 
-        if (error) {
-          console.error('[radar-webhook] Error decrementing:', error.message)
-          // Fallback: manual update
-          const { data: currentData } = await supabase
-            .from('gym_occupancy')
-            .select('current_count')
-            .eq('geofence_id', geofenceId)
-            .single()
-
-          if (currentData && currentData.current_count > 0) {
-            await supabase
-              .from('gym_occupancy')
-              .update({
-                current_count: currentData.current_count - 1,
-                updated_at: new Date().toISOString()
-              })
-              .eq('geofence_id', geofenceId)
-          }
+        if (exitError) {
+          console.error('[radar-webhook] Error closing visit:', exitError.message)
         }
 
-        results.push({ eventType, geofenceId, userId, action: 'decremented' })
-        console.log(`[radar-webhook] User ${userId} exited geofence ${geofenceId}`)
+        if (!closedVisit || closedVisit.length === 0) {
+          console.log(`[radar-webhook] No open visit found for user ${userId}, ignoring exit`)
+        }
+
+        // Recalcular count basado en visitas abiertas
+        const { count } = await supabase
+          .from('gym_visits')
+          .select('*', { count: 'exact', head: true })
+          .eq('geofence_id', geofenceId)
+          .is('exited_at', null)
+
+        await supabase
+          .from('gym_occupancy')
+          .update({
+            current_count: count ?? 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('geofence_id', geofenceId)
+
+        results.push({ eventType, geofenceId, userId, action: 'exited' })
+        console.log(`[radar-webhook] User ${userId} exited geofence ${geofenceId}. Open visits: ${count}`)
       }
     }
 

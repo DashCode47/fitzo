@@ -83,7 +83,8 @@ export default function ExerciseProgressScreen() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-      
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -163,6 +164,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 220,
   },
   loadingContainer: {
     flex: 1,

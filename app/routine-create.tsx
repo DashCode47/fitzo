@@ -134,8 +134,14 @@ export default function RoutineCreateScreen() {
                 <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Nueva Rutina</Text>
-            <TouchableOpacity onPress={handleSave} disabled={loading}>
-                <Text style={[styles.saveBtn, loading && { opacity: 0.5 }]}>GUARDAR</Text>
+            <TouchableOpacity 
+                onPress={handleSave} 
+                disabled={loading || !name || selectedExercises.length === 0}
+            >
+                <Text style={[
+                    styles.saveBtn, 
+                    (loading || !name || selectedExercises.length === 0) && { opacity: 0.4 }
+                ]}>GUARDAR</Text>
             </TouchableOpacity>
         </View>
 

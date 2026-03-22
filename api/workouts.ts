@@ -11,6 +11,10 @@ export interface WorkoutLog {
   duration_seconds: number;
   total_volume: number;
   notes?: string;
+  routine?: {
+    name: string;
+    difficulty: string;
+  };
 }
 
 export interface WorkoutExerciseLog {

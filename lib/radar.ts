@@ -1,5 +1,4 @@
 import { GEOFENCE_ID, RADAR_PUBLISHABLE_KEY } from '@/env';
-import { Platform } from 'react-native';
 
 // We use a lazy-loaded Radar object to prevent the 'RNRadar not found' crash on import
 let Radar: any = null;
@@ -73,10 +72,17 @@ export const RadarService = {
       const status = await Radar.getPermissionsStatus();
       if (status === 'NOT_DETERMINED') {
         const foregroundStatus = await Radar.requestPermissions(false);
-        if (foregroundStatus === 'GRANTED_FOREGROUND' && Platform.OS === 'android') {
-          await Radar.requestPermissions(true);
+        if (foregroundStatus === 'GRANTED_FOREGROUND') {
+          // Solicitar permisos de background en ambas plataformas
+          const bgStatus = await Radar.requestPermissions(true);
+          return bgStatus;
         }
         return foregroundStatus;
+      }
+      // Si ya tiene foreground pero no background, solicitar background
+      if (status === 'GRANTED_FOREGROUND') {
+        const bgStatus = await Radar.requestPermissions(true);
+        return bgStatus;
       }
       return status;
     } catch (e) {

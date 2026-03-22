@@ -144,7 +144,8 @@ export default function WorkoutSessionScreen() {
       <View style={styles.root}>
         <StatusBar style="light" />
         <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-        
+        <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           {/* Header Dashboard */}
           <View style={styles.sessionHeader}>
@@ -352,6 +353,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 220,
   },
   sessionHeader: {
     paddingHorizontal: 20,

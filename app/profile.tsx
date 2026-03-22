@@ -25,7 +25,18 @@ import { useAppStore } from '@/store/useAppStore';
 
 export default function ProfileScreen() {
   const { goToLogin, goBack } = useAppNavigation();
-  const { profile, setProfile, clearAll, isHydrated } = useAppStore();
+  const { 
+    profile, 
+    setProfile, 
+    clearAll, 
+    isHydrated,
+    workoutLogs,
+    hasMoreLogs,
+    logsOffset,
+    appendWorkoutLogs,
+    resetWorkoutLogs
+  } = useAppStore();
+
   const [loading, setLoading] = useState(!profile);
   const { uploadAvatar, uploading } = useProfileImage();
   const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
@@ -38,16 +49,15 @@ export default function ProfileScreen() {
     onConfirm: () => { },
   });
 
-  const [workoutLogs, setWorkoutLogs] = useState<any[]>([]);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const LIMIT = 5;
 
   useEffect(() => {
     if (isHydrated && profile?.id) {
         loadProfile();
-        loadHistory(true);
+        if ((workoutLogs?.length ?? 0) === 0) {
+            loadHistory(true);
+        }
     }
   }, [isHydrated, profile?.id]);
 
@@ -55,19 +65,12 @@ export default function ProfileScreen() {
     if (!profile?.id || loadingHistory) return;
     try {
         setLoadingHistory(true);
-        const newOffset = reset ? 0 : offset;
-        const data = await WorkoutsAPI.getWorkoutLogs(profile.id, LIMIT, newOffset);
+        const currentOffset = reset ? 0 : logsOffset;
+        if (reset) resetWorkoutLogs();
+
+        const data = await WorkoutsAPI.getWorkoutLogs(profile.id, LIMIT, currentOffset);
         
-        if (reset) {
-            setWorkoutLogs(data);
-            setOffset(LIMIT);
-        } else {
-            setWorkoutLogs([...workoutLogs, ...data]);
-            setOffset(prev => prev + LIMIT);
-        }
-        
-        if (data.length < LIMIT) setHasMore(false);
-        else setHasMore(true);
+        appendWorkoutLogs(data, data.length === LIMIT);
     } catch (e) {
         console.error('[ProfileScreen] Failed to load history:', e);
     } finally {
@@ -214,14 +217,14 @@ export default function ProfileScreen() {
             <Ionicons name="calendar-outline" size={16} color={theme.textMuted} />
           </View>
 
-          {workoutLogs.length === 0 && !loadingHistory ? (
+          {(!workoutLogs || workoutLogs.length === 0) && !loadingHistory ? (
               <View style={styles.emptyCard}>
                 <Ionicons name="barbell-outline" size={32} color={theme.textMuted} />
                 <Text style={styles.emptyText}>Aún no has registrado entrenamientos.</Text>
               </View>
           ) : (
             <View style={styles.historyList}>
-              {workoutLogs.map((log) => (
+              {(workoutLogs || []).map((log) => (
                 <View key={log.id} style={styles.historyItem}>
                   <View style={styles.historyIcon}>
                     <Ionicons name="barbell" size={18} color={theme.accent} />
@@ -237,10 +240,10 @@ export default function ProfileScreen() {
                 </View>
               ))}
 
-              {hasMore && (
+              {hasMoreLogs && (
                 <TouchableOpacity 
                     style={styles.loadMoreBtn} 
-                    onPress={() => loadHistory()}
+                    onPress={() => loadHistory(false)}
                     disabled={loadingHistory}
                 >
                   {loadingHistory ? (

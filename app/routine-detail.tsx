@@ -1,23 +1,22 @@
 
+import { Exercise, Routine, RoutinesAPI } from '@/api/routines';
+import { theme } from '@/constants/theme';
+import { useAppStore } from '@/store/useAppStore';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   Image,
   Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { theme } from '@/constants/theme';
-import { useAppStore } from '@/store/useAppStore';
-import { RoutinesAPI, Routine, Exercise } from '@/api/routines';
-import { StatusBar } from 'expo-status-bar';
 
 const MUSCLE_MAP: Record<string, string> = {
   'chest': 'Pecho',
@@ -35,10 +34,10 @@ export default function RoutineDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { setActiveWorkout } = useAppStore();
-  
+
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
@@ -61,7 +60,7 @@ export default function RoutineDetailScreen() {
 
   const startWorkout = () => {
     if (!routine) return;
-    
+
     // Transform routine into ActiveWorkout format for the store
     const activeWorkout = {
       routineId: routine.id,
@@ -78,7 +77,7 @@ export default function RoutineDetailScreen() {
         }))
       })) || []
     };
-    
+
     setActiveWorkout(activeWorkout);
     router.push('/workout-session');
   };
@@ -98,18 +97,20 @@ export default function RoutineDetailScreen() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-      
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+
       {/* Visual Header */}
       <View style={styles.visualHeader}>
-        <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1200' }} 
-            style={styles.headerImage} 
+        <Image
+          source={{ uri: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1200' }}
+          style={styles.headerImage}
         />
         <LinearGradient colors={['transparent', theme.bgDeep]} style={styles.headerGradient} />
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.infoBox}>
@@ -120,7 +121,7 @@ export default function RoutineDetailScreen() {
             </View>
           </View>
           <Text style={styles.description}>{routine.description || "Prepárate para superar tus límites hoy."}</Text>
-          
+
           <View style={styles.metricsRow}>
             <View style={styles.metricItem}>
               <Ionicons name="time-outline" size={16} color={theme.accent} />
@@ -148,12 +149,12 @@ export default function RoutineDetailScreen() {
               </Text>
               {item.notes && <Text style={styles.exerciseNotes}>{item.notes}</Text>}
             </View>
-            <TouchableOpacity 
-                style={styles.infoIcon}
-                onPress={() => {
-                    setSelectedExercise(item.exercise || null);
-                    setDetailModalVisible(true);
-                }}
+            <TouchableOpacity
+              style={styles.infoIcon}
+              onPress={() => {
+                setSelectedExercise(item.exercise || null);
+                setDetailModalVisible(true);
+              }}
             >
               <Ionicons name="information-circle-outline" size={18} color={theme.textMuted} />
             </TouchableOpacity>
@@ -176,45 +177,45 @@ export default function RoutineDetailScreen() {
       {/* Exercise Detail Modal */}
       <Modal visible={detailModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Detalles</Text>
-                    <TouchableOpacity onPress={() => setDetailModalVisible(false)} style={styles.closeBtn}>
-                        <Ionicons name="close" size={24} color={theme.textPrimary} />
-                    </TouchableOpacity>
-                </View>
-                
-                {selectedExercise && (
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <View style={styles.modalImageContainer}>
-                            {selectedExercise.image_url ? (
-                                <Image source={{ uri: selectedExercise.image_url }} style={styles.modalImage} resizeMode="cover" />
-                            ) : (
-                                <View style={styles.modalIconPlaceholder}>
-                                    <Ionicons name="barbell" size={60} color={theme.accentDim} />
-                                </View>
-                            )}
-                        </View>
-                        
-                        <View style={styles.modalInfo}>
-                            <Text style={styles.exerciseTitle}>{selectedExercise.name}</Text>
-                            <View style={styles.modalBadges}>
-                                <View style={styles.modalBadge}>
-                                    <Text style={styles.modalBadgeText}>{translateMuscle(selectedExercise.muscle_group)}</Text>
-                                </View>
-                                <View style={styles.modalBadge}>
-                                    <Text style={styles.modalBadgeText}>{selectedExercise.equipment}</Text>
-                                </View>
-                            </View>
-                            
-                            <Text style={styles.descLabel}>DESCRIPCIÓN</Text>
-                            <Text style={styles.modalDesc}>
-                                {selectedExercise.description || "No hay una descripción detallada para este ejercicio aún. Consulta a tu entrenador para la técnica correcta."}
-                            </Text>
-                        </View>
-                    </ScrollView>
-                )}
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalles</Text>
+              <TouchableOpacity onPress={() => setDetailModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
             </View>
+
+            {selectedExercise && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.modalImageContainer}>
+                  {selectedExercise.image_url ? (
+                    <Image source={{ uri: selectedExercise.image_url }} style={styles.modalImage} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.modalIconPlaceholder}>
+                      <Ionicons name="barbell" size={60} color={theme.accentDim} />
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.modalInfo}>
+                  <Text style={styles.exerciseTitle}>{selectedExercise.name}</Text>
+                  <View style={styles.modalBadges}>
+                    <View style={styles.modalBadge}>
+                      <Text style={styles.modalBadgeText}>{translateMuscle(selectedExercise.muscle_group)}</Text>
+                    </View>
+                    <View style={styles.modalBadge}>
+                      <Text style={styles.modalBadgeText}>{selectedExercise.equipment}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.descLabel}>DESCRIPCIÓN</Text>
+                  <Text style={styles.modalDesc}>
+                    {selectedExercise.description || "No hay una descripción detallada para este ejercicio aún. Consulta a tu entrenador para la técnica correcta."}
+                  </Text>
+                </View>
+              </ScrollView>
+            )}
+          </View>
         </View>
       </Modal>
     </View>
@@ -226,6 +227,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.bgDeep,
   },
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 220,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -234,6 +240,9 @@ const styles = StyleSheet.create({
   visualHeader: {
     height: 240,
     width: '100%',
+    position: 'absolute',
+    top: 0,
+    zIndex: 0,
   },
   headerImage: {
     width: '100%',
@@ -252,12 +261,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 20,
   },
   scroll: {
     paddingHorizontal: 20,
+    paddingTop: 200, // Offset to sit 40px over the header image
   },
   infoBox: {
-    marginTop: -40,
     marginBottom: 24,
   },
   headerRow: {
