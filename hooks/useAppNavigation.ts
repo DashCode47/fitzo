@@ -15,6 +15,12 @@ export const useAppNavigation = () => {
   const goToRankings = () => router.push(ROUTES.RANKINGS);
   const goToScanner = () => router.push(ROUTES.SCANNER);
   const goToLocationPermission = () => router.push(ROUTES.LOCATION_PERMISSION);
+  const goToRoutines = () => router.replace(ROUTES.ROUTINES);
+  const goToRoutineDetail = (id: number) => router.push({ pathname: ROUTES.ROUTINE_DETAIL, params: { id } });
+  const goToRoutineCreate = () => router.push(ROUTES.ROUTINE_CREATE);
+  const goToWorkoutSession = () => router.push(ROUTES.WORKOUT_SESSION);
+  const goToScheduleEdit = (day: number) => router.push({ pathname: ROUTES.SCHEDULE_EDIT, params: { day } });
+  const goToExerciseProgress = (id: number) => router.push({ pathname: ROUTES.EXERCISE_PROGRESS, params: { id } });
 
   return {
     router,
@@ -29,5 +35,11 @@ export const useAppNavigation = () => {
     goToRankings,
     goToScanner,
     goToLocationPermission,
+    goToRoutines,
+    goToRoutineDetail,
+    goToRoutineCreate,
+    goToWorkoutSession,
+    goToScheduleEdit,
+    goToExerciseProgress,
   };
 };

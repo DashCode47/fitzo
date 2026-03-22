@@ -1,6 +1,8 @@
 
 import { Banner } from '@/api/banners';
 import { DietPlan, UserStats } from '@/api/nutrition';
+import { Routine, UserSchedule } from '@/api/routines';
+import { WorkoutLog } from '@/api/workouts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -17,6 +19,23 @@ export interface UserProfile {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface ActiveWorkout {
+    routineId: number;
+    routineName: string;
+    startTime: string;
+    exercises: Array<{
+        exerciseId: number;
+        name: string;
+        sets: Array<{
+            set: number;
+            reps: number;
+            weight: number;
+            completed: boolean;
+        }>;
+    }>;
+}
+
 interface AppState {
   // Data
   profile: UserProfile | null;
@@ -26,6 +45,12 @@ interface AppState {
   events: any[] | null;
   leaderboard: any[] | null;
   
+  // Workouts & Routines
+  routines: Routine[] | null;
+  activeWorkout: ActiveWorkout | null;
+  workoutLogs: WorkoutLog[] | null;
+  userSchedule: UserSchedule[] | null;
+
   // Hydration state
   isHydrated: boolean;
 
@@ -36,9 +61,16 @@ interface AppState {
   setPromos: (promos: Banner[]) => void;
   setEvents: (events: any[]) => void;
   setLeaderboard: (leaderboard: any[]) => void;
+  setRoutines: (routines: Routine[]) => void;
+  setActiveWorkout: (workout: ActiveWorkout | null) => void;
+  setWorkoutLogs: (logs: WorkoutLog[]) => void;
+  setUserSchedule: (schedule: UserSchedule[]) => void;
   setHydrated: (val: boolean) => void;
   
   // Actions
+  updateWorkoutSet: (exerciseIndex: number, setIndex: number, data: Partial<{ reps: number, weight: number, completed: boolean }>) => void;
+  addWorkoutSet: (exerciseIndex: number) => void;
+  removeWorkoutSet: (exerciseIndex: number, setIndex: number) => void;
   clearAll: () => void;
 }
 
@@ -51,6 +83,10 @@ export const useAppStore = create<AppState>()(
       promos: null,
       events: null,
       leaderboard: null,
+      routines: null,
+      activeWorkout: null,
+      workoutLogs: null,
+      userSchedule: null,
       isHydrated: false,
 
       setProfile: (profile) => set({ profile }),
@@ -59,7 +95,48 @@ export const useAppStore = create<AppState>()(
       setPromos: (promos) => set({ promos }),
       setEvents: (events) => set({ events }),
       setLeaderboard: (leaderboard) => set({ leaderboard }),
+      setRoutines: (routines) => set({ routines }),
+      setActiveWorkout: (activeWorkout) => set({ activeWorkout }),
+      setWorkoutLogs: (workoutLogs) => set({ workoutLogs }),
+      setUserSchedule: (userSchedule) => set({ userSchedule }),
       setHydrated: (isHydrated) => set({ isHydrated }),
+
+      updateWorkoutSet: (exIdx, setIdx, data) => set((state) => {
+          if (!state.activeWorkout) return state;
+          const newWorkout = { ...state.activeWorkout };
+          const ex = newWorkout.exercises[exIdx];
+          if (ex) {
+              ex.sets[setIdx] = { ...ex.sets[setIdx], ...data };
+          }
+          return { activeWorkout: newWorkout };
+      }),
+
+      addWorkoutSet: (exIdx) => set((state) => {
+          if (!state.activeWorkout) return state;
+          const newWorkout = { ...state.activeWorkout };
+          const ex = newWorkout.exercises[exIdx];
+          if (ex) {
+              const lastSet = ex.sets[ex.sets.length - 1];
+              ex.sets.push({
+                  set: ex.sets.length + 1,
+                  reps: lastSet?.reps ?? 10,
+                  weight: lastSet?.weight ?? 0,
+                  completed: false,
+              });
+          }
+          return { activeWorkout: newWorkout };
+      }),
+
+      removeWorkoutSet: (exIdx, setIdx) => set((state) => {
+          if (!state.activeWorkout) return state;
+          const newWorkout = { ...state.activeWorkout };
+          const ex = newWorkout.exercises[exIdx];
+          if (ex && ex.sets.length > 1) {
+              ex.sets.splice(setIdx, 1);
+              ex.sets.forEach((s, i) => { s.set = i + 1; });
+          }
+          return { activeWorkout: newWorkout };
+      }),
 
       clearAll: () => set({ 
         profile: null, 
@@ -67,7 +144,11 @@ export const useAppStore = create<AppState>()(
         userStats: null, 
         promos: null, 
         events: null,
-        leaderboard: null
+        leaderboard: null,
+        routines: null,
+        activeWorkout: null,
+        workoutLogs: null,
+        userSchedule: null
       }),
     }),
     {

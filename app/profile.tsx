@@ -2,6 +2,7 @@
 import { AuthAPI } from '@/api/auth';
 import { UserAPI } from '@/api/user';
 import { CustomModal } from '@/components/ui/CustomModal';
+import { WorkoutsAPI } from '@/api/workouts';
 import { theme } from '@/constants/theme';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useProfileImage } from '@/hooks/useProfileImage';
@@ -37,9 +38,42 @@ export default function ProfileScreen() {
     onConfirm: () => { },
   });
 
+  const [workoutLogs, setWorkoutLogs] = useState<any[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const LIMIT = 5;
+
   useEffect(() => {
-    if (isHydrated) loadProfile();
-  }, [isHydrated]);
+    if (isHydrated && profile?.id) {
+        loadProfile();
+        loadHistory(true);
+    }
+  }, [isHydrated, profile?.id]);
+
+  const loadHistory = async (reset = false) => {
+    if (!profile?.id || loadingHistory) return;
+    try {
+        setLoadingHistory(true);
+        const newOffset = reset ? 0 : offset;
+        const data = await WorkoutsAPI.getWorkoutLogs(profile.id, LIMIT, newOffset);
+        
+        if (reset) {
+            setWorkoutLogs(data);
+            setOffset(LIMIT);
+        } else {
+            setWorkoutLogs([...workoutLogs, ...data]);
+            setOffset(prev => prev + LIMIT);
+        }
+        
+        if (data.length < LIMIT) setHasMore(false);
+        else setHasMore(true);
+    } catch (e) {
+        console.error('[ProfileScreen] Failed to load history:', e);
+    } finally {
+        setLoadingHistory(false);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -173,6 +207,51 @@ export default function ProfileScreen() {
             <View style={styles.divider} />
             <InfoRow icon="call-outline" label="Teléfono" value={phone} />
           </View>
+
+          {/* ── Workout History ── */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Historial de Entrenamiento</Text>
+            <Ionicons name="calendar-outline" size={16} color={theme.textMuted} />
+          </View>
+
+          {workoutLogs.length === 0 && !loadingHistory ? (
+              <View style={styles.emptyCard}>
+                <Ionicons name="barbell-outline" size={32} color={theme.textMuted} />
+                <Text style={styles.emptyText}>Aún no has registrado entrenamientos.</Text>
+              </View>
+          ) : (
+            <View style={styles.historyList}>
+              {workoutLogs.map((log) => (
+                <View key={log.id} style={styles.historyItem}>
+                  <View style={styles.historyIcon}>
+                    <Ionicons name="barbell" size={18} color={theme.accent} />
+                  </View>
+                  <View style={styles.historyContent}>
+                    <Text style={styles.historyName}>{log.routine?.name || 'Rutina Personalizada'}</Text>
+                    <Text style={styles.historyDate}>{new Date(log.started_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</Text>
+                  </View>
+                  <View style={styles.historyMetrics}>
+                    <Text style={styles.metricVal}>{Math.round(log.duration_seconds / 60)}m</Text>
+                    <Text style={styles.metricVal}>{log.total_volume}kg</Text>
+                  </View>
+                </View>
+              ))}
+
+              {hasMore && (
+                <TouchableOpacity 
+                    style={styles.loadMoreBtn} 
+                    onPress={() => loadHistory()}
+                    disabled={loadingHistory}
+                >
+                  {loadingHistory ? (
+                    <ActivityIndicator size="small" color={theme.textSecondary} />
+                  ) : (
+                    <Text style={styles.loadMoreText}>VER MÁS ANTERIORES</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* ── Logout ── */}
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
@@ -407,5 +486,86 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: theme.error,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  emptyCard: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.textMuted,
+    textAlign: 'center',
+  },
+  historyList: {
+    gap: 12,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    gap: 12,
+  },
+  historyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: theme.accentDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyContent: {
+    flex: 1,
+    gap: 2,
+  },
+  historyName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  historyDate: {
+    fontSize: 11,
+    color: theme.textMuted,
+  },
+  historyMetrics: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  metricVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: theme.accent,
+  },
+  loadMoreBtn: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadMoreText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: theme.textMuted,
+    letterSpacing: 1,
   },
 });

@@ -1,0 +1,406 @@
+
+import { RoutinesAPI } from '@/api/routines';
+import { theme } from '@/constants/theme';
+import { useAppStore } from '@/store/useAppStore';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const DAYS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+
+export default function RoutinesScreen() {
+  const router = useRouter();
+  const {
+    profile,
+    routines, setRoutines,
+    userSchedule, setUserSchedule,
+    setActiveWorkout,
+    isHydrated
+  } = useAppStore();
+
+  const [loading, setLoading] = useState(!isHydrated);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (isHydrated && profile?.id) {
+      loadData();
+    }
+  }, [isHydrated, profile?.id]);
+
+  const loadData = async () => {
+    if (!profile?.id) return;
+    try {
+      const [newRoutines, newSchedule] = await Promise.all([
+        RoutinesAPI.getUserRoutines(profile.id),
+        RoutinesAPI.getUserSchedule(profile.id),
+      ]);
+      setRoutines(newRoutines);
+      setUserSchedule(newSchedule);
+    } catch (e) {
+      console.error('[RoutinesScreen] loadData failed:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const getRoutineForDay = (dayIdx: number) => {
+    return userSchedule?.find(s => s.day_of_week === dayIdx)?.routine;
+  };
+
+  const handleStartTodayWorkout = async () => {
+    const todayRoutine = getRoutineForDay(new Date().getDay());
+    if (!todayRoutine || !profile) return;
+
+    try {
+      setLoading(true);
+      const routine = await RoutinesAPI.getRoutineDetail(todayRoutine.id);
+      if (!routine) return;
+
+      const activeWorkout = {
+        routineId: routine.id,
+        routineName: routine.name,
+        startTime: new Date().toISOString(),
+        exercises: routine.exercises?.map(re => ({
+          exerciseId: re.exercise_id,
+          name: re.exercise?.name || 'Ejercicio',
+          sets: Array.from({ length: re.sets }).map((_, i) => ({
+            set: i + 1,
+            reps: parseInt(re.reps) || 10,
+            weight: 0,
+            completed: false,
+          }))
+        })) || []
+      };
+
+      setActiveWorkout(activeWorkout);
+      router.push('/workout-session');
+    } catch (e) {
+      console.error('[RoutinesScreen] Failed to start workout:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <ActivityIndicator size="large" color={theme.accent} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.accent} />
+          }
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>Mis Rutinas</Text>
+              <Text style={styles.subtitle}>Organiza tu semana de entrenamiento</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => router.push('/routine-create')}
+            >
+              <LinearGradient colors={theme.gradients.accent} style={styles.addBtnGradient}>
+                <Ionicons name="add" size={24} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          {/* Weekly Schedule */}
+          <Text style={styles.sectionTitle}>Plan Semanal</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scheduleRow}>
+            {DAYS.map((day, idx) => {
+              const routine = getRoutineForDay(idx);
+              const isToday = new Date().getDay() === idx;
+              return (
+                <TouchableOpacity
+                  key={day}
+                  style={[styles.dayCard, isToday && styles.dayCardToday]}
+                  onPress={() => router.push(`/schedule-edit?day=${idx}`)}
+                >
+                  <Text style={[styles.dayName, isToday && styles.dayNameToday]}>{day}</Text>
+                  <View style={[styles.dayStatus, routine ? styles.dayStatusActive : styles.dayStatusEmpty]}>
+                    <Ionicons
+                      name={routine ? "barbell" : "remove"}
+                      size={14}
+                      color={routine ? theme.accent : theme.textMuted}
+                    />
+                  </View>
+                  {routine && <Text style={styles.dayRoutineName} numberOfLines={1}>{routine.name}</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Current Workout Call to Action (if any) */}
+          <TouchableOpacity
+            style={styles.ctaCard}
+            onPress={handleStartTodayWorkout}
+          >
+            <LinearGradient
+              colors={['rgba(155, 147, 255, 0.1)', 'rgba(108, 99, 255, 0.05)']}
+              style={styles.ctaGradient}
+            >
+              <View style={styles.ctaIcon}>
+                <Ionicons name="play" size={20} color={theme.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ctaTitle}>Entrenamiento de hoy</Text>
+                <Text style={styles.ctaSubtitle}>
+                  {getRoutineForDay(new Date().getDay())?.name || "No hay rutina asignada para hoy"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Routine List */}
+          <View style={styles.routineSection}>
+            <Text style={styles.sectionTitle}>Explorar Rutinas</Text>
+            {routines?.map((routine) => (
+              <TouchableOpacity
+                key={routine.id}
+                style={styles.routineCard}
+                onPress={() => router.push(`/routine-detail?id=${routine.id}`)}
+              >
+                <View style={styles.routineInfo}>
+                  <Text style={styles.routineName}>{routine.name}</Text>
+                  <View style={styles.routineMeta}>
+                    <View style={styles.metaBadge}>
+                      <Ionicons name="time-outline" size={12} color={theme.textMuted} />
+                      <Text style={styles.metaText}>{routine.estimated_duration} min</Text>
+                    </View>
+                    <View style={styles.metaBadge}>
+                      <Ionicons name="flash-outline" size={12} color={theme.textMuted} />
+                      <Text style={styles.metaText}>{routine.difficulty}</Text>
+                    </View>
+                    {routine.is_template && (
+                      <View style={[styles.metaBadge, { backgroundColor: theme.accentDim }]}>
+                        <Text style={[styles.metaText, { color: theme.accent, fontSize: 10, fontWeight: '800' }]}>GYM</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: theme.bgDeep,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 250,
+  },
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    marginTop: 2,
+  },
+  addBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  addBtnGradient: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginBottom: 14,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  dayCard: {
+    width: 70,
+    backgroundColor: theme.bgCard,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+  },
+  dayCardToday: {
+    borderColor: theme.accentBorder,
+    backgroundColor: theme.bgSubtle,
+  },
+  dayName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.textMuted,
+    marginBottom: 8,
+  },
+  dayNameToday: {
+    color: theme.accent,
+    fontWeight: '800',
+  },
+  dayStatus: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  dayStatusEmpty: {
+    backgroundColor: theme.surface,
+  },
+  dayStatusActive: {
+    backgroundColor: theme.accentDim,
+  },
+  dayRoutineName: {
+    fontSize: 10,
+    color: theme.textSecondary,
+    textAlign: 'center',
+    width: '100%',
+  },
+  ctaCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    marginBottom: 32,
+  },
+  ctaGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  ctaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: theme.accentDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ctaTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  ctaSubtitle: {
+    fontSize: 12,
+    color: theme.accent,
+    marginTop: 1,
+  },
+  routineSection: {
+    gap: 12,
+  },
+  routineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    gap: 12,
+  },
+  routineInfo: {
+    flex: 1,
+  },
+  routineName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginBottom: 6,
+  },
+  routineMeta: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  metaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 11,
+    color: theme.textSecondary,
+    fontWeight: '600',
+  },
+});

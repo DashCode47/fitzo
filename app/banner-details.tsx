@@ -1,129 +1,144 @@
 
+import { theme } from '@/constants/theme';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const GOLD_COLOR = '#C5A356';
-const DARK_BG = '#000';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DetailsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id, type } = useLocalSearchParams();
   const { promos, events } = useAppStore();
 
   let content: any = null;
-
   if (type === 'event') {
     content = events?.find(e => e.id === id);
   } else {
-    // Default to banner/promo
     content = promos?.find(p => p.id === Number(id));
   }
 
+  const formatEventDate = (dateStr: string) => {
+    try {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      return date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).replace(/^\w/, c => c.toUpperCase());
+    } catch {
+      return dateStr;
+    }
+  };
+
   if (!content) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={styles.errorRoot}>
+        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <Ionicons name="alert-circle-outline" size={48} color={theme.textMuted} />
+        <Text style={styles.errorTitle}>No encontrado</Text>
         <Text style={styles.errorText}>No se encontró la información solicitada.</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>VOLVER</Text>
+        <TouchableOpacity style={styles.errorBtn} onPress={() => router.back()} activeOpacity={0.85}>
+          <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.errorBtnGradient}>
+            <Text style={styles.errorBtnText}>Volver</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const formatEventDate = (dateStr: string) => {
-    try {
-      // Basic split to avoid UTC drift from new Date(string)
-      const [year, month, day] = dateStr.split('-').map(Number);
-      const date = new Date(year, month - 1, day);
-      
-      return date.toLocaleDateString('es-ES', { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long' 
-      }).replace(/^\w/, (c) => c.toUpperCase());
-    } catch (e) {
-      return dateStr;
-    }
-  };
+  const isEvent = type === 'event';
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
+    <View style={styles.root}>
+      <StatusBar style="light" />
+
+      <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContentContainer}
-        bounces={true} 
-        showsVerticalScrollIndicator={true}
+        contentContainerStyle={styles.scrollContent}
+        bounces
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header Image Section */}
-        <View style={styles.headerContainer}>
-          <Image 
-            source={{ uri: content.image_url || 'https://via.placeholder.com/800x600' }} 
-            style={styles.headerImage} 
+        {/* ── Hero image ── */}
+        <View style={styles.heroContainer}>
+          <Image
+            source={{ uri: content.image_url || '' }}
+            style={styles.heroImage}
             resizeMode="cover"
           />
           <LinearGradient
-            colors={['rgba(0,0,0,0.5)', 'transparent', DARK_BG]}
-            style={styles.gradient}
+            colors={['rgba(0,0,0,0.4)', 'transparent', theme.bgDeep]}
+            style={StyleSheet.absoluteFill}
           />
-          
-          {/* Back Button - Positioned absolutely relative to the image container */}
-          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={28} color="white" />
+
+          {/* Back button */}
+          <TouchableOpacity
+            style={[styles.backBtn, { top: insets.top + 12 }]}
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        {/* Content Section */}
+        {/* ── Content ── */}
         <View style={styles.content}>
+
+          {/* Meta row: tag + date */}
           <View style={styles.metaRow}>
-            {type === 'event' ? (
-                <View style={[styles.tagBadge, { backgroundColor: '#0df259' }]}>
-                  <Text style={styles.tagText}>EVENTO</Text>
-                </View>
-            ) : content.tag && (
-              <View style={styles.tagBadge}>
+            {isEvent ? (
+              <View style={[styles.tagPill, { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: 'rgba(52,211,153,0.35)' }]}>
+                <Text style={[styles.tagText, { color: theme.success }]}>EVENTO</Text>
+              </View>
+            ) : content.tag ? (
+              <View style={styles.tagPill}>
                 <Text style={styles.tagText}>{content.tag.toUpperCase()}</Text>
               </View>
-            )}
-            
-            {type !== 'event' && (
-               <Text style={styles.dateText}>
-                  {content.expiration_date ? `Vence: ${new Date(content.expiration_date).toLocaleDateString()}` : ''}
-               </Text>
+            ) : <View />}
+
+            {!isEvent && content.expiration_date && (
+              <Text style={styles.dateText}>
+                Vence: {new Date(content.expiration_date).toLocaleDateString()}
+              </Text>
             )}
           </View>
 
-          {type === 'event' && (
-            <View style={styles.eventDetailsRow}>
-              <View style={styles.eventDetailItem}>
-                <Ionicons name="calendar-outline" size={18} color={GOLD_COLOR} />
+          {/* Event date/time card */}
+          {isEvent && (
+            <View style={styles.eventCard}>
+              <View style={styles.eventRow}>
+                <View style={styles.eventIconBox}>
+                  <Ionicons name="calendar-outline" size={16} color={theme.accent} />
+                </View>
                 <Text style={styles.eventDetailText}>{formatEventDate(content.event_date)}</Text>
               </View>
-              <View style={styles.eventDetailItem}>
-                <Ionicons name="time-outline" size={18} color={GOLD_COLOR} />
-                <Text style={styles.eventDetailText}>{(content.event_time || '').substring(0, 5)} HS</Text>
+              <View style={styles.eventRow}>
+                <View style={styles.eventIconBox}>
+                  <Ionicons name="time-outline" size={16} color={theme.accent} />
+                </View>
+                <Text style={styles.eventDetailText}>{(content.event_time || '').substring(0, 5)} hs</Text>
               </View>
             </View>
           )}
 
-          <Text style={styles.title}>{type === 'event' ? content.name : content.title}</Text>
+          {/* Title */}
+          <Text style={styles.title}>
+            {isEvent ? content.name : content.title}
+          </Text>
+
+          {/* Accent divider */}
           <View style={styles.divider} />
-          
+
+          {/* Description */}
           <Text style={styles.description}>
             {content.large_description || content.short_description || content.description}
           </Text>
 
-          {/* Footer Decoration */}
-          <View style={styles.footer}>
-            <LinearGradient
-                colors={['transparent', 'rgba(197, 163, 86, 0.2)', 'transparent']}
-                style={styles.footerDecoration}
-            />
-            <Text style={styles.brandText}>IRON BODY EXCLUSIVE</Text>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -131,149 +146,163 @@ export default function DetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: DARK_BG,
+    backgroundColor: theme.bgDeep,
   },
-  scrollView: {
+
+  // ── Error state ────────────────────────────────────────────────────────────
+  errorRoot: {
     flex: 1,
+    backgroundColor: theme.bgDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 32,
   },
-  scrollContentContainer: {
-    paddingBottom: 60,
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginTop: 4,
   },
-  headerContainer: {
-    height: 380, // Reduced from 450 to show more text initially
+  errorText: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 8,
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  errorBtnGradient: {
+    paddingHorizontal: 32,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  errorBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  // ── Scroll ────────────────────────────────────────────────────────────────
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 80 },
+
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  heroContainer: {
+    height: 360,
     width: '100%',
-    position: 'relative',
   },
-  headerImage: {
+  heroImage: {
     width: '100%',
     height: '100%',
   },
-  gradient: {
+  backBtn: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 50, // Safe area manual offset
     left: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
+
+  // ── Content ───────────────────────────────────────────────────────────────
   content: {
-    padding: 24,
-    marginTop: -30, // Subtle pull up over gradient
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    marginTop: -24,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 14,
   },
-  eventDetailsRow: {
-    flexDirection: 'column',
-    gap: 8,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    padding: 12,
-    borderRadius: 12,
+  tagPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: theme.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: theme.accentBorder,
   },
-  eventDetailItem: {
+  tagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: theme.accent,
+    letterSpacing: 0.5,
+  },
+  dateText: {
+    fontSize: 12,
+    color: theme.textMuted,
+    fontStyle: 'italic',
+  },
+
+  // Event card
+  eventCard: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    padding: 14,
+    gap: 10,
+    marginBottom: 18,
+  },
+  eventRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
+  eventIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: theme.accentDim,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   eventDetailText: {
-    color: '#FFF',
-    fontSize: 15,
+    color: theme.textPrimary,
+    fontSize: 14,
     fontWeight: '600',
   },
-  tagBadge: {
-    backgroundColor: GOLD_COLOR,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  tagText: {
-    color: '#000',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  dateText: {
-    color: '#888',
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
+
+  // Title + body
   title: {
-    color: 'white',
-    fontSize: 32,
+    color: theme.textPrimary,
+    fontSize: 28,
     fontWeight: '900',
-    marginBottom: 16,
-    lineHeight: 38,
+    marginBottom: 14,
+    lineHeight: 34,
+    letterSpacing: -0.5,
   },
   divider: {
-    width: 60,
-    height: 4,
-    backgroundColor: GOLD_COLOR,
-    marginBottom: 24,
+    width: 48,
+    height: 3,
+    backgroundColor: theme.accent,
     borderRadius: 2,
+    marginBottom: 20,
   },
   description: {
-    color: '#e5e7eb',
-    fontSize: 17,
-    lineHeight: 28,
-    fontWeight: '400',
-  },
-  footer: {
-    marginTop: 60,
-    alignItems: 'center',
-    paddingBottom: 40,
-  },
-  footerDecoration: {
-    width: '100%',
-    height: 1,
-    marginBottom: 20,
-  },
-  brandText: {
-    color: GOLD_COLOR,
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 4,
-    opacity: 0.6,
-  },
-  errorContainer: {
-    flex: 1,
-    backgroundColor: DARK_BG,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    color: '#AAA',
+    color: theme.textSecondary,
     fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  backButton: {
-    backgroundColor: GOLD_COLOR,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  backButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
+    lineHeight: 26,
+    fontWeight: '400',
   },
 });

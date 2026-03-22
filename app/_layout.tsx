@@ -78,6 +78,11 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
           <Stack.Screen name="register" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="routine-detail" />
+          <Stack.Screen name="routine-create" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="workout-session" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="schedule-edit" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="exercise-progress" />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
         </Stack>
         <StatusBar style="auto" />
