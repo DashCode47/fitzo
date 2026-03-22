@@ -297,6 +297,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0,
     height: 220,
+    zIndex: 1,
   },
 
   // ── Header ────────────────────────────────────────────────────────────────

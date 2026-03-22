@@ -8,12 +8,27 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RadarService } from '@/lib/radar';
 import { useAppStore } from '@/store/useAppStore';
-import { Alert } from 'react-native';
+import { CustomModal } from '@/components/ui/CustomModal';
+import { useState } from 'react';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const segments = useSegments();
   const { profile } = useAppStore();
+
+  const [modalConfig, setModalConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info';
+    buttonText: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    buttonText: 'OK',
+  });
 
   useEffect(() => {
     RadarService.initialize();
@@ -52,18 +67,22 @@ export default function RootLayout() {
       if (!Array.isArray(events)) return;
       events.forEach((event: any) => {
         if (event.type === 'user.entered_geofence') {
-          Alert.alert(
-            "¡Bienvenido!",
-            `Has entrado a: ${event.geofence?.description || 'Gimnasio'}`,
-            [{ text: "Entrenar 🦾" }]
-          );
+          setModalConfig({
+            visible: true,
+            title: "¡Bienvenido!",
+            message: `Has entrado a: ${event.geofence?.description || 'Gimnasio'}`,
+            type: 'success',
+            buttonText: "Entrenar 🦾"
+          });
         } else if (event.type === 'user.exited_geofence') {
           console.log(`[Radar] User exited geofence: ${event.geofence?._id}`);
-          Alert.alert(
-            "¡Hasta pronto!",
-            "Has salido del gimnasio. ¡Buen entrenamiento!",
-            [{ text: "OK" }]
-          );
+          setModalConfig({
+            visible: true,
+            title: "¡Hasta pronto!",
+            message: "Has salido del gimnasio. ¡Buen entrenamiento!",
+            type: 'info',
+            buttonText: "OK"
+          });
         }
       });
     });
@@ -95,6 +114,15 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
+      
+      <CustomModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        buttonText={modalConfig.buttonText}
+        onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
+      />
     </SafeAreaProvider>
   );
 }

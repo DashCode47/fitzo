@@ -73,7 +73,7 @@ export const darkTheme = {
   gradients: {
     bg:     [palette.ink900, palette.ink800, palette.ink750] as [string, string, string],
     accent: [palette.violet500, palette.violet400]           as [string, string],
-    topGlow: ['rgba(108,99,255,0.12)', 'transparent']        as [string, string],
+    topGlow: ['rgba(108,99,255,0.12)', 'rgba(108,99,255,0)']        as [string, string],
   },
 } as const;
 
@@ -104,7 +104,7 @@ export const lightTheme: AppTheme = {
   gradients: {
     bg:      [palette.snow50, palette.snow100, palette.snow100] as [string, string, string],
     accent:  [palette.violet500, palette.violet400]             as [string, string],
-    topGlow: ['rgba(108,99,255,0.08)', 'transparent']           as [string, string],
+    topGlow: ['rgba(108,99,255,0.08)', 'rgba(108,99,255,0)']           as [string, string],
   },
 } as const;
 
