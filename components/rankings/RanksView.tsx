@@ -8,6 +8,7 @@ import { MuscleRankCard } from './MuscleRankCard';
 
 import { theme as staticTheme, AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -133,6 +134,9 @@ export const RanksView: React.FC = () => {
         (userStats.gender as any) || 'M'
       );
       setMuscleRanks(ranks);
+      
+      // Update general rank in profile Table to keep Leaderboard (Tabla) in sync
+      await RanksAPI.syncRankToProfile(profile.id, ranks.avgIndex, ranks.generalTier);
     } catch (e) {
       console.error('[RanksView] fetchRanks failed:', e);
     } finally {
@@ -141,9 +145,11 @@ export const RanksView: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchRanks();
-  }, [profile?.id, userStats?.weight]);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchRanks();
+    }, [profile?.id, userStats?.weight])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

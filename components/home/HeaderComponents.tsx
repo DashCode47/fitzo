@@ -120,7 +120,7 @@ export const PromoCarousel = ({ data, onPressItem }: PromoCarouselProps) => {
             onPress={() => onPressItem?.(item)}
             activeOpacity={0.9}
           >
-            <Image source={{ uri: item.image_url || '' }} style={styles.promoImage} />
+            <Image source={item.image_url ? { uri: item.image_url } : undefined} style={styles.promoImage} />
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.85)']}
               style={StyleSheet.absoluteFill}
@@ -169,7 +169,7 @@ export const TopBar = ({ user, onPressProfile }: TopBarProps) => {
     <View style={styles.topBar}>
       <TouchableOpacity onPress={onPressProfile} style={styles.topBarAvatar}>
         {user.avatar ? (
-          <Image source={{ uri: user.avatar }} style={styles.topBarAvatarImg} />
+          <Image source={user.avatar ? { uri: user.avatar } : undefined} style={styles.topBarAvatarImg} />
         ) : (
           <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
         )}

@@ -353,7 +353,7 @@ export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
             />
           )}
           <Image
-            source={{ uri: entry.avatar }}
+            source={entry.avatar ? { uri: entry.avatar } : undefined}
             style={[styles.podiumAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
           />
           <View style={[styles.rankBadge, { backgroundColor: rankColor }]}>
@@ -397,7 +397,7 @@ export const NutritionCard = ({ data, onPress }: NutritionProps) => {
     <View style={[styles.section, { marginBottom: 24 }]}>
       <SectionHeader title="Plan Nutricional" />
       <TouchableOpacity style={[styles.card, styles.nutritionCard]} onPress={onPress} activeOpacity={0.8}>
-        <Image source={{ uri: data.image }} style={styles.foodImage} />
+        <Image source={data.image ? { uri: data.image } : undefined} style={styles.foodImage} />
         <View style={styles.foodInfo}>
           <Text style={styles.foodLabel}>{data.label || 'RECOMENDADO'}</Text>
           <Text style={styles.foodTitle} numberOfLines={2}>{data.title}</Text>

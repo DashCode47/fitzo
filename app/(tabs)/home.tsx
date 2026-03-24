@@ -300,7 +300,16 @@ export default function HomeScreen() {
 
           {/* ── Top 3 Rankings ── */}
           {data.leaderboard.length > 0 && (
-            <TopThreePodium data={data.leaderboard.slice(0, 3)} onSeeAll={() => router.push('/rankings')} />
+            <TopThreePodium
+              data={data.leaderboard.slice(0, 3).map((item: any) => ({
+                rank: item.position,
+                name: item.name,
+                score: item.rankIndex,
+                avatar: item.avatar,
+                tier: item.rankTier,
+              }))}
+              onSeeAll={() => router.push('/(tabs)/rankings')}
+            />
           )}
 
           {/* ── Nutrition ── */}

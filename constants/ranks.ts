@@ -84,5 +84,7 @@ export const THRESHOLDS_FEMALE: ThresholdTable = {
   forearms:  [0.00, 0.10, 0.18, 0.25, 0.32, 0.40],
 };
 
-export const getThresholds = (gender: Gender): ThresholdTable =>
-  gender === 'F' ? THRESHOLDS_FEMALE : THRESHOLDS_MALE;
+export const getThresholds = (gender: string): ThresholdTable => {
+  const normalized = gender?.toUpperCase()?.charAt(0);
+  return normalized === 'F' ? THRESHOLDS_FEMALE : THRESHOLDS_MALE;
+};

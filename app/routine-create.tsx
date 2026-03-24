@@ -18,7 +18,7 @@ import { useRouter } from 'expo-router';
 import { theme as staticTheme, AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
-import { RoutinesAPI, Exercise, RoutineExercise } from '@/api/routines';
+import { RoutinesAPI, Exercise, RoutineExercise, ROUTINE_DIFFICULTIES, ROUTINE_GOALS } from '@/api/routines';
 import { StatusBar } from 'expo-status-bar';
 import { REPRESENTATIVE_EXERCISES } from '@/constants/ranks';
 
@@ -135,7 +135,7 @@ export default function RoutineCreateScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                <Ionicons name="arrow-back" size={24} color="#fff" />
+                <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Nueva Rutina</Text>
             <TouchableOpacity 
@@ -171,6 +171,36 @@ export default function RoutineCreateScreen() {
               value={description}
               onChangeText={setDescription}
             />
+          </View>
+
+          <View style={{ marginBottom: 24 }}>
+            <Text style={styles.label}>DIFICULTAD</Text>
+            <View style={styles.chipRow}>
+              {Object.entries(ROUTINE_DIFFICULTIES).map(([key, label]) => (
+                <TouchableOpacity 
+                  key={key} 
+                  style={[styles.selectChip, difficulty === key && styles.selectChipActive]}
+                  onPress={() => setDifficulty(key)}
+                >
+                  <Text style={[styles.selectChipText, difficulty === key && styles.selectChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={{ marginBottom: 24 }}>
+            <Text style={styles.label}>OBJETIVO PRINCIPAL</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {Object.entries(ROUTINE_GOALS).map(([key, label]) => (
+                <TouchableOpacity 
+                  key={key} 
+                  style={[styles.selectChip, goal === key && styles.selectChipActive]}
+                  onPress={() => setGoal(key)}
+                >
+                  <Text style={[styles.selectChipText, goal === key && styles.selectChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           <View style={styles.sectionHeader}>
@@ -707,5 +737,30 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     fontSize: 15,
     color: theme.textSecondary,
     lineHeight: 22,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  selectChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: theme.bgCard,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+  },
+  selectChipActive: {
+    backgroundColor: theme.accentDim,
+    borderColor: theme.accentBorder,
+  },
+  selectChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.textSecondary,
+  },
+  selectChipTextActive: {
+    color: theme.accent,
   },
 });

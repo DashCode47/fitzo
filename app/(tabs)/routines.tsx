@@ -1,6 +1,7 @@
 
 import { RoutinesAPI } from '@/api/routines';
 import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { CustomModal } from '@/components/ui/CustomModal';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +37,13 @@ export default function RoutinesScreen() {
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState<'confirm' | 'error' | 'success'>('confirm');
+  const [onConfirmAction, setOnConfirmAction] = useState<() => void>(() => {});
+
   useEffect(() => {
     if (isHydrated && profile?.id) {
       loadData();
@@ -62,6 +70,34 @@ export default function RoutinesScreen() {
   const handleRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const confirmDeleteRoutine = (routine: any) => {
+    setModalTitle("Eliminar Rutina");
+    setModalMessage(`¿Estás seguro que deseas eliminar "${routine.name}"? Esta acción no se puede deshacer.`);
+    setModalType('confirm');
+    setOnConfirmAction(() => () => handleDeleteRoutine(routine.id));
+    setModalVisible(true);
+  };
+
+  const handleDeleteRoutine = async (id: number) => {
+    setModalVisible(false);
+    // Add small delay to ensure the modal can reopen correctly in Android/iOS
+    setTimeout(async () => {
+      try {
+        setLoading(true);
+        await RoutinesAPI.deleteRoutine(id);
+        loadData();
+      } catch (e) {
+        console.error('[RoutinesScreen] Delete failed:', e);
+        setModalTitle("Error");
+        setModalMessage("No se pudo eliminar la rutina. (Probablemente tiene entrenamientos asociados en tu historial)");
+        setModalType('error');
+        setModalVisible(true);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
   };
 
   const getRoutineForDay = (dayIdx: number) => {
@@ -192,37 +228,66 @@ export default function RoutinesScreen() {
           <View style={styles.routineSection}>
             <Text style={styles.sectionTitle}>Explorar Rutinas</Text>
             {routines?.map((routine) => (
-              <TouchableOpacity
-                key={routine.id}
-                style={styles.routineCard}
-                onPress={() => router.push(`/routine-detail?id=${routine.id}`)}
-              >
-                <View style={styles.routineInfo}>
-                  <Text style={styles.routineName}>{routine.name}</Text>
-                  <View style={styles.routineMeta}>
-                    <View style={styles.metaBadge}>
-                      <Ionicons name="time-outline" size={12} color={theme.textMuted} />
-                      <Text style={styles.metaText}>{routine.estimated_duration} min</Text>
-                    </View>
-                    <View style={styles.metaBadge}>
-                      <Ionicons name="flash-outline" size={12} color={theme.textMuted} />
-                      <Text style={styles.metaText}>{routine.difficulty}</Text>
-                    </View>
-                    {routine.is_template && (
-                      <View style={[styles.metaBadge, { backgroundColor: theme.accentDim }]}>
-                        <Text style={[styles.metaText, { color: theme.accent, fontSize: 10, fontWeight: '800' }]}>GYM</Text>
+              <View key={routine.id} style={styles.routineCardWrapper}>
+                <TouchableOpacity
+                  style={styles.routineCard}
+                  onPress={() => router.push(`/routine-detail?id=${routine.id}`)}
+                >
+                  <View style={styles.routineInfo}>
+                    <Text style={styles.routineName}>{routine.name}</Text>
+                    <View style={styles.routineMeta}>
+                      <View style={styles.metaBadge}>
+                        <Ionicons name="time-outline" size={12} color={theme.textMuted} />
+                        <Text style={styles.metaText}>{routine.estimated_duration} min</Text>
                       </View>
-                    )}
+                      <View style={styles.metaBadge}>
+                        <Ionicons name="flash-outline" size={12} color={theme.textMuted} />
+                        <Text style={styles.metaText}>{RoutinesAPI.translateDifficulty(routine.difficulty)}</Text>
+                      </View>
+                      {routine.is_template && (
+                        <View style={[styles.metaBadge, { backgroundColor: theme.accentDim }]}>
+                          <Text style={[styles.metaText, { color: theme.accent, fontSize: 10, fontWeight: '800' }]}>GYM</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
-              </TouchableOpacity>
+                  <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+                </TouchableOpacity>
+
+                {/* Edit/Delete options for non-templates (user creations) */}
+                {(!routine.is_template && routine.created_by === profile?.id) && (
+                  <View style={styles.routineActions}>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => router.push(`/routine-edit?id=${routine.id}`)}
+                    >
+                      <Ionicons name="create-outline" size={18} color={theme.accent} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => confirmDeleteRoutine(routine)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={theme.error} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             ))}
           </View>
 
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
+
+      <CustomModal
+        visible={modalVisible}
+        title={modalTitle}
+        message={modalMessage}
+        type={modalType}
+        onClose={() => setModalVisible(false)}
+        onConfirm={onConfirmAction}
+        buttonText={modalType === 'confirm' ? "Eliminar" : "Entendido"}
+      />
     </View>
   );
 }
@@ -369,7 +434,13 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
   routineSection: {
     gap: 12,
   },
+  routineCardWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   routineCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.bgCard,
@@ -378,6 +449,19 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.borderSubtle,
     gap: 12,
+  },
+  routineActions: {
+    gap: 8,
+  },
+  actionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: theme.bgCard,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   routineInfo: {
     flex: 1,

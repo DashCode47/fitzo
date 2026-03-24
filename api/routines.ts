@@ -46,7 +46,23 @@ export interface UserSchedule {
     routine?: Routine;
 }
 
+export const ROUTINE_DIFFICULTIES: Record<string, string> = {
+  'beginner': 'Principiante',
+  'intermediate': 'Intermedio',
+  'advanced': 'Avanzado'
+};
+
+export const ROUTINE_GOALS: Record<string, string> = {
+  'hypertrophy': 'Hipertrofia',
+  'strength': 'Fuerza',
+  'fat_loss': 'Pérdida de Grasa',
+  'endurance': 'Resistencia'
+};
+
 export const RoutinesAPI = {
+  translateDifficulty: (val: string) => ROUTINE_DIFFICULTIES[val.toLowerCase()] || val,
+  translateGoal: (val: string) => ROUTINE_GOALS[val.toLowerCase()] || val,
+
   getExercises: async (): Promise<Exercise[]> => {
     try {
       const { data, error } = await withTimeout(
@@ -159,6 +175,53 @@ export const RoutinesAPI = {
       return routineData;
     } catch (e) {
       console.error('[RoutinesAPI] createRoutine failed:', e);
+      throw e;
+    }
+  },
+
+  updateRoutine: async (routineId: number, routine: Partial<Routine>, exercises: Partial<RoutineExercise>[]) => {
+    try {
+      // 1. Update routine metadata
+      const { data: routineData, error: routineError } = await withTimeout(
+        supabase.from('routines').update(routine).eq('id', routineId).select().single() as any
+      ) as any;
+      if (routineError) throw routineError;
+
+      // 2. Delete existing exercises to replace them
+      const { error: deleteError } = await withTimeout(
+          supabase.from('routine_exercises').delete().eq('routine_id', routineId) as any
+      ) as any;
+      if (deleteError) throw deleteError;
+
+      // 3. Insert new exercises
+      if (exercises && exercises.length > 0) {
+        const exerciseData = exercises.map((ex, idx) => ({
+            ...ex,
+            routine_id: routineId,
+            order_index: idx
+        }));
+        const { error: exError } = await withTimeout(
+            supabase.from('routine_exercises').insert(exerciseData) as any
+        ) as any;
+        if (exError) throw exError;
+      }
+
+      return routineData;
+    } catch (e) {
+      console.error('[RoutinesAPI] updateRoutine failed:', e);
+      throw e;
+    }
+  },
+
+  deleteRoutine: async (routineId: number) => {
+    try {
+      const { error } = await withTimeout(
+        supabase.from('routines').delete().eq('id', routineId) as any
+      ) as any;
+      if (error) throw error;
+      return true;
+    } catch (e) {
+      console.error('[RoutinesAPI] deleteRoutine failed:', e);
       throw e;
     }
   }

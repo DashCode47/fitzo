@@ -121,7 +121,7 @@ export default function RoutineDetailScreen() {
           <View style={styles.headerRow}>
             <Text style={styles.title}>{routine.name}</Text>
             <View style={styles.difficultyBadge}>
-              <Text style={styles.difficultyText}>{routine.difficulty}</Text>
+              <Text style={styles.difficultyText}>{RoutinesAPI.translateDifficulty(routine.difficulty)}</Text>
             </View>
           </View>
           <Text style={styles.description}>{routine.description || "Prepárate para superar tus límites hoy."}</Text>
@@ -137,7 +137,7 @@ export default function RoutineDetailScreen() {
             </View>
             <View style={styles.metricItem}>
               <Ionicons name="flash-outline" size={16} color={theme.accent} />
-              <Text style={styles.metricLabel}>{routine.goal}</Text>
+              <Text style={styles.metricLabel}>{RoutinesAPI.translateGoal(routine.goal)}</Text>
             </View>
           </View>
         </View>
