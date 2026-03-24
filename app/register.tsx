@@ -40,6 +40,8 @@ const INITIAL_FORM = {
   lastName: '',
   nationalId: '',
   phone: '',
+  gender: '' as 'male' | 'female' | '',
+  weight: '',
 };
 
 const FIELDS: Field[] = [
@@ -64,9 +66,9 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    const { email, firstName, lastName, nationalId, phone } = formData;
-    if (!email || !firstName || !lastName || !nationalId || !phone) {
-      setErrorMessage('Por favor complete todos los campos');
+    const { email, firstName, lastName, nationalId, phone, gender, weight } = formData;
+    if (!email || !firstName || !lastName || !nationalId || !phone || !gender || !weight) {
+      setErrorMessage('Por favor complete todos los campos, incluyendo género y peso');
       setErrorVisible(true);
       return;
     }
@@ -114,114 +116,169 @@ export default function RegisterScreen() {
         pointerEvents="none"
       />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
           style={{ flex: 1 }}
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={true}
         >
-          <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-            <ScrollView
-              contentContainerStyle={styles.scroll}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
+          {/* Push content down for SafeArea */}
+          <View style={{ height: 60 }} />
 
-              {/* ── Header ── */}
-              <View style={styles.header}>
-                <TouchableOpacity style={styles.backBtn} onPress={goBack}>
-                  <Ionicons name="arrow-back" size={20} color={TEXT_SECONDARY} />
-                </TouchableOpacity>
-              </View>
+          {/* ── Header ── */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backBtn} onPress={goBack}>
+              <Ionicons name="arrow-back" size={20} color={TEXT_SECONDARY} />
+            </TouchableOpacity>
+          </View>
 
-              {/* ── Hero ── */}
-              <View style={styles.hero}>
-                <View style={styles.iconWrap}>
-                  <LinearGradient
-                    colors={theme.gradients.accent}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.iconGradient}
-                  >
-                    <Ionicons name="person-add" size={26} color="#fff" />
-                  </LinearGradient>
-                </View>
-                <Text style={styles.heroTitle}>Crea tu cuenta</Text>
-                <Text style={styles.heroSubtitle}>Completa los datos para empezar</Text>
-              </View>
+          {/* ── Hero ── */}
+          <View style={styles.hero}>
+            <View style={styles.iconWrap}>
+              <LinearGradient
+                colors={theme.gradients.accent}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconGradient}
+              >
+                <Ionicons name="person-add" size={26} color="#fff" />
+              </LinearGradient>
+            </View>
+            <Text style={styles.heroTitle}>Crea tu cuenta</Text>
+            <Text style={styles.heroSubtitle}>Completa los datos para empezar</Text>
+          </View>
 
-              {/* ── Card ── */}
-              <View style={styles.card}>
+          {/* ── Card ── */}
+          <View style={styles.card}>
 
-                {/* Name row */}
-                <View style={styles.row}>
-                  <InputField
-                    field={FIELDS[1]}
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    style={{ flex: 1, marginRight: 8 }}
-                  />
-                  <InputField
-                    field={FIELDS[2]}
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    style={{ flex: 1 }}
-                  />
-                </View>
+            {/* Name row */}
+            <View style={styles.row}>
+              <InputField
+                field={FIELDS[1]}
+                value={formData.firstName}
+                onChange={handleChange}
+                style={{ flex: 1, marginRight: 8 }}
+              />
+              <InputField
+                field={FIELDS[2]}
+                value={formData.lastName}
+                onChange={handleChange}
+                style={{ flex: 1 }}
+              />
+            </View>
 
-                {/* Remaining fields */}
-                {[FIELDS[0], FIELDS[3], FIELDS[4]].map(field => (
-                  <InputField
-                    key={field.key}
-                    field={field}
-                    value={formData[field.key]}
-                    onChange={handleChange}
-                  />
-                ))}
+            {/* Remaining fields */}
+            {[FIELDS[0], FIELDS[3], FIELDS[4]].map(field => (
+              <InputField
+                key={field.key}
+                field={field}
+                value={formData[field.key]}
+                onChange={handleChange}
+              />
+            ))}
 
-                {/* Info hint */}
-                <View style={styles.hint}>
-                  <Ionicons name="information-circle-outline" size={14} color={TEXT_MUTED} />
-                  <Text style={styles.hintText}>
-                    Tu cédula se usará como contraseña temporal
-                  </Text>
-                </View>
-
-                {/* Submit */}
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={handleRegister}
-                  disabled={loading}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={theme.gradients.accent}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.primaryBtnGradient}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                      <>
-                        <Text style={styles.primaryBtnText}>Crear cuenta</Text>
-                        <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
-                      </>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-
-              {/* Footer */}
-              <TouchableOpacity style={styles.loginLink} onPress={goBack}>
-                <Text style={styles.loginLinkText}>
-                  ¿Ya tienes cuenta? <Text style={styles.accentText}>Inicia sesión</Text>
-                </Text>
+            {/* Gender selection */}
+            <Text style={styles.sectionLabel}>Género</Text>
+            <View style={styles.genderRow}>
+              <TouchableOpacity
+                style={[
+                  styles.genderBtn,
+                  formData.gender === 'male' && styles.genderBtnActive
+                ]}
+                onPress={() => handleChange('gender', 'male')}
+              >
+                <Ionicons
+                  name="male"
+                  size={18}
+                  color={formData.gender === 'male' ? '#fff' : TEXT_SECONDARY}
+                />
+                <Text style={[
+                  styles.genderBtnText,
+                  formData.gender === 'male' && styles.genderBtnTextActive
+                ]}>Hombre</Text>
               </TouchableOpacity>
 
-            </ScrollView>
-          </SafeAreaView>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+              <TouchableOpacity
+                style={[
+                  styles.genderBtn,
+                  formData.gender === 'female' && styles.genderBtnActive
+                ]}
+                onPress={() => handleChange('gender', 'female')}
+              >
+                <Ionicons
+                  name="female"
+                  size={18}
+                  color={formData.gender === 'female' ? '#fff' : TEXT_SECONDARY}
+                />
+                <Text style={[
+                  styles.genderBtnText,
+                  formData.gender === 'female' && styles.genderBtnTextActive
+                ]}>Mujer</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Weight Input */}
+            <Text style={styles.sectionLabel}>Peso (kg)</Text>
+            <InputField
+              field={{ key: 'weight', label: 'Ej: 75', icon: 'speedometer-outline', keyboard: 'numeric' }}
+              value={formData.weight}
+              onChange={handleChange as any}
+            />
+
+            {/* Info hint */}
+            <View style={styles.hint}>
+              <Ionicons name="information-circle-outline" size={14} color={TEXT_MUTED} />
+              <Text style={styles.hintText}>
+                Tu peso se usa para calcular tu ranking de fuerza relativo. Puedes actualizarlo luego en tu Perfil.
+              </Text>
+            </View>
+
+            <View style={[styles.hint, { marginTop: 0 }]}>
+              <Ionicons name="lock-closed-outline" size={14} color={TEXT_MUTED} />
+              <Text style={styles.hintText}>
+                Tu cédula se usará como contraseña temporal.
+              </Text>
+            </View>
+
+            {/* Submit */}
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={theme.gradients.accent}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.primaryBtnGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.primaryBtnText}>Crear cuenta</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer */}
+          <TouchableOpacity style={styles.loginLink} onPress={goBack}>
+            <Text style={styles.loginLinkText}>
+              ¿Ya tienes cuenta? <Text style={styles.accentText}>Inicia sesión</Text>
+            </Text>
+          </TouchableOpacity>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -292,7 +349,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
 
   // ── Header ────────────────────────────────────────────────────────────────
@@ -370,6 +427,44 @@ const styles = StyleSheet.create({
   hintText: {
     color: TEXT_MUTED,
     fontSize: 12,
+    flex: 1,
+  },
+  sectionLabel: {
+    color: TEXT_SECONDARY,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  genderRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  genderBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  genderBtnActive: {
+    backgroundColor: ACCENT,
+    borderColor: ACCENT,
+  },
+  genderBtnText: {
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  genderBtnTextActive: {
+    color: '#fff',
+    fontWeight: '700',
   },
 
   // ── Button ────────────────────────────────────────────────────────────────

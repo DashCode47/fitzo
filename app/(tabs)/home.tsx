@@ -8,7 +8,6 @@ import { UserAPI } from '@/api/user';
 import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
 import { HomeSkeleton } from '@/components/home/HomeSkeleton';
 import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
-import { MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
 import { theme as staticTheme, AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -90,35 +89,26 @@ export default function HomeScreen() {
   const { count: gymCount, maxCapacity } = useGymOccupancy();
 
   const [data, setData] = useState<any>({
-    user: MOCK_USER,
     promos: [],
     events: [],
-    leaderboard: MOCK_LEADERBOARD,
-    nutrition: MOCK_NUTRITION,
+    leaderboard: [],
+    nutrition: null,
   });
 
   useEffect(() => {
     if (isHydrated) {
-      const user = profile ? { name: profile.username || 'Atleta', avatar: profile.photo_url } : MOCK_USER;
       const nutritionData = activeDiet ? {
         title: activeDiet.name,
         calories: `${activeDiet.calories} kcal`,
         protein: `Proteína: ${activeDiet.macros.protein}`,
         label: 'TU PLAN PERSONAL',
         image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=800&auto=format&fit=crop',
-      } : {
-        title: '¡Crea tu Plan Nutricional!',
-        calories: 'Tus Macros',
-        protein: 'Tus Objetivos',
-        label: '¿AÚN SIN PLAN?',
-        image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=800&auto=format&fit=crop',
-      };
+      } : null;
       setData((prev: any) => ({
         ...prev,
-        user,
         promos: promos || [],
         events: events || [],
-        leaderboard: leaderboard?.length ? leaderboard : MOCK_LEADERBOARD,
+        leaderboard: leaderboard || [],
         nutrition: nutritionData,
       }));
       if (loading && profile) setLoading(false);
@@ -309,10 +299,14 @@ export default function HomeScreen() {
           )}
 
           {/* ── Top 3 Rankings ── */}
-          <TopThreePodium data={data.leaderboard.slice(0, 3)} onSeeAll={() => router.push('/rankings')} />
+          {data.leaderboard.length > 0 && (
+            <TopThreePodium data={data.leaderboard.slice(0, 3)} onSeeAll={() => router.push('/rankings')} />
+          )}
 
           {/* ── Nutrition ── */}
-          <NutritionCard data={data.nutrition} onPress={goToNutrition} />
+          {data.nutrition && (
+            <NutritionCard data={data.nutrition} onPress={goToNutrition} />
+          )}
 
           <View style={{ height: 100 }} />
         </ScrollView>

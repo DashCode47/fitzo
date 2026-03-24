@@ -11,6 +11,8 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'CLIENT';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS total_points INT DEFAULT 0;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS weight NUMERIC;
 
 -- 2. Asegurar que el email sea único
 DO $$ 
@@ -34,6 +36,8 @@ BEGIN
     display_name,
     national_id,
     phone,
+    gender,
+    weight,
     role,
     status,
     total_points,
@@ -47,6 +51,8 @@ BEGIN
     COALESCE(new.raw_user_meta_data->>'first_name', '') || ' ' || COALESCE(new.raw_user_meta_data->>'last_name', ''),
     new.raw_user_meta_data->>'national_id',
     new.raw_user_meta_data->>'phone',
+    new.raw_user_meta_data->>'gender',
+    (new.raw_user_meta_data->>'weight')::numeric,
     'CLIENT',
     'ACTIVE',
     0,
@@ -59,6 +65,8 @@ BEGIN
     display_name = EXCLUDED.display_name,
     national_id = EXCLUDED.national_id,
     phone = EXCLUDED.phone,
+    gender = EXCLUDED.gender,
+    weight = EXCLUDED.weight,
     updated_at = now();
 
   RETURN new;

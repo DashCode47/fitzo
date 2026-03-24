@@ -54,6 +54,8 @@ export const AuthAPI = {
           last_name: userData.lastName,
           national_id: userData.nationalId,
           phone: userData.phone,
+          gender: userData.gender,
+          weight: userData.weight,
         }
       }
     });

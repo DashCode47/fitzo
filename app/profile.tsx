@@ -43,6 +43,7 @@ export default function ProfileScreen() {
     appendWorkoutLogs,
     resetWorkoutLogs,
     muscleRanks,
+    userStats,
     themeMode,
     setThemeMode
   } = useAppStore();
@@ -243,11 +244,36 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* ── Weight warning banner ── */}
+          {!userStats?.weight && (
+            <TouchableOpacity
+              style={styles.weightWarning}
+              onPress={() => router.push('/(tabs)/nutrition')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="warning-outline" size={18} color="#f59e0b" />
+              <Text style={styles.weightWarningText}>
+                Configura tu peso corporal para activar los Rankings
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color="#f59e0b" />
+            </TouchableOpacity>
+          )}
+
           {/* ── Info card ── */}
           <View style={styles.card}>
             <InfoRow icon="mail-outline" label="Correo" value={email} theme={theme} styles={styles} />
             <View style={styles.divider} />
             <InfoRow icon="call-outline" label="Teléfono" value={phone} theme={theme} styles={styles} />
+            <View style={styles.divider} />
+            <InfoRow
+              icon="barbell-outline"
+              label="Peso Corporal"
+              value={userStats?.weight ? `${userStats.weight} kg` : 'No configurado'}
+              theme={theme}
+              styles={styles}
+              onPress={() => router.push('/(tabs)/nutrition')}
+              highlight={!userStats?.weight}
+            />
           </View>
 
           {/* ── My Ranks Section ── */}
@@ -464,18 +490,21 @@ function ThemeOption({ label, isActive, color, onPress, theme, styles }: {
   );
 }
 
-function InfoRow({ icon, label, value, theme, styles }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string; theme: AppTheme; styles: any }) {
-  return (
+function InfoRow({ icon, label, value, theme, styles, onPress, highlight }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string; theme: AppTheme; styles: any; onPress?: () => void; highlight?: boolean }) {
+  const content = (
     <View style={styles.infoRow}>
-      <View style={styles.infoIconBox}>
-        <Ionicons name={icon} size={16} color={theme.accent} />
+      <View style={[styles.infoIconBox, highlight && { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.4)' }]}>
+        <Ionicons name={icon} size={16} color={highlight ? '#f59e0b' : theme.accent} />
       </View>
       <View style={styles.infoContent}>
         <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue} numberOfLines={1}>{value}</Text>
+        <Text style={[styles.infoValue, highlight && { color: '#f59e0b' }]} numberOfLines={1}>{value}</Text>
       </View>
+      {onPress && <Ionicons name="chevron-forward" size={16} color={highlight ? '#f59e0b' : theme.textMuted} />}
     </View>
   );
+  if (onPress) return <TouchableOpacity onPress={onPress} activeOpacity={0.7}>{content}</TouchableOpacity>;
+  return content;
 }
 
 const createStyles = (theme: AppTheme) => StyleSheet.create({
@@ -785,6 +814,23 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     fontWeight: '800',
     color: theme.textMuted,
     letterSpacing: 1,
+  },
+  weightWarning: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.35)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  weightWarningText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#f59e0b',
   },
   viewMoreRanks: {
     fontSize: 11,

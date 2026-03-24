@@ -10,6 +10,7 @@ import { theme as staticTheme, AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const createStyles = (theme: AppTheme) => StyleSheet.create({
@@ -112,6 +113,7 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
 export const RanksView: React.FC = () => {
   const theme = useAppTheme();
   const styles = createStyles(theme);
+  const router = useRouter();
   const { profile, userStats, muscleRanks, setMuscleRanks } = useAppStore();
   const [loading, setLoading] = useState(!muscleRanks);
   const [refreshing, setRefreshing] = useState(false);
@@ -156,8 +158,8 @@ export const RanksView: React.FC = () => {
         <Text style={styles.emptySubtitle}>
           Necesitamos conocer tu peso corporal para calcular tus rangos de fuerza relativos.
         </Text>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Ir a Perfil</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/(tabs)/nutrition')}>
+          <Text style={styles.buttonText}>Configurar peso</Text>
         </TouchableOpacity>
       </View>
     );
