@@ -18,6 +18,7 @@ export interface UserProfile {
   status?: string;
   photo_url?: string;
   total_points?: number;
+  push_token?: string;
   created_at?: string;
   updated_at?: string;
 }

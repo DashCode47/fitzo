@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.fitzo.app"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -33,6 +34,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
@@ -72,8 +74,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "9f7b8417-7eec-4ee9-a4b2-f934542c75dd"
+        "projectId": "fa481541-b737-47b4-9a9a-5a3022697171"
       }
-    }
+    },
+    "owner": "dashcose"
   }
 }

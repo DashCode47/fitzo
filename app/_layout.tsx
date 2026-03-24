@@ -11,6 +11,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { CustomModal } from '@/components/ui/CustomModal';
 import { useState } from 'react';
 
+import { NotificationService } from '@/services/notifications';
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const segments = useSegments();
@@ -58,6 +60,15 @@ export default function RootLayout() {
     };
 
     startRadar().catch(e => console.error('[RootLayout] startRadar failed:', e));
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (profile?.id) {
+      console.log('[RootLayout] Registering for Notifications for:', profile.id);
+      NotificationService.registerForPushNotificationsAsync(profile.id)
+        .then(token => console.log('[RootLayout] Notification Token registered:', token))
+        .catch(err => console.error('[RootLayout] Notification registration failed:', err));
+    }
   }, [profile?.id]);
 
   useEffect(() => {
