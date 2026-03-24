@@ -1,16 +1,19 @@
 
 import { LeaderboardAPI } from '@/api/leaderboard';
 import { CustomModal } from '@/components/ui/CustomModal';
+import { RankingsSkeleton } from '@/components/rankings/RankingsSkeleton';
+import { RanksView } from '@/components/rankings/RanksView';
+
 import { theme } from '@/constants/theme';
 import { useAppStore } from '@/store/useAppStore';
 import { withTimeout } from '@/utils/async';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -30,8 +33,17 @@ export default function RankingsScreen() {
   const [error, setError] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const { view } = useLocalSearchParams<{ view: string }>();
+  const [viewMode, setViewMode] = useState<'points' | 'ranks'>((view as any) || 'points');
+
 
   useEffect(() => { loadLeaderboard(); }, []);
+
+  useEffect(() => {
+    if (view === 'ranks') setViewMode('ranks');
+    else if (view === 'points') setViewMode('points');
+  }, [view]);
+
 
   const loadLeaderboard = async () => {
     try {
@@ -146,63 +158,85 @@ export default function RankingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── My stats card ── */}
-        <View style={styles.myCard}>
-          <View style={styles.myCardStat}>
-            <Text style={styles.myCardLabel}>Tu posición</Text>
-            <Text style={styles.myCardValue}>{myRank > 0 ? `#${myRank}` : '–'}</Text>
-          </View>
-          <View style={styles.myCardDivider} />
-          <View style={styles.myCardStat}>
-            <Text style={styles.myCardLabel}>Tus puntos</Text>
-            <Text style={[styles.myCardValue, { color: theme.accent }]}>
-              {profile?.total_points?.toLocaleString() || '0'}
-            </Text>
-          </View>
-          <View style={styles.myCardDivider} />
-          <View style={styles.myCardStat}>
-            <Text style={styles.myCardLabel}>Rango</Text>
-            <Text style={styles.myCardValue}>ELITE</Text>
-          </View>
-        </View>
-
-        {/* ── Action buttons ── */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.primaryAction} onPress={() => router.push('/scanner')} activeOpacity={0.85}>
-            <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryActionGradient}>
-              <Ionicons name="qr-code" size={18} color="#fff" />
-              <Text style={styles.primaryActionText}>Registrar asistencia</Text>
-            </LinearGradient>
+        {/* ── Segment Control ── */}
+        <View style={styles.segmentContainer}>
+          <TouchableOpacity 
+            style={[styles.segmentBtn, viewMode === 'points' && styles.segmentBtnActive]} 
+            onPress={() => setViewMode('points')}
+          >
+            <Text style={[styles.segmentBtnText, viewMode === 'points' && styles.segmentBtnTextActive]}>Puntos</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryAction} onPress={() => setModalVisible(true)} activeOpacity={0.85}>
-            <Ionicons name="gift-outline" size={18} color={theme.accent} />
-            <Text style={styles.secondaryActionText}>Recompensa</Text>
+          <TouchableOpacity 
+            style={[styles.segmentBtn, viewMode === 'ranks' && styles.segmentBtnActive]} 
+            onPress={() => setViewMode('ranks')}
+          >
+            <Text style={[styles.segmentBtnText, viewMode === 'ranks' && styles.segmentBtnTextActive]}>Rangos</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── List ── */}
-        {loading ? (
-          <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 60 }} />
-        ) : error ? (
-          <View style={styles.errorState}>
-            <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
-            <Text style={styles.errorTitle}>Sin conexión</Text>
-            <Text style={styles.errorText}>No pudimos cargar el ranking.</Text>
-            <TouchableOpacity style={styles.retryBtn} onPress={loadLeaderboard}>
-              <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.retryBtnGradient}>
-                <Ionicons name="refresh" size={14} color="#fff" />
-                <Text style={styles.retryBtnText}>Reintentar</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+        {viewMode === 'points' ? (
+          <>
+            {/* ── My stats card ── */}
+            <View style={styles.myCard}>
+              <View style={styles.myCardStat}>
+                <Text style={styles.myCardLabel}>Tu posición</Text>
+                <Text style={styles.myCardValue}>{myRank > 0 ? `#${myRank}` : '–'}</Text>
+              </View>
+              <View style={styles.myCardDivider} />
+              <View style={styles.myCardStat}>
+                <Text style={styles.myCardLabel}>Tus puntos</Text>
+                <Text style={[styles.myCardValue, { color: theme.accent }]}>
+                  {profile?.total_points?.toLocaleString() || '0'}
+                </Text>
+              </View>
+              <View style={styles.myCardDivider} />
+              <View style={styles.myCardStat}>
+                <Text style={styles.myCardLabel}>Rango</Text>
+                <Text style={styles.myCardValue}>ELITE</Text>
+              </View>
+            </View>
+
+            {/* ── Action buttons ── */}
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={styles.primaryAction} onPress={() => router.push('/scanner')} activeOpacity={0.85}>
+                <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryActionGradient}>
+                  <Ionicons name="qr-code" size={18} color="#fff" />
+                  <Text style={styles.primaryActionText}>Registrar asistencia</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryAction} onPress={() => setModalVisible(true)} activeOpacity={0.85}>
+                <Ionicons name="gift-outline" size={18} color={theme.accent} />
+                <Text style={styles.secondaryActionText}>Recompensa</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ── List ── */}
+            {loading ? (
+              <RankingsSkeleton />
+            ) : error ? (
+              <View style={styles.errorState}>
+                <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
+                <Text style={styles.errorTitle}>Sin conexión</Text>
+                <Text style={styles.errorText}>No pudimos cargar el ranking.</Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={loadLeaderboard}>
+                  <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.retryBtnGradient}>
+                    <Ionicons name="refresh" size={14} color="#fff" />
+                    <Text style={styles.retryBtnText}>Reintentar</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={leaderboard}
+                keyExtractor={item => item.id}
+                renderItem={renderItem}
+                contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+          </>
         ) : (
-          <FlatList
-            data={leaderboard}
-            keyExtractor={item => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
+          <RanksView />
         )}
       </SafeAreaView>
     </View>
@@ -249,6 +283,41 @@ const styles = StyleSheet.create({
     borderColor: theme.borderSubtle,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  // ── Segment Control ────────────────────────────────────────────────────────
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.surface,
+    borderRadius: 14,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  segmentBtnActive: {
+    backgroundColor: theme.bgCard,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  segmentBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.textSecondary,
+  },
+  segmentBtnTextActive: {
+    color: theme.accent,
+    fontWeight: '700',
   },
 
   // ── My card ───────────────────────────────────────────────────────────────

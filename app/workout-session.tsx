@@ -29,9 +29,11 @@ const MUSCLE_MAP: Record<string, string> = {
   'legs': 'Piernas',
   'shoulders': 'Hombros',
   'arms': 'Brazos',
+  'core': 'Core',
   'abs': 'Abdomen',
   'cardio': 'Cardio',
   'glutes': 'Glúteos',
+  'forearms': 'Antebrazo',
   'full body': 'Cuerpo Completo'
 };
 import { StatusBar } from 'expo-status-bar';
@@ -336,6 +338,22 @@ export default function WorkoutSessionScreen() {
                                 <Text style={styles.detailDesc}>
                                     {selectedExDetails.description || "No hay una descripción detallada para este ejercicio aún."}
                                 </Text>
+
+                                <TouchableOpacity 
+                                    style={styles.viewProgressBtn}
+                                    onPress={() => {
+                                        setInfoModalVisible(false);
+                                        router.push({
+                                            pathname: '/exercise-progress',
+                                            params: { id: selectedExDetails.id }
+                                        });
+                                    }}
+                                >
+                                    <LinearGradient colors={theme.gradients.accent} style={styles.progressGradient}>
+                                        <Ionicons name="stats-chart" size={18} color="#fff" />
+                                        <Text style={styles.viewProgressText}>VER PROGRESIÓN HISTÓRICA</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
                             </View>
                         </ScrollView>
                     )}
@@ -757,5 +775,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.textSecondary,
     lineHeight: 22,
+  },
+  viewProgressBtn: {
+    marginTop: 24,
+    height: 54,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  progressGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  viewProgressText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

@@ -1,5 +1,5 @@
 import { theme } from '@/constants/theme';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -100,7 +100,7 @@ export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
     size,
     elevated,
   }: {
-    entry: typeof first;
+    entry: any;
     size: 'sm' | 'lg';
     elevated?: boolean;
   }) => {
@@ -131,14 +131,16 @@ export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
         <Text style={[styles.podiumName, elevated && { fontSize: 15, fontWeight: '800' }]} numberOfLines={1}>
           {entry.name}
         </Text>
-        <Text style={[styles.podiumScore, elevated && { color: '#C5A356' }]}>{entry.score} pts</Text>
+        <View style={styles.tierPill}>
+          <Text style={styles.tierText}>{entry.tier || 'Chulla'}</Text>
+        </View>
       </View>
     );
   };
 
   return (
     <View style={styles.section}>
-      <SectionHeader title="Top Legends" onSeeAll={onSeeAll} />
+      <SectionHeader title="Los mas Rankeados" onSeeAll={onSeeAll} />
       <View style={[styles.card, styles.podiumCard]}>
         <View style={styles.podiumRow}>
           <PodiumItem entry={second} size="sm" />
@@ -337,6 +339,19 @@ const styles = StyleSheet.create({
     color: theme.textMuted,
     fontSize: 11,
     fontWeight: '700',
+  },
+  tierPill: {
+    backgroundColor: theme.accentDim,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 2,
+  },
+  tierText: {
+    color: theme.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
 
   // ── Nutrition ────────────────────────────────────────────────────────────────

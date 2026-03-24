@@ -1,24 +1,24 @@
 
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Svg, Polyline, Circle } from 'react-native-svg';
+import { Exercise, RoutinesAPI } from '@/api/routines';
+import { WorkoutsAPI } from '@/api/workouts';
 import { theme } from '@/constants/theme';
 import { useAppStore } from '@/store/useAppStore';
-import { WorkoutsAPI } from '@/api/workouts';
-import { RoutinesAPI, Exercise } from '@/api/routines';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Circle, Polyline, Svg } from 'react-native-svg';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CHART_WIDTH = SCREEN_WIDTH - 40;
@@ -28,7 +28,7 @@ export default function ExerciseProgressScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { profile } = useAppStore();
-  
+
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +48,7 @@ export default function ExerciseProgressScreen() {
       if (ex) setExercise(ex);
 
       const data = await WorkoutsAPI.getExerciseProgress(userId, Number(id));
+      console.log('data', data);
       setHistory(data);
     } catch (e) {
       console.error('[ExerciseProgress] Loading failed:', e);
@@ -59,7 +60,7 @@ export default function ExerciseProgressScreen() {
   const getChartPoints = () => {
     if (history.length < 2) return "";
     const maxVal = Math.max(...history.map(h => h.maxWeight), 1);
-    
+
     return history.map((h, i) => {
       const x = (i / (history.length - 1)) * CHART_WIDTH;
       const y = CHART_HEIGHT - (h.maxWeight / maxVal) * (CHART_HEIGHT - 20);
@@ -87,71 +88,71 @@ export default function ExerciseProgressScreen() {
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                <Ionicons name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Progresión</Text>
-            <View style={{ width: 44 }} />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Progresión</Text>
+          <View style={{ width: 44 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {exercise && (
-              <View style={styles.exerciseHeader}>
-                  <Text style={styles.exerciseName}>{exercise.name}</Text>
-                  <Text style={styles.exerciseMeta}>{exercise.muscle_group} · {exercise.equipment}</Text>
-              </View>
+            <View style={styles.exerciseHeader}>
+              <Text style={styles.exerciseName}>{exercise.name}</Text>
+              <Text style={styles.exerciseMeta}>{exercise.muscle_group} · {exercise.equipment}</Text>
+            </View>
           )}
 
           {/* PR Stats */}
           <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>RÉCORD PERSONAL</Text>
-                  <Text style={styles.statValue}>{maxPR} kg</Text>
-              </View>
-              <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>ÚLTIMO PESO</Text>
-                  <Text style={styles.statValue}>{lastPR} kg</Text>
-              </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>RÉCORD PERSONAL</Text>
+              <Text style={styles.statValue}>{maxPR} kg</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>ÚLTIMO PESO</Text>
+              <Text style={styles.statValue}>{lastPR} kg</Text>
+            </View>
           </View>
 
           {/* Chart Section */}
           <Text style={styles.sectionTitle}>HISTORIAL DE CARGA (KGs)</Text>
           <View style={styles.chartContainer}>
             {history.length > 1 ? (
-                <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-                    <Polyline
-                        points={getChartPoints()}
-                        fill="none"
-                        stroke={theme.accent}
-                        strokeWidth="3"
-                    />
-                    {history.map((h, i) => {
-                         const maxVal = Math.max(...history.map(hx => hx.maxWeight), 1);
-                         const x = (i / (history.length - 1)) * CHART_WIDTH;
-                         const y = CHART_HEIGHT - (h.maxWeight / maxVal) * (CHART_HEIGHT - 20);
-                         return <Circle key={i} cx={x} cy={y} r="4" fill={theme.accentLight} />;
-                    })}
-                </Svg>
+              <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+                <Polyline
+                  points={getChartPoints()}
+                  fill="none"
+                  stroke={theme.accent}
+                  strokeWidth="3"
+                />
+                {history.map((h, i) => {
+                  const maxVal = Math.max(...history.map(hx => hx.maxWeight), 1);
+                  const x = (i / (history.length - 1)) * CHART_WIDTH;
+                  const y = CHART_HEIGHT - (h.maxWeight / maxVal) * (CHART_HEIGHT - 20);
+                  return <Circle key={i} cx={x} cy={y} r="4" fill={theme.accentLight} />;
+                })}
+              </Svg>
             ) : (
-                <View style={styles.emptyChart}>
-                    <Ionicons name="stats-chart-outline" size={40} color={theme.textMuted} />
-                    <Text style={styles.emptyText}>Necesitas al menos 2 sesiones para graficar tu progreso.</Text>
-                </View>
+              <View style={styles.emptyChart}>
+                <Ionicons name="stats-chart-outline" size={40} color={theme.textMuted} />
+                <Text style={styles.emptyText}>Necesitas al menos 2 sesiones para graficar tu progreso.</Text>
+              </View>
             )}
           </View>
 
           {/* History List */}
           <Text style={styles.sectionTitle}>DETALLE DE SESIONES</Text>
           {[...history].reverse().map((log, idx) => (
-              <View key={idx} style={styles.logItem}>
-                  <View>
-                      <Text style={styles.logDate}>
-                          {new Date(log.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                      </Text>
-                      <Text style={styles.logVol}>{log.totalVol} kg volumen total</Text>
-                  </View>
-                  <Text style={styles.logMax}>{log.maxWeight} kg</Text>
+            <View key={idx} style={styles.logItem}>
+              <View>
+                <Text style={styles.logDate}>
+                  {new Date(log.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                </Text>
+                <Text style={styles.logVol}>{log.totalVol} kg volumen total</Text>
               </View>
+              <Text style={styles.logMax}>{log.maxWeight} kg</Text>
+            </View>
           ))}
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -199,96 +200,96 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   exerciseHeader: {
-      marginBottom: 32,
-      alignItems: 'center',
+    marginBottom: 32,
+    alignItems: 'center',
   },
   exerciseName: {
-      fontSize: 24,
-      fontWeight: '900',
-      color: theme.textPrimary,
-      textTransform: 'uppercase',
-      letterSpacing: -1,
+    fontSize: 24,
+    fontWeight: '900',
+    color: theme.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: -1,
   },
   exerciseMeta: {
-      fontSize: 14,
-      color: theme.accent,
-      fontWeight: '600',
-      marginTop: 4,
+    fontSize: 14,
+    color: theme.accent,
+    fontWeight: '600',
+    marginTop: 4,
   },
   statsRow: {
-      flexDirection: 'row',
-      gap: 12,
-      marginBottom: 32,
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 32,
   },
   statCard: {
-      flex: 1,
-      backgroundColor: theme.bgCard,
-      borderRadius: 18,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
+    flex: 1,
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
   },
   statLabel: {
-      fontSize: 10,
-      fontWeight: '800',
-      color: theme.textMuted,
-      marginBottom: 6,
+    fontSize: 10,
+    fontWeight: '800',
+    color: theme.textMuted,
+    marginBottom: 6,
   },
   statValue: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: theme.textPrimary,
+    fontSize: 22,
+    fontWeight: '900',
+    color: theme.textPrimary,
   },
   sectionTitle: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: theme.textMuted,
-      letterSpacing: 2,
-      marginBottom: 16,
+    fontSize: 11,
+    fontWeight: '800',
+    color: theme.textMuted,
+    letterSpacing: 2,
+    marginBottom: 16,
   },
   chartContainer: {
-      backgroundColor: theme.bgCard,
-      borderRadius: 24,
-      padding: 20,
-      marginBottom: 40,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-      height: 220,
-      justifyContent: 'center',
-      alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 40,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyChart: {
-      alignItems: 'center',
-      paddingHorizontal: 40,
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
   emptyText: {
-      color: theme.textMuted,
-      fontSize: 12,
-      textAlign: 'center',
-      marginTop: 12,
-      lineHeight: 18,
+    color: theme.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 18,
   },
   logItem: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderColor: theme.borderSubtle,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderColor: theme.borderSubtle,
   },
   logDate: {
-      color: theme.textPrimary,
-      fontSize: 15,
-      fontWeight: '700',
+    color: theme.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
   },
   logVol: {
-      color: theme.textMuted,
-      fontSize: 12,
-      marginTop: 2,
+    color: theme.textMuted,
+    fontSize: 12,
+    marginTop: 2,
   },
   logMax: {
-      color: theme.accent,
-      fontSize: 18,
-      fontWeight: '900',
+    color: theme.accent,
+    fontSize: 18,
+    fontWeight: '900',
   },
 });

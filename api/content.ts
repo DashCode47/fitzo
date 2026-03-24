@@ -9,9 +9,11 @@ export const ContentAPI = {
   },
 
   getEvents: async () => {
+    const now = new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
       .from('events')
       .select('*')
+      .gte('event_date', now)
       .order('event_date', { ascending: true })
       .limit(5);
     if (error) throw error;

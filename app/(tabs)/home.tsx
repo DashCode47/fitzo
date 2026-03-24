@@ -1,12 +1,14 @@
 
 import { Banner, BannersAPI } from '@/api/banners';
+import { RoutinesAPI } from '@/api/routines';
 import { ContentAPI } from '@/api/content';
 import { LeaderboardAPI } from '@/api/leaderboard';
 import { NutritionAPI } from '@/api/nutrition';
 import { UserAPI } from '@/api/user';
 import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
+import { HomeSkeleton } from '@/components/home/HomeSkeleton';
 import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
-import { MOCK_EVENTS, MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
+import { MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
 import { theme } from '@/constants/theme';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useGymOccupancy } from '@/hooks/useGymOccupancy';
@@ -19,8 +21,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
+import { RanksAPI, calculateAllRanks } from '@/api/ranks';
 import {
-  ActivityIndicator,
   Image,
   RefreshControl,
   ScrollView,
@@ -75,6 +77,8 @@ export default function HomeScreen() {
     promos, setPromos,
     events, setEvents,
     leaderboard, setLeaderboard,
+    userSchedule, setUserSchedule,
+    setActiveWorkout,
     isHydrated,
   } = useAppStore();
 
@@ -85,7 +89,7 @@ export default function HomeScreen() {
   const [data, setData] = useState<any>({
     user: MOCK_USER,
     promos: [],
-    events: MOCK_EVENTS,
+    events: [],
     leaderboard: MOCK_LEADERBOARD,
     nutrition: MOCK_NUTRITION,
   });
@@ -110,7 +114,7 @@ export default function HomeScreen() {
         ...prev,
         user,
         promos: promos || [],
-        events: events?.length ? events : MOCK_EVENTS,
+        events: events || [],
         leaderboard: leaderboard?.length ? leaderboard : MOCK_LEADERBOARD,
         nutrition: nutritionData,
       }));
@@ -131,8 +135,8 @@ export default function HomeScreen() {
       const [newProfile, newPromos, newEvents, newLeaderboard, newNutrition] = await Promise.all([
         UserAPI.getProfile(session.user.id).catch(() => profile),
         BannersAPI.getBanners().catch(() => promos || []),
-        ContentAPI.getEvents().catch(() => events || MOCK_EVENTS),
-        LeaderboardAPI.getLeaderboard().catch(() => leaderboard || MOCK_LEADERBOARD),
+        ContentAPI.getEvents().catch(() => events || []),
+        LeaderboardAPI.getRankLeaderboard().catch(() => leaderboard || []),
         NutritionAPI.getActiveDiet(session.user.id).catch(() => activeDiet),
       ]);
 
@@ -141,6 +145,25 @@ export default function HomeScreen() {
       if (newEvents) setEvents(newEvents);
       if (newLeaderboard) setLeaderboard(newLeaderboard);
       if (newNutrition !== undefined) setActiveDiet(newNutrition);
+
+      // Also get schedule for the CTA
+      if (session.user.id) {
+        RoutinesAPI.getUserSchedule(session.user.id).then(setUserSchedule).catch(() => {});
+      }
+
+      // SYNC RANK TO DB (Optimization: only if we have weights)
+      if (session.user.id) {
+        RanksAPI.getUserMaxWeights(session.user.id).then(async (weights) => {
+          if (weights.length) {
+            // Get user stats for weight/gender
+            const { data: stats } = await supabase.from('user_stats').select('weight, gender').eq('user_id', session.user.id).single();
+            const bw = stats?.weight || 75;
+            const gn = stats?.gender || 'M';
+            const calculated = calculateAllRanks(weights, bw, gn as any);
+            await RanksAPI.syncRankToProfile(session.user.id, calculated.avgIndex, calculated.generalTier);
+          }
+        }).catch(() => {});
+      }
     } catch (e) {
       console.error('[HomeScreen] Refresh failed:', e);
     } finally {
@@ -153,13 +176,46 @@ export default function HomeScreen() {
   const handleBannerPress = (banner: Banner) => router.push({ pathname: '/banner-details', params: { id: banner.id, type: 'promo' } });
   const handleEventPress = (event: any) => router.push({ pathname: '/banner-details', params: { id: event.id, type: 'event' } });
 
+  const getRoutineForDay = (dayIdx: number) => {
+    return userSchedule?.find(s => s.day_of_week === dayIdx)?.routine;
+  };
+
+  const handleStartTodayWorkout = async () => {
+    const todayRoutine = getRoutineForDay(new Date().getDay());
+    if (!todayRoutine || !profile) return;
+
+    try {
+      setLoading(true);
+      const routine = await RoutinesAPI.getRoutineDetail(todayRoutine.id);
+      if (!routine) return;
+
+      const activeWorkout = {
+        routineId: routine.id,
+        routineName: routine.name,
+        startTime: new Date().toISOString(),
+        exercises: routine.exercises?.map(re => ({
+          exerciseId: re.exercise_id,
+          name: re.exercise?.name || 'Ejercicio',
+          sets: Array.from({ length: re.sets }).map((_, i) => ({
+            set: i + 1,
+            reps: parseInt(re.reps) || 10,
+            weight: 0,
+            completed: false,
+          }))
+        })) || []
+      };
+
+      setActiveWorkout(activeWorkout);
+      router.push('/workout-session');
+    } catch (e) {
+      console.error('[HomeScreen] Failed to start workout:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
-    return (
-      <View style={[styles.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color={theme.accent} />
-      </View>
-    );
+    return <HomeSkeleton />;
   }
 
   return (
@@ -218,8 +274,36 @@ export default function HomeScreen() {
             <PromoCarousel data={data.promos} onPressItem={handleBannerPress} />
           </View>
 
+          {/* ── Today's Workout CTA ── */}
+          {getRoutineForDay(new Date().getDay()) && (
+            <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+              <TouchableOpacity
+                style={styles.ctaCard}
+                onPress={handleStartTodayWorkout}
+              >
+                <LinearGradient
+                  colors={['rgba(155, 147, 255, 0.1)', 'rgba(108, 99, 255, 0.05)']}
+                  style={styles.ctaGradient}
+                >
+                  <View style={styles.ctaIcon}>
+                    <Ionicons name="play" size={20} color={theme.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.ctaTitle}>Entrenamiento de hoy</Text>
+                    <Text style={styles.ctaSubtitle}>
+                      {getRoutineForDay(new Date().getDay())?.name}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* ── Upcoming Events ── */}
-          <EventsTimeline data={data.events} onPressItem={handleEventPress} />
+          {data.events?.length > 0 && (
+            <EventsTimeline data={data.events} onPressItem={handleEventPress} />
+          )}
 
           {/* ── Top 3 Rankings ── */}
           <TopThreePodium data={data.leaderboard.slice(0, 3)} onSeeAll={() => router.push('/rankings')} />
@@ -360,5 +444,35 @@ const styles = StyleSheet.create({
   // ── Carousel wrapper ─────────────────────────────────────────────────────────
   carouselWrap: {
     marginTop: 16,
+  },
+  ctaCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+  },
+  ctaGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  ctaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: theme.accentDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ctaTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  ctaSubtitle: {
+    fontSize: 12,
+    color: theme.accent,
+    marginTop: 1,
   },
 });

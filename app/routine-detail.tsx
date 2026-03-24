@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
+import { REPRESENTATIVE_EXERCISES } from '@/constants/ranks';
 import {
   ActivityIndicator,
   Image,
@@ -138,11 +139,20 @@ export default function RoutineDetailScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>LISTA DE EJERCICIOS</Text>
+        <View style={{ marginBottom: 16 }}>
+          <Text style={styles.sectionTitle}>LISTA DE EJERCICIOS</Text>
+          <Text style={styles.sectionSubtitle}>¡Supera tus récords en ejercicios con el tag RANKING para subir de rango!</Text>
+        </View>
         {routine.exercises?.map((item, idx) => (
           <View key={item.id} style={styles.exerciseCard}>
             <View style={styles.exerciseDot} />
             <View style={styles.exerciseInfo}>
+              {item.exercise?.name && Object.values(REPRESENTATIVE_EXERCISES).includes(item.exercise.name) && (
+                <View style={[styles.rankBadge, { marginBottom: 4 }]}>
+                  <Ionicons name="trophy" size={10} color={theme.accent} />
+                  <Text style={styles.rankBadgeText}>RANKING</Text>
+                </View>
+              )}
               <Text style={styles.exerciseName}>{item.exercise?.name}</Text>
               <Text style={styles.exerciseMeta}>
                 {item.sets} series × {item.reps} reps {item.suggested_weight ? `· ${item.suggested_weight}` : ''}
@@ -323,7 +333,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: theme.textMuted,
     letterSpacing: 2,
-    marginBottom: 16,
+  },
+  sectionSubtitle: {
+    fontSize: 10,
+    color: theme.accent, // More visible color
+    marginTop: 4,
+    fontWeight: '600',
   },
   exerciseCard: {
     flexDirection: 'row',
@@ -351,6 +366,23 @@ const styles = StyleSheet.create({
     color: theme.textPrimary,
     marginBottom: 3,
     textTransform: 'uppercase',
+  },
+  rankBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.accentDim,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    alignSelf: 'flex-start',
+  },
+  rankBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: theme.accent,
   },
   exerciseMeta: {
     fontSize: 13,

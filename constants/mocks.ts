@@ -12,22 +12,6 @@ export const MOCK_CROWD = {
 
 
 
-export const MOCK_EVENTS = [
-  {
-    id: 1,
-    day: "10",
-    title: "Yoga al amanecer",
-    time: "10:00 AM - 11:00 AM",
-    isToday: true,
-  },
-  {
-    id: 2,
-    day: "17",
-    title: "Clase de Spinning",
-    time: "5:00 PM - 6:00 PM",
-    isToday: false,
-  },
-];
 
 export const MOCK_LEADERBOARD = [
   { 

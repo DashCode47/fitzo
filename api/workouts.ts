@@ -44,6 +44,7 @@ export const WorkoutsAPI = {
           .range(offset, offset + limit - 1) as any
       ) as any;
       if (error) throw error;
+      console.log('data', data);
       return data || [];
     } catch (e) {
       console.error('[WorkoutsAPI] getWorkoutLogs failed:', e);
@@ -58,7 +59,7 @@ export const WorkoutsAPI = {
           .from('workout_exercises')
           .select(`
             *,
-            exercise (*)
+            exercise:exercises (*)
           `)
           .eq('workout_log_id', workoutLogId)
           .order('order_index', { ascending: true }) as any
@@ -88,7 +89,7 @@ export const WorkoutsAPI = {
           .eq('exercise_id', exerciseId)
           .order('workout_log_id', { ascending: true }) as any
       ) as any;
-      
+
       if (error) throw error;
 
       // Extract max weight or volume per session
@@ -130,21 +131,21 @@ export const WorkoutsAPI = {
 
       // 3. Register points in gamification (WORKOUT_COMPLETED = 30 pts)
       try {
-          await supabase.from('gamification_logs').insert({
-              user_id: log.user_id,
-              action_type: 'WORKOUT_COMPLETED',
-              points: 30,
-              metadata: JSON.stringify({ workout_id: logData.id })
-          });
-          
-          // Update total profile points
-          await supabase.rpc('increment_user_points', { 
-            p_user_id: log.user_id, 
-            p_points: 30 
-          });
+        await supabase.from('gamification_logs').insert({
+          user_id: log.user_id,
+          action_type: 'WORKOUT_COMPLETED',
+          points: 30,
+          metadata: JSON.stringify({ workout_id: logData.id })
+        });
+
+        // Update total profile points
+        await supabase.rpc('increment_user_points', {
+          p_user_id: log.user_id,
+          p_points: 30
+        });
       } catch (gameErr) {
-          console.warn('[WorkoutsAPI] Failed to update gamification:', gameErr);
-          // Don't fail the entire save if gamification fails
+        console.warn('[WorkoutsAPI] Failed to update gamification:', gameErr);
+        // Don't fail the entire save if gamification fails
       }
 
       return logData;

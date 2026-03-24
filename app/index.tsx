@@ -1,23 +1,22 @@
 
+import { theme } from '@/constants/theme';
+import { OnboardingSkeleton } from '@/components/home/OnboardingSkeleton';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { supabase } from '@/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
-  ImageBackground,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  Image
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -74,12 +73,7 @@ export default function OnboardingScreen() {
   };
 
   if (checkingAuth) {
-    return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color={theme.accent} />
-      </View>
-    );
+    return <OnboardingSkeleton />;
   }
 
   const handleNext = () => {
@@ -111,7 +105,7 @@ export default function OnboardingScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
       <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
-      
+
       <FlatList
         ref={flatListRef}
         data={SLIDES}
@@ -140,22 +134,22 @@ export default function OnboardingScreen() {
 
         {/* Action Button */}
         <TouchableOpacity style={styles.mainBtn} onPress={handleNext} activeOpacity={0.9}>
-            <LinearGradient
-                colors={theme.gradients.accent}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.btnGradient}
-            >
-                <Text style={styles.buttonText}>
-                    {currentIndex === SLIDES.length - 1 ? 'COMENZAR AHORA' : 'SIGUIENTE'}
-                </Text>
-                <Ionicons 
-                    name={currentIndex === SLIDES.length - 1 ? 'flash' : 'arrow-forward'} 
-                    size={20} 
-                    color="#fff" 
-                    style={{ marginLeft: 8 }}
-                />
-            </LinearGradient>
+          <LinearGradient
+            colors={theme.gradients.accent}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.btnGradient}
+          >
+            <Text style={styles.buttonText}>
+              {currentIndex === SLIDES.length - 1 ? 'COMENZAR AHORA' : 'SIGUIENTE'}
+            </Text>
+            <Ionicons
+              name={currentIndex === SLIDES.length - 1 ? 'flash' : 'arrow-forward'}
+              size={20}
+              color="#fff"
+              style={{ marginLeft: 8 }}
+            />
+          </LinearGradient>
         </TouchableOpacity>
 
         {currentIndex < SLIDES.length - 1 && (

@@ -19,6 +19,7 @@ import { theme } from '@/constants/theme';
 import { useAppStore } from '@/store/useAppStore';
 import { RoutinesAPI, Exercise, RoutineExercise } from '@/api/routines';
 import { StatusBar } from 'expo-status-bar';
+import { REPRESENTATIVE_EXERCISES } from '@/constants/ranks';
 
 const MUSCLE_MAP: Record<string, string> = {
   'chest': 'Pecho',
@@ -210,7 +211,10 @@ export default function RoutineCreateScreen() {
         <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Ejercicios</Text>
+                    <View>
+                        <Text style={styles.modalTitle}>Ejercicios</Text>
+                        <Text style={styles.modalSub}>¡Supera tus récords en ejercicios con el tag RANKING para subir de rango!</Text>
+                    </View>
                     <TouchableOpacity onPress={() => setShowCatalog(false)}>
                         <Ionicons name="close" size={24} color={theme.textPrimary} />
                     </TouchableOpacity>
@@ -281,6 +285,12 @@ export default function RoutineCreateScreen() {
                                   )}
                                 </View>
                                 <View style={{ flex: 1 }}>
+                                    {Object.values(REPRESENTATIVE_EXERCISES).includes(item.name) && (
+                                      <View style={[styles.rankBadge, { marginBottom: 4 }]}>
+                                        <Ionicons name="trophy" size={10} color={theme.accent} />
+                                        <Text style={styles.rankBadgeText}>RANKING</Text>
+                                      </View>
+                                    )}
                                     <Text style={styles.catalogName}>{item.name}</Text>
                                     <Text style={styles.catalogMeta}>{translateMuscle(item.muscle_group)} · {item.equipment}</Text>
                                 </View>
@@ -497,6 +507,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: theme.textPrimary,
   },
+  modalSub: {
+    fontSize: 10,
+    color: theme.accent, // More visible color
+    marginTop: 4,
+    fontWeight: '600',
+  },
   catalogActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -645,6 +661,23 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: theme.textPrimary,
     textTransform: 'uppercase',
+  },
+  rankBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.accentDim,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    alignSelf: 'flex-start', // Prevent spreading
+  },
+  rankBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: theme.accent,
   },
   modalBadges: {
     flexDirection: 'row',

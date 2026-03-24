@@ -1,11 +1,11 @@
 import { StoreAPI } from '@/api/store';
+import { StoreSkeleton } from '@/components/store/StoreSkeleton';
 import { theme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -75,12 +75,7 @@ export default function StoreScreen() {
   );
 
   if (loading) {
-    return (
-      <View style={styles.loadingRoot}>
-        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color={theme.accent} />
-      </View>
-    );
+    return <StoreSkeleton />;
   }
 
   return (

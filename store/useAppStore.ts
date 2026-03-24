@@ -3,7 +3,9 @@ import { Banner } from '@/api/banners';
 import { DietPlan, UserStats } from '@/api/nutrition';
 import { Routine, UserSchedule } from '@/api/routines';
 import { WorkoutLog } from '@/api/workouts';
+import { UserRanks } from '@/api/ranks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -53,6 +55,8 @@ interface AppState {
   logsOffset: number;
   userSchedule: UserSchedule[] | null;
 
+  muscleRanks: UserRanks | null;
+  
   // Hydration state
   isHydrated: boolean;
 
@@ -70,6 +74,7 @@ interface AppState {
   setLogsOffset: (offset: number) => void;
   resetWorkoutLogs: () => void;
   setUserSchedule: (schedule: UserSchedule[]) => void;
+  setMuscleRanks: (ranks: UserRanks | null) => void;
   setHydrated: (val: boolean) => void;
   
   // Actions
@@ -94,6 +99,7 @@ export const useAppStore = create<AppState>()(
       hasMoreLogs: true,
       logsOffset: 0,
       userSchedule: null,
+      muscleRanks: null,
       isHydrated: false,
 
       setProfile: (profile) => set({ profile }),
@@ -113,6 +119,7 @@ export const useAppStore = create<AppState>()(
       setLogsOffset: (logsOffset) => set({ logsOffset }),
       resetWorkoutLogs: () => set({ workoutLogs: [], logsOffset: 0, hasMoreLogs: true }),
       setUserSchedule: (userSchedule) => set({ userSchedule }),
+      setMuscleRanks: (muscleRanks) => set({ muscleRanks }),
       setHydrated: (isHydrated) => set({ isHydrated }),
 
       updateWorkoutSet: (exIdx, setIdx, data) => set((state) => {
@@ -162,7 +169,8 @@ export const useAppStore = create<AppState>()(
         routines: null,
         activeWorkout: null,
         workoutLogs: null,
-        userSchedule: null
+        userSchedule: null,
+        muscleRanks: null
       }),
     }),
     {
