@@ -3,10 +3,13 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RadarService } from '@/lib/radar';
+import { supabase } from '@/lib/supabase';
+import { GEOFENCE_ID } from '@/env';
 import { useAppStore } from '@/store/useAppStore';
 import { CustomModal } from '@/components/ui/CustomModal';
 import { useState } from 'react';
@@ -69,6 +72,39 @@ export default function RootLayout() {
         .then(token => console.log('[RootLayout] Notification Token registered:', token))
         .catch(err => console.error('[RootLayout] Notification registration failed:', err));
     }
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const checkGeofenceOnOpen = async () => {
+      const { data: openVisit } = await supabase
+        .from('gym_visits')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('geofence_id', GEOFENCE_ID)
+        .is('exited_at', null)
+        .maybeSingle();
+
+      if (openVisit) {
+        console.log('[AppOpen] User already has open visit, skipping trackOnce');
+        return;
+      }
+
+      console.log('[AppOpen] No open visit found, calling trackOnce()');
+      const result = await RadarService.trackOnce();
+      console.log('[AppOpen] trackOnce result:', result?.status, 'events:', result?.events?.length ?? 0);
+    };
+
+    checkGeofenceOnOpen().catch(e => console.error('[AppOpen] checkGeofenceOnOpen failed:', e));
+
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        checkGeofenceOnOpen().catch(e => console.error('[AppOpen] checkGeofenceOnOpen on foreground failed:', e));
+      }
+    });
+
+    return () => subscription.remove();
   }, [profile?.id]);
 
   useEffect(() => {

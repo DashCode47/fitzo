@@ -160,5 +160,19 @@ export const RadarService = {
     // ... (existing code)
   },
 
+  trackOnce: async (): Promise<{ status: string; events?: any[]; location?: any }> => {
+    if (!isRadarAvailable) return { status: 'ERROR' };
+    try {
+      const result = await Radar.trackOnce();
+      if (result?.events && typeof result.events === 'string') {
+        try { result.events = JSON.parse(result.events); } catch {}
+      }
+      return result;
+    } catch (e) {
+      console.warn('[RadarService] trackOnce failed:', e);
+      return { status: 'ERROR' };
+    }
+  },
+
   getGeofenceId: () => GEOFENCE_ID,
 };
