@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 // ─── Brand ────────────────────────────────────────────────────────────────────
 // TODO: replace with final SaaS name & tagline
 export const Brand = {
-  name: 'FitOS',
+  name: 'Fitzo',
   tagline: 'Tu plataforma de fitness',
 } as const;
 

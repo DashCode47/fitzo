@@ -23,7 +23,7 @@ const { width, height } = Dimensions.get('window');
 const SLIDES = [
   {
     id: '1',
-    title: 'BIENVENIDO A\nIRON BODY',
+    title: 'BIENVENIDO A\nFITZO',
     description: 'Tu transformación comienza hoy.\nEntrena con los mejores equipos y programas.',
     image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1200',
   },

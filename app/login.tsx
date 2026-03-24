@@ -9,6 +9,7 @@ import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -136,14 +137,11 @@ export default function LoginScreen() {
             {/* ── Logo ── */}
             <View style={styles.logoSection}>
               <View style={styles.logoIconWrap}>
-                <LinearGradient
-                  colors={theme.gradients.accent}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.logoIconGradient}
-                >
-                  <Ionicons name="flash" size={28} color="#fff" />
-                </LinearGradient>
+                 <Image 
+                   source={require('../assets/images/icon.png')} 
+                   style={styles.logoImage} 
+                   resizeMode="contain" 
+                 />
               </View>
               <Text style={styles.brandName}>{Brand.name}</Text>
               <Text style={styles.brandTagline}>{Brand.tagline}</Text>
@@ -306,6 +304,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  logoImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
   },
   brandName: {
     fontSize: 36,
