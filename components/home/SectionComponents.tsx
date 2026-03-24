@@ -1,193 +1,11 @@
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// ─── Shared section header ────────────────────────────────────────────────────
-function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {onSeeAll && (
-        <TouchableOpacity onPress={onSeeAll}>
-          <Text style={styles.seeAll}>Ver todos</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-// ─── EventsTimeline ───────────────────────────────────────────────────────────
-interface EventsProps {
-  data: Array<{
-    id: string;
-    name: string;
-    short_description: string;
-    event_date: string;
-    event_time: string;
-    image_url?: string;
-  }>;
-  onPressItem?: (item: any) => void;
-}
-
-export const EventsTimeline = ({ data, onPressItem }: EventsProps) => (
-  <View style={styles.section}>
-    <SectionHeader title="Próximos eventos" />
-    <View style={styles.card}>
-      {data.length === 0 ? (
-        <Text style={styles.emptyText}>No hay eventos próximos.</Text>
-      ) : (
-        data.map((item, index) => {
-          const date = new Date(item.event_date);
-          const day = date.getDate() + 1;
-          const month = date.toLocaleString('es', { month: 'short' }).toUpperCase();
-          const isLast = index === data.length - 1;
-
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.eventRow, !isLast && styles.eventDivider]}
-              onPress={() => onPressItem?.(item)}
-              activeOpacity={0.7}
-            >
-              {/* Date badge */}
-              <View style={styles.dateBadge}>
-                <Text style={styles.dateMonth}>{month}</Text>
-                <Text style={styles.dateDay}>{day}</Text>
-              </View>
-
-              {/* Info */}
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventTitle} numberOfLines={1}>{item.name}</Text>
-                <View style={styles.timeRow}>
-                  <Ionicons name="time-outline" size={12} color={theme.textMuted} />
-                  <Text style={styles.timeText}>{(item.event_time || '').substring(0, 5)}</Text>
-                </View>
-              </View>
-
-              {/* Arrow */}
-              <View style={styles.eventArrow}>
-                <Ionicons name="chevron-forward" size={14} color={theme.accent} />
-              </View>
-            </TouchableOpacity>
-          );
-        })
-      )}
-    </View>
-  </View>
-);
-
-// ─── TopThreePodium ───────────────────────────────────────────────────────────
-interface LeaderboardProps {
-  data: Array<{ rank: number; name: string; score: number; avatar: string }>;
-  onSeeAll?: () => void;
-}
-
-const RANK_COLORS = ['#C5A356', '#A8A8B3', '#CD7F32'] as const;
-
-export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
-  const sorted = [...data].sort((a, b) => a.rank - b.rank).slice(0, 3);
-  const [first, second, third] = [
-    sorted.find(d => d.rank === 1),
-    sorted.find(d => d.rank === 2),
-    sorted.find(d => d.rank === 3),
-  ];
-  if (!first) return null;
-
-  const PodiumItem = ({
-    entry,
-    size,
-    elevated,
-  }: {
-    entry: any;
-    size: 'sm' | 'lg';
-    elevated?: boolean;
-  }) => {
-    if (!entry) return <View style={{ flex: 1 }} />;
-    const rankColor = RANK_COLORS[entry.rank - 1];
-    const avatarSize = size === 'lg' ? 72 : 56;
-
-    return (
-      <View style={[styles.podiumItem, elevated && { marginTop: -20 }]}>
-        {elevated && (
-          <Ionicons name="trophy" size={22} color="#C5A356" style={{ marginBottom: 6 }} />
-        )}
-        <View style={styles.podiumAvatarWrap}>
-          {elevated && (
-            <LinearGradient
-              colors={['#C5A356', '#E5C78B']}
-              style={[styles.glowRing, { borderRadius: avatarSize / 2 + 6 }]}
-            />
-          )}
-          <Image
-            source={{ uri: entry.avatar }}
-            style={[styles.podiumAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-          />
-          <View style={[styles.rankBadge, { backgroundColor: rankColor }]}>
-            <Text style={styles.rankBadgeText}>{entry.rank}</Text>
-          </View>
-        </View>
-        <Text style={[styles.podiumName, elevated && { fontSize: 15, fontWeight: '800' }]} numberOfLines={1}>
-          {entry.name}
-        </Text>
-        <View style={styles.tierPill}>
-          <Text style={styles.tierText}>{entry.tier || 'Chulla'}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  return (
-    <View style={styles.section}>
-      <SectionHeader title="Los mas Rankeados" onSeeAll={onSeeAll} />
-      <View style={[styles.card, styles.podiumCard]}>
-        <View style={styles.podiumRow}>
-          <PodiumItem entry={second} size="sm" />
-          <PodiumItem entry={first} size="lg" elevated />
-          <PodiumItem entry={third} size="sm" />
-        </View>
-      </View>
-    </View>
-  );
-};
-
-// ─── NutritionCard ────────────────────────────────────────────────────────────
-interface NutritionProps {
-  data: { title: string; calories: string; protein: string; image: string; label?: string };
-  onPress?: () => void;
-}
-
-export const NutritionCard = ({ data, onPress }: NutritionProps) => (
-  <View style={[styles.section, { marginBottom: 24 }]}>
-    <SectionHeader title="Plan Nutricional" />
-    <TouchableOpacity style={[styles.card, styles.nutritionCard]} onPress={onPress} activeOpacity={0.8}>
-      <Image source={{ uri: data.image }} style={styles.foodImage} />
-      <View style={styles.foodInfo}>
-        <Text style={styles.foodLabel}>{data.label || 'RECOMENDADO'}</Text>
-        <Text style={styles.foodTitle} numberOfLines={2}>{data.title}</Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Ionicons name="flame-outline" size={13} color={theme.accent} />
-            <Text style={styles.statText}>{data.calories}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="barbell-outline" size={13} color={theme.accent} />
-            <Text style={styles.statText}>
-              {data.protein.includes('Proteína: ') ? data.protein.replace('Proteína: ', '') : data.protein}
-            </Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.nutritionArrow}>
-        <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
-      </View>
-    </TouchableOpacity>
-  </View>
-);
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   section: {
     marginTop: 24,
     paddingHorizontal: 20,
@@ -409,3 +227,197 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+// ─── Shared section header ────────────────────────────────────────────────────
+function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onSeeAll && (
+        <TouchableOpacity onPress={onSeeAll}>
+          <Text style={styles.seeAll}>Ver todos</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+// ─── EventsTimeline ───────────────────────────────────────────────────────────
+interface EventsProps {
+  data: Array<{
+    id: string;
+    name: string;
+    short_description: string;
+    event_date: string;
+    event_time: string;
+    image_url?: string;
+  }>;
+  onPressItem?: (item: any) => void;
+}
+
+export const EventsTimeline = ({ data, onPressItem }: EventsProps) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  return (
+    <View style={styles.section}>
+      <SectionHeader title="Próximos eventos" />
+      <View style={styles.card}>
+        {data.length === 0 ? (
+          <Text style={styles.emptyText}>No hay eventos próximos.</Text>
+        ) : (
+          data.map((item, index) => {
+            const date = new Date(item.event_date);
+            const day = date.getDate() + 1;
+            const month = date.toLocaleString('es', { month: 'short' }).toUpperCase();
+            const isLast = index === data.length - 1;
+
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.eventRow, !isLast && styles.eventDivider]}
+                onPress={() => onPressItem?.(item)}
+                activeOpacity={0.7}
+              >
+                {/* Date badge */}
+                <View style={styles.dateBadge}>
+                  <Text style={styles.dateMonth}>{month}</Text>
+                  <Text style={styles.dateDay}>{day}</Text>
+                </View>
+
+                {/* Info */}
+                <View style={styles.eventInfo}>
+                  <Text style={styles.eventTitle} numberOfLines={1}>{item.name}</Text>
+                  <View style={styles.timeRow}>
+                    <Ionicons name="time-outline" size={12} color={theme.textMuted} />
+                    <Text style={styles.timeText}>{(item.event_time || '').substring(0, 5)}</Text>
+                  </View>
+                </View>
+
+                {/* Arrow */}
+                <View style={styles.eventArrow}>
+                  <Ionicons name="chevron-forward" size={14} color={theme.accent} />
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </View>
+    </View>
+  );
+};
+
+// ─── TopThreePodium ───────────────────────────────────────────────────────────
+interface LeaderboardProps {
+  data: Array<{ rank: number; name: string; score: number; avatar: string }>;
+  onSeeAll?: () => void;
+}
+
+const RANK_COLORS = ['#C5A356', '#A8A8B3', '#CD7F32'] as const;
+
+export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  const sorted = [...data].sort((a, b) => a.rank - b.rank).slice(0, 3);
+  const [first, second, third] = [
+    sorted.find(d => d.rank === 1),
+    sorted.find(d => d.rank === 2),
+    sorted.find(d => d.rank === 3),
+  ];
+  if (!first) return null;
+
+  const PodiumItem = ({
+    entry,
+    size,
+    elevated,
+  }: {
+    entry: any;
+    size: 'sm' | 'lg';
+    elevated?: boolean;
+  }) => {
+    if (!entry) return <View style={{ flex: 1 }} />;
+    const rankColor = RANK_COLORS[entry.rank - 1];
+    const avatarSize = size === 'lg' ? 72 : 56;
+
+    return (
+      <View style={[styles.podiumItem, elevated && { marginTop: -20 }]}>
+        {elevated && (
+          <Ionicons name="trophy" size={22} color="#C5A356" style={{ marginBottom: 6 }} />
+        )}
+        <View style={styles.podiumAvatarWrap}>
+          {elevated && (
+            <LinearGradient
+              colors={['#C5A356', '#E5C78B']}
+              style={[styles.glowRing, { borderRadius: avatarSize / 2 + 6 }]}
+            />
+          )}
+          <Image
+            source={{ uri: entry.avatar }}
+            style={[styles.podiumAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+          />
+          <View style={[styles.rankBadge, { backgroundColor: rankColor }]}>
+            <Text style={styles.rankBadgeText}>{entry.rank}</Text>
+          </View>
+        </View>
+        <Text style={[styles.podiumName, elevated && { fontSize: 15, fontWeight: '800' }]} numberOfLines={1}>
+          {entry.name}
+        </Text>
+        <View style={styles.tierPill}>
+          <Text style={styles.tierText}>{entry.tier || 'Chulla'}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.section}>
+      <SectionHeader title="Los mas Rankeados" onSeeAll={onSeeAll} />
+      <View style={[styles.card, styles.podiumCard]}>
+        <View style={styles.podiumRow}>
+          <PodiumItem entry={second} size="sm" />
+          <PodiumItem entry={first} size="lg" elevated />
+          <PodiumItem entry={third} size="sm" />
+        </View>
+      </View>
+    </View>
+  );
+};
+
+// ─── NutritionCard ────────────────────────────────────────────────────────────
+interface NutritionProps {
+  data: { title: string; calories: string; protein: string; image: string; label?: string };
+  onPress?: () => void;
+}
+
+export const NutritionCard = ({ data, onPress }: NutritionProps) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  return (
+    <View style={[styles.section, { marginBottom: 24 }]}>
+      <SectionHeader title="Plan Nutricional" />
+      <TouchableOpacity style={[styles.card, styles.nutritionCard]} onPress={onPress} activeOpacity={0.8}>
+        <Image source={{ uri: data.image }} style={styles.foodImage} />
+        <View style={styles.foodInfo}>
+          <Text style={styles.foodLabel}>{data.label || 'RECOMENDADO'}</Text>
+          <Text style={styles.foodTitle} numberOfLines={2}>{data.title}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="flame-outline" size={13} color={theme.accent} />
+              <Text style={styles.statText}>{data.calories}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="barbell-outline" size={13} color={theme.accent} />
+              <Text style={styles.statText}>
+                {data.protein.includes('Proteína: ') ? data.protein.replace('Proteína: ', '') : data.protein}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.nutritionArrow}>
+          <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+};

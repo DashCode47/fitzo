@@ -9,7 +9,8 @@ import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
 import { HomeSkeleton } from '@/components/home/HomeSkeleton';
 import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
 import { MOCK_LEADERBOARD, MOCK_NUTRITION, MOCK_USER } from '@/constants/mocks';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useGymOccupancy } from '@/hooks/useGymOccupancy';
 import { RadarService } from '@/lib/radar';
@@ -33,7 +34,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-function LocationPermissionNotice({ onAction }: { onAction: () => void }) {
+function LocationPermissionNotice({ onAction, theme, styles }: { onAction: () => void, theme: AppTheme, styles: any }) {
   const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
@@ -70,6 +71,8 @@ function LocationPermissionNotice({ onAction }: { onAction: () => void }) {
 export default function HomeScreen() {
   const router = useRouter();
   const { goToLogin, goToProfile, goToNutrition, goToScanner, goToRankings, goToLocationPermission } = useAppNavigation();
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   const {
     profile, setProfile,
@@ -220,7 +223,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
 
       {/* Background */}
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
@@ -267,7 +270,7 @@ export default function HomeScreen() {
           <CrowdMeter count={gymCount} maxCapacity={maxCapacity} />
 
           {/* ── Location notice ── */}
-          <LocationPermissionNotice onAction={goToLocationPermission} />
+          <LocationPermissionNotice onAction={goToLocationPermission} theme={theme} styles={styles} />
 
           {/* ── Promo Carousel ── */}
           <View style={styles.carouselWrap}>
@@ -318,7 +321,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,

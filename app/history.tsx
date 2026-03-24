@@ -1,6 +1,7 @@
 
 import { WorkoutsAPI } from '@/api/workouts';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +23,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const PAGE_SIZE = 10;
 
 export default function WorkoutsHistoryScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const { profile } = useAppStore();
 
@@ -120,7 +123,7 @@ export default function WorkoutsHistoryScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -225,7 +228,7 @@ export default function WorkoutsHistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#fff',
+    color: theme.textPrimary,
   },
   list: {
     padding: 20,
@@ -319,7 +322,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // Modal Styles (copied for simplicity)
+  // Modal Styles
   detailsModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.85)',

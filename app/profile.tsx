@@ -3,7 +3,8 @@ import { AuthAPI } from '@/api/auth';
 import { UserAPI } from '@/api/user';
 import { WorkoutsAPI } from '@/api/workouts';
 import { CustomModal } from '@/components/ui/CustomModal';
-import { theme } from '@/constants/theme';
+import { theme, ThemeMode, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,8 +42,14 @@ export default function ProfileScreen() {
     logsOffset,
     appendWorkoutLogs,
     resetWorkoutLogs,
-    muscleRanks
+    muscleRanks,
+    themeMode,
+    setThemeMode
   } = useAppStore();
+
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  const detailsModalStyles = createDetailsModalStyles(theme);
 
   const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
   const [workoutExercises, setWorkoutExercises] = useState<any[]>([]);
@@ -238,9 +245,9 @@ export default function ProfileScreen() {
 
           {/* ── Info card ── */}
           <View style={styles.card}>
-            <InfoRow icon="mail-outline" label="Correo" value={email} />
+            <InfoRow icon="mail-outline" label="Correo" value={email} theme={theme} styles={styles} />
             <View style={styles.divider} />
-            <InfoRow icon="call-outline" label="Teléfono" value={phone} />
+            <InfoRow icon="call-outline" label="Teléfono" value={phone} theme={theme} styles={styles} />
           </View>
 
           {/* ── My Ranks Section ── */}
@@ -277,6 +284,39 @@ export default function ProfileScreen() {
               </ScrollView>
             </>
           )}
+
+          {/* ── Theme Selection ── */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Apariencia</Text>
+            <Ionicons name="color-palette-outline" size={16} color={theme.textMuted} />
+          </View>
+
+          <View style={styles.themeSelector}>
+            <ThemeOption 
+              label="Original" 
+              isActive={themeMode === 'dark'} 
+              color="#6C63FF" 
+              onPress={() => setThemeMode('dark')} 
+              theme={theme}
+              styles={styles}
+            />
+            <ThemeOption 
+              label="Claro" 
+              isActive={themeMode === 'light'} 
+              color="#F4F4F5" 
+              onPress={() => setThemeMode('light')} 
+              theme={theme}
+              styles={styles}
+            />
+            <ThemeOption 
+              label="Cyan" 
+              isActive={themeMode === 'cyan'} 
+              color="#4CD6C8" 
+              onPress={() => setThemeMode('cyan')} 
+              theme={theme}
+              styles={styles}
+            />
+          </View>
 
           {/* ── Workout History ── */}
           <View style={styles.sectionHeader}>
@@ -401,7 +441,30 @@ export default function ProfileScreen() {
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string }) {
+function ThemeOption({ label, isActive, color, onPress, theme, styles }: { 
+  label: string; 
+  isActive: boolean; 
+  color: string; 
+  onPress: () => void;
+  theme: AppTheme;
+  styles: any;
+}) {
+  return (
+    <TouchableOpacity 
+      style={[
+        styles.themeOption, 
+        isActive && { borderColor: theme.accent, backgroundColor: theme.surface }
+      ]} 
+      onPress={onPress}
+    >
+      <View style={[styles.themeColorCircle, { backgroundColor: color }]} />
+      <Text style={[styles.themeLabel, isActive && { color: theme.accent }]}>{label}</Text>
+      {isActive && <Ionicons name="checkmark-circle" size={14} color={theme.accent} />}
+    </TouchableOpacity>
+  );
+}
+
+function InfoRow({ icon, label, value, theme, styles }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string; theme: AppTheme; styles: any }) {
   return (
     <View style={styles.infoRow}>
       <View style={styles.infoIconBox}>
@@ -415,7 +478,7 @@ function InfoRow({ icon, label, value }: { icon: React.ComponentProps<typeof Ion
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -432,8 +495,6 @@ const styles = StyleSheet.create({
     height: 220,
     zIndex: 1,
   },
-
-  // ── Header ────────────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -458,15 +519,11 @@ const styles = StyleSheet.create({
     color: theme.textPrimary,
     letterSpacing: -0.3,
   },
-
-  // ── Scroll ────────────────────────────────────────────────────────────────
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 100,
     gap: 16,
   },
-
-  // ── Avatar section ────────────────────────────────────────────────────────
   avatarSection: {
     alignItems: 'center',
     paddingVertical: 24,
@@ -559,8 +616,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     letterSpacing: 0.3,
   },
-
-  // ── Info card ─────────────────────────────────────────────────────────────
   card: {
     backgroundColor: theme.bgCard,
     borderRadius: 18,
@@ -606,8 +661,33 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: theme.textPrimary,
   },
-
-  // ── Logout ────────────────────────────────────────────────────────────────
+  themeSelector: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
+  },
+  themeColorCircle: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  themeLabel: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.textSecondary,
+  },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -744,7 +824,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const detailsModalStyles = StyleSheet.create({
+const createDetailsModalStyles = (theme: AppTheme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.85)',

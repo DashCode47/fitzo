@@ -3,13 +3,58 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RANK_TIERS } from '@/constants/ranks';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface RankGuideProps {
   currentTierIndex: number;
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  container: {
+    marginTop: 32,
+    marginBottom: 20,
+  },
+  list: {
+    gap: 12,
+  },
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    gap: 12,
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tierInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  tierName: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  tierDesc: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    lineHeight: 16,
+  },
+});
+
 export const RankGuide: React.FC<RankGuideProps> = ({ currentTierIndex }) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.container}>
       <View style={styles.list}>
@@ -56,49 +101,3 @@ const getTierDescription = (index: number) => {
   ];
   return descriptions[index] || '';
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginTop: 32,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  list: {
-    gap: 12,
-  },
-  tierRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.bgCard,
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    gap: 12,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tierInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  tierName: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  tierDesc: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    lineHeight: 16,
-  },
-});

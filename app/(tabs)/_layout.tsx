@@ -1,4 +1,5 @@
-import { theme } from '@/constants/theme';
+import { theme as staticTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { HapticTab } from '@/components/haptic-tab';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
@@ -7,6 +8,7 @@ import React from 'react';
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
+  const theme = useAppTheme();
   return (
     <Ionicons
       name={name}
@@ -17,6 +19,7 @@ function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
 }
 
 export default function TabLayout() {
+  const theme = useAppTheme();
   return (
     <Tabs
       screenOptions={{

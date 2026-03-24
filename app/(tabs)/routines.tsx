@@ -1,6 +1,7 @@
 
 import { RoutinesAPI } from '@/api/routines';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +23,8 @@ const DAYS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
 export default function RoutinesScreen() {
   const router = useRouter();
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const {
     profile,
     routines, setRoutines,
@@ -110,7 +113,7 @@ export default function RoutinesScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
 
@@ -169,7 +172,7 @@ export default function RoutinesScreen() {
             onPress={handleStartTodayWorkout}
           >
             <LinearGradient
-              colors={['rgba(155, 147, 255, 0.1)', 'rgba(108, 99, 255, 0.05)']}
+              colors={[theme.accentDim, theme.surface]}
               style={styles.ctaGradient}
             >
               <View style={styles.ctaIcon}>
@@ -224,7 +227,7 @@ export default function RoutinesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,

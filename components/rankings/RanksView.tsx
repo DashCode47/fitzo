@@ -6,11 +6,112 @@ import { RanksAPI, calculateAllRanks } from '@/api/ranks';
 import { GeneralRankBadge } from './GeneralRankBadge';
 import { MuscleRankCard } from './MuscleRankCard';
 
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 import { Ionicons } from '@expo/vector-icons';
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.bgDeep,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: theme.textSecondary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  button: {
+    backgroundColor: theme.accent,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  buttonText: {
+    color: '#000000',
+    fontWeight: '700',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  howToBox: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 20,
+    padding: 20,
+    marginVertical: 16,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+  },
+  howToHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  howToTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: theme.textPrimary,
+    letterSpacing: 1,
+  },
+  howToText: {
+    fontSize: 13,
+    color: theme.textSecondary,
+    lineHeight: 20,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: theme.bgCard,
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 24,
+    gap: 12,
+    alignItems: 'center',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: theme.textSecondary,
+    lineHeight: 18,
+  },
+});
+
 export const RanksView: React.FC = () => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const { profile, userStats, muscleRanks, setMuscleRanks } = useAppStore();
   const [loading, setLoading] = useState(!muscleRanks);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,7 +151,7 @@ export const RanksView: React.FC = () => {
   if (!userStats?.weight) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="barbell-outline" size={64} color="#333333" />
+        <Ionicons name="barbell-outline" size={64} color={theme.textMuted} />
         <Text style={styles.emptyTitle}>Configura tu peso</Text>
         <Text style={styles.emptySubtitle}>
           Necesitamos conocer tu peso corporal para calcular tus rangos de fuerza relativos.
@@ -91,7 +192,7 @@ export const RanksView: React.FC = () => {
               <Text style={styles.howToTitle}>¿CÓMO SUBIR DE NIVEL?</Text>
             </View>
             <Text style={styles.howToText}>
-              Tu rango se basa en tu <Text style={{fontWeight:'700', color: '#fff'}}>fuerza relativa</Text>: el peso que levantas dividido por tu propio peso corporal (Ratio).
+              Tu rango se basa en tu <Text style={{fontWeight:'700', color: theme.textPrimary}}>fuerza relativa</Text>: el peso que levantas dividido por tu propio peso corporal (Ratio).
               {'\n\n'}¡Aumenta el peso en los ejercicios con el tag <Text style={{fontWeight:'700', color: theme.accent}}>RANKING</Text> para progresar!
             </Text>
           </View>
@@ -112,100 +213,3 @@ export const RanksView: React.FC = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.bgDeep,
-  },
-  loadingText: {
-    marginTop: 16,
-    color: theme.textSecondary,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: theme.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: theme.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#000000',
-    fontWeight: '700',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  howToBox: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 20,
-    padding: 20,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-  },
-  howToHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  howToTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: 1,
-  },
-  howToText: {
-    fontSize: 13,
-    color: theme.textSecondary,
-    lineHeight: 20,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: theme.bgCard,
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 24,
-    gap: 12,
-    alignItems: 'center',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: theme.textSecondary,
-    lineHeight: 18,
-  },
-});

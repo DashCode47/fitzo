@@ -4,7 +4,8 @@ import { CustomModal } from '@/components/ui/CustomModal';
 import { RankingsSkeleton } from '@/components/rankings/RankingsSkeleton';
 import { RanksView } from '@/components/rankings/RanksView';
 
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { withTimeout } from '@/utils/async';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,225 +26,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const RANK_COLORS = ['#C5A356', '#A8A8B3', '#CD7F32'] as const;
 
-export default function RankingsScreen() {
-  const router = useRouter();
-  const { profile } = useAppStore();
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [infoModalVisible, setInfoModalVisible] = useState(false);
-  const { view } = useLocalSearchParams<{ view: string }>();
-  const [viewMode, setViewMode] = useState<'points' | 'ranks'>((view as any) || 'points');
-
-
-  useEffect(() => { loadLeaderboard(); }, []);
-
-  useEffect(() => {
-    if (view === 'ranks') setViewMode('ranks');
-    else if (view === 'points') setViewMode('points');
-  }, [view]);
-
-
-  const loadLeaderboard = async () => {
-    try {
-      setLoading(true);
-      setError(false);
-      const data = await withTimeout(LeaderboardAPI.getLeaderboard(), 15000, 'Error cargando ranking');
-      const enriched = data.map((item: any, index: number) => ({
-        ...item,
-        rank: index + 1,
-        streak: item.streak || Math.floor(Math.random() * 20),
-        badges: item.badges || [],
-      }));
-      setLeaderboard(enriched);
-    } catch (error: any) {
-      console.error('[RankingsScreen]', error);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // My position in the ranking
-  const myRank = leaderboard.findIndex(item => item.name === profile?.username) + 1;
-
-  const renderItem = ({ item, index }: { item: any; index: number }) => {
-    const isTop3 = item.rank <= 3;
-    const rankColor = isTop3 ? RANK_COLORS[item.rank - 1] : null;
-    const isMe = item.name === profile?.username;
-
-    return (
-      <View style={[
-        styles.row,
-        isTop3 && styles.rowTop3,
-        isMe && styles.rowMe,
-        index === 0 && styles.rowFirst,
-      ]}>
-        {/* Rank */}
-        <View style={styles.rankCol}>
-          {isTop3 ? (
-            <MaterialCommunityIcons
-              name="trophy-variant"
-              size={20}
-              color={rankColor!}
-            />
-          ) : (
-            <Text style={[styles.rankNum, isMe && { color: theme.accent }]}>{item.rank}</Text>
-          )}
-        </View>
-
-        {/* Avatar */}
-        <View style={[styles.avatarWrap, isTop3 && { borderColor: rankColor! }]}>
-          <Image
-            source={{ uri: item.avatar || 'https://i.pravatar.cc/150' }}
-            style={styles.avatar}
-          />
-        </View>
-
-        {/* Info */}
-        <View style={styles.info}>
-          <Text style={[styles.name, isMe && { color: theme.accent }]} numberOfLines={1}>
-            {item.name}{isMe ? ' (tú)' : ''}
-          </Text>
-          <View style={styles.streakRow}>
-            <Ionicons name="flame" size={12} color="#FF6B35" />
-            <Text style={styles.streakText}>{item.streak} días</Text>
-          </View>
-        </View>
-
-        {/* Score */}
-        <View style={styles.scoreCol}>
-          <Text style={[styles.score, isTop3 && { color: rankColor! }]}>
-            {item.score.toLocaleString()}
-          </Text>
-          <Text style={styles.scoreLabel}>pts</Text>
-        </View>
-      </View>
-    );
-  };
-
-  return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
-
-      <CustomModal
-        visible={modalVisible}
-        title="Recompensas"
-        message="¡Sigue entrenando para desbloquear tu próxima recompensa!"
-        type="success"
-        onClose={() => setModalVisible(false)}
-      />
-      <CustomModal
-        visible={infoModalVisible}
-        title="¿Cómo ganar puntos?"
-        message={`Escanea códigos QR por:\n\n• Asistencia\n• Completar rutina\n• Reseña en Google\n• Invitar a un amigo\n• Comprar en tienda`}
-        type="info"
-        onClose={() => setInfoModalVisible(false)}
-        buttonText="Entendido"
-      />
-
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>Rankings</Text>
-            <Text style={styles.headerSubtitle}>Ranking mensual</Text>
-          </View>
-          <TouchableOpacity style={styles.infoBtn} onPress={() => setInfoModalVisible(true)}>
-            <Ionicons name="information-circle-outline" size={20} color={theme.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Segment Control ── */}
-        <View style={styles.segmentContainer}>
-          <TouchableOpacity 
-            style={[styles.segmentBtn, viewMode === 'points' && styles.segmentBtnActive]} 
-            onPress={() => setViewMode('points')}
-          >
-            <Text style={[styles.segmentBtnText, viewMode === 'points' && styles.segmentBtnTextActive]}>Puntos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.segmentBtn, viewMode === 'ranks' && styles.segmentBtnActive]} 
-            onPress={() => setViewMode('ranks')}
-          >
-            <Text style={[styles.segmentBtnText, viewMode === 'ranks' && styles.segmentBtnTextActive]}>Rangos</Text>
-          </TouchableOpacity>
-        </View>
-
-        {viewMode === 'points' ? (
-          <>
-            {/* ── My stats card ── */}
-            <View style={styles.myCard}>
-              <View style={styles.myCardStat}>
-                <Text style={styles.myCardLabel}>Tu posición</Text>
-                <Text style={styles.myCardValue}>{myRank > 0 ? `#${myRank}` : '–'}</Text>
-              </View>
-              <View style={styles.myCardDivider} />
-              <View style={styles.myCardStat}>
-                <Text style={styles.myCardLabel}>Tus puntos</Text>
-                <Text style={[styles.myCardValue, { color: theme.accent }]}>
-                  {profile?.total_points?.toLocaleString() || '0'}
-                </Text>
-              </View>
-              <View style={styles.myCardDivider} />
-              <View style={styles.myCardStat}>
-                <Text style={styles.myCardLabel}>Rango</Text>
-                <Text style={styles.myCardValue}>ELITE</Text>
-              </View>
-            </View>
-
-            {/* ── Action buttons ── */}
-            <View style={styles.actionsRow}>
-              <TouchableOpacity style={styles.primaryAction} onPress={() => router.push('/scanner')} activeOpacity={0.85}>
-                <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryActionGradient}>
-                  <Ionicons name="qr-code" size={18} color="#fff" />
-                  <Text style={styles.primaryActionText}>Registrar asistencia</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryAction} onPress={() => setModalVisible(true)} activeOpacity={0.85}>
-                <Ionicons name="gift-outline" size={18} color={theme.accent} />
-                <Text style={styles.secondaryActionText}>Recompensa</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* ── List ── */}
-            {loading ? (
-              <RankingsSkeleton />
-            ) : error ? (
-              <View style={styles.errorState}>
-                <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
-                <Text style={styles.errorTitle}>Sin conexión</Text>
-                <Text style={styles.errorText}>No pudimos cargar el ranking.</Text>
-                <TouchableOpacity style={styles.retryBtn} onPress={loadLeaderboard}>
-                  <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.retryBtnGradient}>
-                    <Ionicons name="refresh" size={14} color="#fff" />
-                    <Text style={styles.retryBtnText}>Reintentar</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <FlatList
-                data={leaderboard}
-                keyExtractor={item => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.list}
-                showsVerticalScrollIndicator={false}
-              />
-            )}
-          </>
-        ) : (
-          <RanksView />
-        )}
-      </SafeAreaView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -253,8 +37,6 @@ const styles = StyleSheet.create({
     top: 0, left: 0, right: 0,
     height: 220,
   },
-
-  // ── Header ────────────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -284,8 +66,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // ── Segment Control ────────────────────────────────────────────────────────
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: theme.surface,
@@ -319,8 +99,6 @@ const styles = StyleSheet.create({
     color: theme.accent,
     fontWeight: '700',
   },
-
-  // ── My card ───────────────────────────────────────────────────────────────
   myCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,8 +134,6 @@ const styles = StyleSheet.create({
     height: 28,
     backgroundColor: theme.borderSubtle,
   },
-
-  // ── Actions ───────────────────────────────────────────────────────────────
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -403,8 +179,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-
-  // ── List ──────────────────────────────────────────────────────────────────
   list: {
     paddingHorizontal: 20,
     paddingBottom: 100,
@@ -420,9 +194,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.borderSubtle,
     gap: 12,
-  },
-  rowFirst: {
-    // first item, no extra margin needed
   },
   rowTop3: {
     borderColor: theme.borderMuted,
@@ -486,8 +257,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-
-  // ── Error state ───────────────────────────────────────────────────────────
   errorState: {
     flex: 1,
     alignItems: 'center',
@@ -528,3 +297,173 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+export default function RankingsScreen() {
+  const router = useRouter();
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  const { profile } = useAppStore();
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorStatus, setErrorStatus] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const { view } = useLocalSearchParams<{ view: string }>();
+  const [viewMode, setViewMode] = useState<'points' | 'ranks'>((view as any) || 'points');
+
+  useEffect(() => { loadLeaderboard(); }, []);
+
+  useEffect(() => {
+    if (view === 'ranks') setViewMode('ranks');
+    else if (view === 'points') setViewMode('points');
+  }, [view]);
+
+  const loadLeaderboard = async () => {
+    try {
+      setLoading(true);
+      setErrorStatus(false);
+      const data = await withTimeout(LeaderboardAPI.getRankLeaderboard(), 15000, 'Error cargando ranking');
+      const enriched = (data as any[]).map((item: any, index: number) => ({
+        ...item,
+        rank: index + 1,
+        streak: item.streak || Math.floor(Math.random() * 20),
+        badges: item.badges || [],
+      }));
+      setLeaderboard(enriched);
+    } catch (error: any) {
+      console.error('[RankingsScreen]', error);
+      setErrorStatus(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const myRank = leaderboard.findIndex(item => item.name === profile?.username) + 1;
+
+  const renderItem = ({ item, index }: { item: any; index: number }) => {
+    const isTop3 = item.rank <= 3;
+    const rankColor = isTop3 ? RANK_COLORS[item.rank - 1] : null;
+    const isMe = item.name === profile?.username;
+
+    return (
+      <View style={[
+        styles.row,
+        isTop3 && styles.rowTop3,
+        isMe && styles.rowMe,
+      ]}>
+        <View style={styles.rankCol}>
+          {isTop3 ? (
+            <MaterialCommunityIcons name="trophy-variant" size={20} color={rankColor!} />
+          ) : (
+            <Text style={[styles.rankNum, isMe && { color: theme.accent }]}>{item.rank}</Text>
+          )}
+        </View>
+        <View style={[styles.avatarWrap, isTop3 && { borderColor: rankColor! }]}>
+          <Image source={{ uri: item.avatar || 'https://i.pravatar.cc/150' }} style={styles.avatar} />
+        </View>
+        <View style={styles.info}>
+          <Text style={[styles.name, isMe && { color: theme.accent }]} numberOfLines={1}>
+            {item.name}{isMe ? ' (tú)' : ''}
+          </Text>
+          <View style={styles.streakRow}>
+            <Ionicons name="flame" size={12} color="#FF6B35" />
+            <Text style={styles.streakText}>{item.streak} días</Text>
+          </View>
+        </View>
+        <View style={styles.scoreCol}>
+          <Text style={[styles.score, isTop3 && { color: rankColor! }]}>
+            {item.score.toLocaleString()}
+          </Text>
+          <Text style={styles.scoreLabel}>pts</Text>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
+      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+
+      <CustomModal visible={modalVisible} title="Recompensas" message="¡Sigue entrenando para desbloquear tu próxima recompensa!" type="success" onClose={() => setModalVisible(false)} />
+      <CustomModal visible={infoModalVisible} title="¿Cómo ganar puntos?" message={`Escanea códigos QR por:\n\n• Asistencia\n• Completar rutina\n• Reseña en Google\n• Invitar a un amigo\n• Comprar en tienda`} type="info" onClose={() => setInfoModalVisible(false)} buttonText="Entendido" />
+
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Rankings</Text>
+            <Text style={styles.headerSubtitle}>Ranking mensual</Text>
+          </View>
+          <TouchableOpacity style={styles.infoBtn} onPress={() => setInfoModalVisible(true)}>
+            <Ionicons name="information-circle-outline" size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.segmentContainer}>
+          <TouchableOpacity style={[styles.segmentBtn, viewMode === 'points' && styles.segmentBtnActive]} onPress={() => setViewMode('points')}>
+            <Text style={[styles.segmentBtnText, viewMode === 'points' && styles.segmentBtnTextActive]}>Puntos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.segmentBtn, viewMode === 'ranks' && styles.segmentBtnActive]} onPress={() => setViewMode('ranks')}>
+            <Text style={[styles.segmentBtnText, viewMode === 'ranks' && styles.segmentBtnTextActive]}>Rangos</Text>
+          </TouchableOpacity>
+        </View>
+
+        {viewMode === 'points' ? (
+          <>
+            <View style={styles.myCard}>
+              <View style={styles.myCardStat}>
+                <Text style={styles.myCardLabel}>Tu posición</Text>
+                <Text style={styles.myCardValue}>{myRank > 0 ? `#${myRank}` : '–'}</Text>
+              </View>
+              <View style={styles.myCardDivider} />
+              <View style={styles.myCardStat}>
+                <Text style={styles.myCardLabel}>Tus puntos</Text>
+                <Text style={[styles.myCardValue, { color: theme.accent }]}>{profile?.total_points?.toLocaleString() || '0'}</Text>
+              </View>
+              <View style={styles.myCardDivider} />
+              <View style={styles.myCardStat}>
+                <Text style={styles.myCardLabel}>Rango</Text>
+                <Text style={styles.myCardValue}>ELITE</Text>
+              </View>
+            </View>
+
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={styles.primaryAction} onPress={() => router.push('/scanner')} activeOpacity={0.85}>
+                <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryActionGradient}>
+                  <Ionicons name="qr-code" size={18} color="#fff" />
+                  <Text style={styles.primaryActionText}>Registrar asistencia</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryAction} onPress={() => setModalVisible(true)} activeOpacity={0.85}>
+                <Ionicons name="gift-outline" size={18} color={theme.accent} />
+                <Text style={styles.secondaryActionText}>Recompensa</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <RankingsSkeleton />
+            ) : errorStatus ? (
+              <View style={styles.errorState}>
+                <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
+                <Text style={styles.errorTitle}>Sin conexión</Text>
+                <Text style={styles.errorText}>No pudimos cargar el ranking.</Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={loadLeaderboard}>
+                  <LinearGradient colors={theme.gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.retryBtnGradient}>
+                    <Ionicons name="refresh" size={14} color="#fff" />
+                    <Text style={styles.retryBtnText}>Reintentar</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList data={leaderboard} keyExtractor={item => item.id} renderItem={renderItem} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false} />
+            )}
+          </>
+        ) : (
+          <RanksView />
+        )}
+      </SafeAreaView>
+    </View>
+  );
+}

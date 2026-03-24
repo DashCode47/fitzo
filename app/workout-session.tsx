@@ -18,7 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { WorkoutsAPI } from '@/api/workouts';
 import { RoutinesAPI, Exercise } from '@/api/routines';
@@ -39,6 +40,8 @@ const MUSCLE_MAP: Record<string, string> = {
 import { StatusBar } from 'expo-status-bar';
 
 export default function WorkoutSessionScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const { profile, activeWorkout, updateWorkoutSet, addWorkoutSet, removeWorkoutSet, setActiveWorkout } = useAppStore();
   
@@ -144,7 +147,7 @@ export default function WorkoutSessionScreen() {
         style={{ flex: 1 }}
     >
       <View style={styles.root}>
-        <StatusBar style="light" />
+        <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
         <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
 
@@ -367,7 +370,7 @@ export default function WorkoutSessionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -471,7 +474,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   setRowCompleted: {
-    backgroundColor: 'rgba(52, 211, 153, 0.05)',
+    backgroundColor: theme.success + '10',
   },
   setNumber: {
     width: 40,
@@ -531,7 +534,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(248,113,113,0.1)',
+    backgroundColor: theme.error + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },

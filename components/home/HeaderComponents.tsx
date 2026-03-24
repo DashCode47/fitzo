@@ -1,5 +1,6 @@
 import { Banner } from '@/api/banners';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
@@ -13,6 +14,8 @@ interface CrowdMeterProps {
 }
 
 export const CrowdMeter = ({ count, maxCapacity = 80, users = [] }: CrowdMeterProps) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const percentage = Math.min(Math.round((count / maxCapacity) * 100), 100);
   const status = percentage > 80 ? 'Alta' : percentage > 50 ? 'Media' : 'Baja';
   const barColor = percentage > 80 ? theme.error : percentage > 50 ? theme.warning : theme.success;
@@ -69,6 +72,8 @@ const BADGE_COLORS: Record<string, string> = {
 };
 
 export const PromoCarousel = ({ data, onPressItem }: PromoCarouselProps) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const { width } = Dimensions.get('window');
@@ -157,21 +162,25 @@ interface TopBarProps {
   user: { name: string; avatar: string };
   onPressProfile?: () => void;
 }
-export const TopBar = ({ user, onPressProfile }: TopBarProps) => (
-  <View style={styles.topBar}>
-    <TouchableOpacity onPress={onPressProfile} style={styles.topBarAvatar}>
-      {user.avatar ? (
-        <Image source={{ uri: user.avatar }} style={styles.topBarAvatarImg} />
-      ) : (
-        <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
-      )}
-    </TouchableOpacity>
-    <Text style={styles.topBarName}>{user.name}</Text>
-  </View>
-);
+export const TopBar = ({ user, onPressProfile }: TopBarProps) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  return (
+    <View style={styles.topBar}>
+      <TouchableOpacity onPress={onPressProfile} style={styles.topBarAvatar}>
+        {user.avatar ? (
+          <Image source={{ uri: user.avatar }} style={styles.topBarAvatarImg} />
+        ) : (
+          <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
+        )}
+      </TouchableOpacity>
+      <Text style={styles.topBarName}>{user.name}</Text>
+    </View>
+  );
+};
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   // CrowdMeter
   crowdWrap: {
     marginHorizontal: 20,

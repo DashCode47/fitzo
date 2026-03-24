@@ -1,6 +1,7 @@
 import { StoreAPI } from '@/api/store';
 import { StoreSkeleton } from '@/components/store/StoreSkeleton';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +23,8 @@ const H_PAD = 20;
 const COLUMN_WIDTH = (width - H_PAD * 2 - GAP) / 2;
 
 export default function StoreScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export default function StoreScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
 
@@ -152,7 +155,7 @@ export default function StoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,

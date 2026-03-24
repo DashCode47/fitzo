@@ -35,18 +35,59 @@ const palette = {
   green400:  '#34D399',
   red400:    '#F87171',
   amber400:  '#FBBF24',
+
+  // Vibrant (Green-Blue)
+  vibrant400: '#8be85e',
+  vibrant500: '#81da7e',
+  vibrant600: '#41bfe8',
+  vibrant700: '#4cd6c8',
 } as const;
 
 // ─── Theme shape ──────────────────────────────────────────────────────────────
-export type AppTheme = typeof darkTheme;
+export interface AppTheme {
+  // Backgrounds
+  bgDeep:   string;
+  bgBase:   string;
+  bgSubtle: string;
+  bgCard:   string;
+  surface:  string;
 
-export const darkTheme = {
+  // Text
+  textPrimary:   string;
+  textSecondary: string;
+  textMuted:     string;
+
+  // Accent
+  accent:        string;
+  accentLight:   string;
+  accentDim:     string;
+  accentBorder:  string;
+  accentGlow:    string;
+
+  // Borders
+  borderSubtle:  string;
+  borderMuted:   string;
+
+  // Semantic
+  success: string;
+  error:   string;
+  warning: string;
+
+  // Gradient stops
+  gradients: {
+    bg:      [string, string, string];
+    accent:  [string, string];
+    topGlow: [string, string];
+  };
+}
+
+export const darkTheme: AppTheme = {
   // Backgrounds
   bgDeep:   palette.ink900,
   bgBase:   palette.ink800,
   bgSubtle: palette.ink750,
   bgCard:   palette.ink700,
-  surface:  'rgba(255,255,255,0.05)' as const,
+  surface:  'rgba(255,255,255,0.05)',
 
   // Text
   textPrimary:   palette.white,
@@ -56,26 +97,26 @@ export const darkTheme = {
   // Accent
   accent:        palette.violet500,
   accentLight:   palette.violet400,
-  accentDim:     'rgba(108,99,255,0.15)' as const,
-  accentBorder:  'rgba(108,99,255,0.4)'  as const,
-  accentGlow:    'rgba(108,99,255,0.07)' as const,
+  accentDim:     'rgba(108,99,255,0.15)',
+  accentBorder:  'rgba(108,99,255,0.4)',
+  accentGlow:    'rgba(108,99,255,0.07)',
 
   // Borders
-  borderSubtle:  'rgba(255,255,255,0.06)' as const,
-  borderMuted:   'rgba(255,255,255,0.08)' as const,
+  borderSubtle:  'rgba(255,255,255,0.06)',
+  borderMuted:   'rgba(255,255,255,0.08)',
 
   // Semantic
   success: palette.green400,
   error:   palette.red400,
   warning: palette.amber400,
 
-  // Gradient stops (used with LinearGradient)
+  // Gradient stops
   gradients: {
-    bg:     [palette.ink900, palette.ink800, palette.ink750] as [string, string, string],
-    accent: [palette.violet500, palette.violet400]           as [string, string],
-    topGlow: ['rgba(108,99,255,0.12)', 'rgba(108,99,255,0)']        as [string, string],
+    bg:     [palette.ink900, palette.ink800, palette.ink750],
+    accent: [palette.violet500, palette.violet400],
+    topGlow: ['rgba(108,99,255,0.12)', 'rgba(108,99,255,0)'],
   },
-} as const;
+};
 
 export const lightTheme: AppTheme = {
   bgDeep:   palette.snow50,
@@ -108,8 +149,36 @@ export const lightTheme: AppTheme = {
   },
 } as const;
 
+export const cyanTheme: AppTheme = {
+  ...darkTheme,
+  accent:        palette.vibrant700,
+  accentLight:   palette.vibrant400,
+  accentDim:     'rgba(76,214,200,0.15)' as const, // Based on #4cd6c8
+  accentBorder:  'rgba(76,214,200,0.45)' as const,
+  accentGlow:    'rgba(76,214,200,0.08)' as const,
+
+  gradients: {
+    ...darkTheme.gradients,
+    accent:  [palette.vibrant500, palette.vibrant600] as [string, string],
+    topGlow: ['rgba(76,214,200,0.14)', 'rgba(76,214,200,0)'] as [string, string],
+  },
+} as const;
+
 // ─── Active theme ─────────────────────────────────────────────────────────────
-// Swap this export to `lightTheme` (or wire to useColorScheme) to switch modes.
+export type ThemeMode = 'dark' | 'light' | 'cyan';
+
+/**
+ * Helper to get the theme object based on mode string.
+ */
+export const getTheme = (mode: ThemeMode): AppTheme => {
+    switch (mode) {
+        case 'light': return lightTheme;
+        case 'cyan':  return cyanTheme;
+        default:      return darkTheme;
+    }
+};
+
+// Default export if we still need a global (for non-store-aware components)
 export const theme = darkTheme;
 
 // ─── Legacy Colors (kept for backward compatibility) ──────────────────────────

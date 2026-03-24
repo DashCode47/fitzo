@@ -1,4 +1,5 @@
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, StyleSheet, View } from 'react-native';
@@ -9,6 +10,7 @@ const CARD_W = width - 48;
 
 // ─── Shimmer bone ─────────────────────────────────────────────────────────────
 function Bone({ w, h, radius = 8, style }: { w: number | string; h: number; radius?: number; style?: any }) {
+  const theme = useAppTheme();
   const shimmer = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -34,6 +36,8 @@ function Bone({ w, h, radius = 8, style }: { w: number | string; h: number; radi
 
 // ─── HomeSkeleton ─────────────────────────────────────────────────────────────
 export function HomeSkeleton() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.root}>
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
@@ -139,7 +143,7 @@ export function HomeSkeleton() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,

@@ -15,7 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { RoutinesAPI, Exercise, RoutineExercise } from '@/api/routines';
 import { StatusBar } from 'expo-status-bar';
@@ -34,6 +35,8 @@ const MUSCLE_MAP: Record<string, string> = {
 };
 
 export default function RoutineCreateScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const { profile } = useAppStore();
   
@@ -126,7 +129,7 @@ export default function RoutineCreateScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -366,7 +369,7 @@ export default function RoutineCreateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -389,7 +392,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#fff',
+    color: theme.textPrimary,
   },
   saveBtn: {
     color: theme.accent,
@@ -509,7 +512,7 @@ const styles = StyleSheet.create({
   },
   modalSub: {
     fontSize: 10,
-    color: theme.accent, // More visible color
+    color: theme.accent,
     marginTop: 4,
     fontWeight: '600',
   },
@@ -619,7 +622,6 @@ const styles = StyleSheet.create({
     color: theme.textMuted,
     fontWeight: '600',
   },
-  // ── Preview Overlay Styles ──────────────────────────────────────────────
   previewContainer: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.bgBase,
@@ -672,7 +674,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: theme.accentBorder,
-    alignSelf: 'flex-start', // Prevent spreading
+    alignSelf: 'flex-start',
   },
   rankBadgeText: {
     fontSize: 8,

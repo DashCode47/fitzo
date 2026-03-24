@@ -1,8 +1,8 @@
 
 import { NutritionAPI, UserStats } from '@/api/nutrition';
 import { CustomModal } from '@/components/ui/CustomModal';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { withTimeout } from '@/utils/async';
@@ -35,8 +35,433 @@ const MACRO_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name']>
   Fat:  'water-outline',
 };
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: theme.bgDeep,
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 220,
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  pageHeader: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+    marginBottom: 8,
+  },
+  pageIconWrap: {
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 10,
+    marginBottom: 4,
+  },
+  pageIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    letterSpacing: -0.5,
+    textAlign: 'center',
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    textAlign: 'center',
+  },
+  dashHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 16,
+    paddingTop: 12,
+  },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.accentDim,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  editBtnText: {
+    color: theme.accent,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  card: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    padding: 16,
+    marginBottom: 12,
+  },
+  cardLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  metricInput: {
+    flex: 1,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  metricBox: {
+    backgroundColor: theme.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metricField: {
+    flex: 1,
+    color: theme.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  metricUnit: {
+    color: theme.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  selectChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    backgroundColor: theme.surface,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  selectChipActive: {
+    borderColor: theme.accent,
+  },
+  selectChipText: {
+    color: theme.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  selectChipTextActive: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  primaryBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 8,
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  primaryBtnGradient: {
+    height: 52,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  caloriesCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 12,
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  caloriesGradient: {
+    padding: 22,
+  },
+  caloriesTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  caloriesLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.65)',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  caloriesValue: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -2,
+    lineHeight: 52,
+  },
+  caloriesUnit: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  goalBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  goalBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  caloriesDesc: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+  },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: 'rgba(251,191,36,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(251,191,36,0.25)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  warningText: {
+    flex: 1,
+    color: theme.warning || '#FBBF24',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    letterSpacing: -0.2,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  dietName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.accent,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 14,
+  },
+  macrosRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  macroBadge: {
+    flex: 1,
+    backgroundColor: theme.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    padding: 10,
+    alignItems: 'center',
+    gap: 4,
+  },
+  macroValue: {
+    color: theme.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  macroLabel: {
+    color: theme.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  mealCard: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    padding: 16,
+    marginBottom: 10,
+  },
+  mealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  mealTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mealDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.accent,
+  },
+  mealTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  mealMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.surface,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  timeText: {
+    fontSize: 11,
+    color: theme.textMuted,
+    fontWeight: '600',
+  },
+  optionsBadge: {
+    backgroundColor: theme.accentDim,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
+  },
+  optionsBadgeText: {
+    color: theme.accent,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  optionChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.borderMuted,
+    backgroundColor: theme.surface,
+  },
+  optionChipActive: {
+    borderColor: theme.accent,
+    backgroundColor: theme.accentDim,
+  },
+  optionChipText: {
+    color: theme.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  optionChipTextActive: {
+    color: theme.accent,
+    fontWeight: '700',
+  },
+  foodsBox: {
+    backgroundColor: theme.surface,
+    borderRadius: 12,
+    padding: 14,
+    gap: 2,
+  },
+  optionName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.textPrimary,
+    marginBottom: 8,
+  },
+  foodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  foodBullet: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.accent,
+    opacity: 0.6,
+  },
+  foodItem: {
+    color: theme.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
+  emptyCard: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    borderStyle: 'dashed',
+    padding: 36,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    color: theme.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  emptyText: {
+    color: theme.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+});
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function NutritionScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const { profile, activeDiet: diet, setActiveDiet: setDiet, userStats: stats, setUserStats: setStats, isHydrated } = useAppStore();
 
   const [loading, setLoading] = useState(!isHydrated || (!stats && !diet));
@@ -141,7 +566,7 @@ export default function NutritionScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -183,6 +608,8 @@ function Onboarding({
   gender, setGender, activityLevel, setActivityLevel,
   goal, setGoal, onSave, submitting,
 }: any) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   return (
     <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
@@ -257,6 +684,8 @@ function Onboarding({
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function Dashboard({ stats, diet, onEdit, selectedOptions, setSelectedOptions }: any) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const calc = calculateCalories(stats.weight, stats.height, stats.age, stats.gender, stats.activity_level, stats.goal);
 
   return (
@@ -411,6 +840,8 @@ function Dashboard({ stats, diet, onEdit, selectedOptions, setSelectedOptions }:
 
 // ─── Small components ─────────────────────────────────────────────────────────
 function MetricInput({ label, unit, value, onChange, placeholder }: any) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.metricInput}>
       <Text style={styles.metricLabel}>{label}</Text>
@@ -430,6 +861,8 @@ function MetricInput({ label, unit, value, onChange, placeholder }: any) {
 }
 
 function SelectChip({ label, active, onPress, flex }: { label: string; active: boolean; onPress: () => void; flex?: boolean }) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   return (
     <TouchableOpacity
       style={[styles.selectChip, active && styles.selectChipActive, flex && { flex: 1 }]}
@@ -443,451 +876,3 @@ function SelectChip({ label, active, onPress, flex }: { label: string; active: b
     </TouchableOpacity>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: theme.bgDeep,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topGlow: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 220,
-  },
-  scroll: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-
-  // ── Page header ─────────────────────────────────────────────────────────────
-  pageHeader: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    gap: 8,
-    marginBottom: 8,
-  },
-  pageIconWrap: {
-    shadowColor: theme.accent,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    elevation: 10,
-    marginBottom: 4,
-  },
-  pageIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    letterSpacing: -0.5,
-    textAlign: 'center',
-  },
-  pageSubtitle: {
-    fontSize: 14,
-    color: theme.textSecondary,
-    textAlign: 'center',
-  },
-
-  // ── Dashboard header ─────────────────────────────────────────────────────────
-  dashHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 16,
-    paddingTop: 12,
-  },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.accentDim,
-    borderWidth: 1,
-    borderColor: theme.accentBorder,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  editBtnText: {
-    color: theme.accent,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // ── Card ─────────────────────────────────────────────────────────────────────
-  card: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    padding: 16,
-    marginBottom: 12,
-  },
-  cardLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.textMuted,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-
-  // ── Metrics ──────────────────────────────────────────────────────────────────
-  metricsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  metricInput: {
-    flex: 1,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  metricBox: {
-    backgroundColor: theme.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.borderMuted,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metricField: {
-    flex: 1,
-    color: theme.textPrimary,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  metricUnit: {
-    color: theme.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
-  // ── Chips ────────────────────────────────────────────────────────────────────
-  chipRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  selectChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.borderMuted,
-    backgroundColor: theme.surface,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  selectChipActive: {
-    borderColor: theme.accent,
-  },
-  selectChipText: {
-    color: theme.textSecondary,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  selectChipTextActive: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-
-  // ── Primary button ────────────────────────────────────────────────────────────
-  primaryBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginTop: 8,
-    shadowColor: theme.accent,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  primaryBtnGradient: {
-    height: 52,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-
-  // ── Calories card ─────────────────────────────────────────────────────────────
-  caloriesCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 12,
-    shadowColor: theme.accent,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 10,
-  },
-  caloriesGradient: {
-    padding: 22,
-  },
-  caloriesTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  caloriesLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.65)',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  caloriesValue: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: -2,
-    lineHeight: 52,
-  },
-  caloriesUnit: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  goalBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  goalBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  caloriesDesc: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-  },
-
-  // ── Warning ───────────────────────────────────────────────────────────────────
-  warningCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: 'rgba(251,191,36,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.25)',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-  },
-  warningText: {
-    flex: 1,
-    color: theme.warning,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-
-  // ── Section title ─────────────────────────────────────────────────────────────
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    letterSpacing: -0.2,
-    marginBottom: 10,
-    marginTop: 4,
-  },
-
-  // ── Diet info ─────────────────────────────────────────────────────────────────
-  dietName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.accent,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginBottom: 14,
-  },
-  macrosRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  macroBadge: {
-    flex: 1,
-    backgroundColor: theme.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.borderMuted,
-    padding: 10,
-    alignItems: 'center',
-    gap: 4,
-  },
-  macroValue: {
-    color: theme.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  macroLabel: {
-    color: theme.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-
-  // ── Meal card ─────────────────────────────────────────────────────────────────
-  mealCard: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    padding: 16,
-    marginBottom: 10,
-  },
-  mealHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  mealTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  mealDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.accent,
-  },
-  mealTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  mealMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  timePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: theme.surface,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  timeText: {
-    color: theme.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  optionsBadge: {
-    backgroundColor: theme.accentDim,
-    borderWidth: 1,
-    borderColor: theme.accentBorder,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  optionsBadgeText: {
-    color: theme.accent,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  optionChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.borderMuted,
-    backgroundColor: theme.surface,
-  },
-  optionChipActive: {
-    borderColor: theme.accent,
-    backgroundColor: theme.accentDim,
-  },
-  optionChipText: {
-    color: theme.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  optionChipTextActive: {
-    color: theme.accent,
-  },
-  foodsBox: {
-    backgroundColor: theme.surface,
-    borderRadius: 12,
-    padding: 14,
-    gap: 2,
-  },
-  optionName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    marginBottom: 8,
-  },
-  foodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 2,
-  },
-  foodBullet: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: theme.accent,
-    opacity: 0.6,
-  },
-  foodItem: {
-    color: theme.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-    flex: 1,
-  },
-
-  // ── Empty ─────────────────────────────────────────────────────────────────────
-  emptyCard: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    borderStyle: 'dashed',
-    padding: 36,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyTitle: {
-    color: theme.textPrimary,
-    fontSize: 15,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  emptyText: {
-    color: theme.textSecondary,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});

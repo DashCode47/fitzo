@@ -1,6 +1,7 @@
 
 import { Exercise, Routine, RoutinesAPI } from '@/api/routines';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +33,8 @@ const MUSCLE_MAP: Record<string, string> = {
 };
 
 export default function RoutineDetailScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { setActiveWorkout } = useAppStore();
@@ -96,7 +99,7 @@ export default function RoutineDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === '#FAFAFA' ? 'dark' : 'light'} />
       <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
 
@@ -232,7 +235,7 @@ export default function RoutineDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -405,7 +408,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 20,
     paddingBottom: 40,
-    backgroundColor: 'rgba(7, 7, 15, 0.9)',
+    backgroundColor: theme.bgDeep + 'E0',
   },
   startBtn: {
     borderRadius: 16,

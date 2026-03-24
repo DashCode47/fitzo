@@ -2,7 +2,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 import { RANK_TIERS, MUSCLE_GROUPS } from '@/constants/ranks';
 import { MuscleRank } from '@/api/ranks';
@@ -12,7 +13,94 @@ interface MuscleRankCardProps {
   bodyWeight: number;
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  card: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  iconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  muscleLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  repExText: {
+    fontSize: 10,
+    color: theme.textMuted,
+    marginTop: 2,
+    textTransform: 'uppercase',
+  },
+  tierBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  tierText: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  alignRight: {
+    alignItems: 'flex-end',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.textPrimary,
+  },
+  progressContainer: {
+    gap: 8,
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: theme.surface,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 6,
+  },
+  progressText: {
+    fontSize: 11,
+    color: theme.textSecondary,
+    textAlign: 'right',
+  },
+});
+
 export const MuscleRankCard: React.FC<MuscleRankCardProps> = ({ rank, bodyWeight }) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const muscleInfo = MUSCLE_GROUPS.find((m) => m.key === rank.muscleGroup);
   const tierInfo = RANK_TIERS[rank.tierIndex];
   const isCore = rank.muscleGroup === 'core';
@@ -66,12 +154,12 @@ export const MuscleRankCard: React.FC<MuscleRankCardProps> = ({ rank, bodyWeight
         <View style={styles.progressFooter}>
           {weightNeeded !== null && (
             <Text style={styles.progressText}>
-              Faltan <Text style={{color: '#fff', fontWeight: '800'}}>{weightNeeded}kg</Text> para el prox. nivel
+              Faltan <Text style={{color: theme.textPrimary, fontWeight: '800'}}>{weightNeeded}kg</Text> para el prox. nivel
             </Text>
           )}
           {secondsNeeded !== null && (
             <Text style={styles.progressText}>
-              Faltan <Text style={{color: '#fff', fontWeight: '800'}}>{secondsNeeded}s</Text> para el prox. nivel
+              Faltan <Text style={{color: theme.textPrimary, fontWeight: '800'}}>{secondsNeeded}s</Text> para el prox. nivel
             </Text>
           )}
           {rank.nextTierRatio === null && (
@@ -82,87 +170,3 @@ export const MuscleRankCard: React.FC<MuscleRankCardProps> = ({ rank, bodyWeight
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  muscleLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  repExText: {
-    fontSize: 10,
-    color: theme.textMuted,
-    marginTop: 2,
-    textTransform: 'uppercase',
-  },
-  tierBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tierText: {
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  alignRight: {
-    alignItems: 'flex-end',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  progressContainer: {
-    gap: 8,
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: '#333333',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  progressFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 6,
-  },
-  progressText: {
-    fontSize: 11,
-    color: theme.textSecondary,
-    textAlign: 'right',
-  },
-});

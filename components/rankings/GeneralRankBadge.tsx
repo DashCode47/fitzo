@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RANK_TIERS } from '@/constants/ranks';
-import { theme } from '@/constants/theme';
+import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Svg, Circle } from 'react-native-svg';
 import { RankGuide } from './RankGuide';
@@ -13,7 +15,109 @@ interface GeneralRankBadgeProps {
   muscleCount: number;
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  container: {
+    borderRadius: 24,
+    marginVertical: 16,
+    overflow: 'hidden',
+    height: 140,
+  },
+  overlay: {
+    padding: 24,
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+  },
+  rankTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    opacity: 0.8,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  tierName: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    opacity: 0.8,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  badgeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  textColumn: {
+    flex: 1,
+    paddingRight: 20,
+  },
+  ringContainer: {
+    position: 'relative',
+    width: 110,
+    height: 110,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ringCenter: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: theme.bgBase,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: theme.textPrimary,
+  },
+  modalFooter: {
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: theme.borderSubtle,
+    marginTop: 8,
+  },
+  footerInfo: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+});
+
 export const GeneralRankBadge: React.FC<GeneralRankBadgeProps> = ({ tierIndex, avgIndex, muscleCount }) => {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const [modalVisible, setModalVisible] = React.useState(false);
   const tierInfo = RANK_TIERS[tierIndex];
 
@@ -123,102 +227,3 @@ export const GeneralRankBadge: React.FC<GeneralRankBadgeProps> = ({ tierIndex, a
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 24,
-    marginVertical: 16,
-    overflow: 'hidden',
-    height: 140,
-  },
-  overlay: {
-    padding: 24,
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-  },
-  rankTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    opacity: 0.8,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  tierName: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    opacity: 0.8,
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  badgeContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  textColumn: {
-    flex: 1,
-    paddingRight: 20,
-  },
-  ringContainer: {
-    position: 'relative',
-    width: 110,
-    height: 110,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ringCenter: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: theme.bgBase,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    maxHeight: '85%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: theme.textPrimary,
-  },
-  modalFooter: {
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: theme.borderSubtle,
-    marginTop: 8,
-  },
-  footerInfo: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});
