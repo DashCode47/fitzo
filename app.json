@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "iron-body-front",
-    "slug": "iron-body-front",
+    "name": "Fitzo",
+    "slug": "fitzo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "ironbodyfront",
+    "scheme": "fitzo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -24,7 +24,7 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_BACKGROUND_LOCATION"
       ],
-      "package": "com.dashcode.ironbody"
+      "package": "com.fitzo.app"
     },
     "web": {
       "output": "static",
