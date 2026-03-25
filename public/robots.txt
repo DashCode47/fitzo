@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://fitzo.app
+
+# Sitemaps
+Sitemap: https://fitzo.app/sitemap.xml
