@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --gold: #c5a356;
-  --gold-light: #d4b96a;
-  --gold-bright: #ffd700;
+  --gold: #7b2ff7;
+  --gold-light: #a855f7;
+  --gold-bright: #a855f7;
   --dark-card: #111111;
   --dark-surface: #1a1a1a;
 }
@@ -20,14 +20,14 @@
   }
 
   body {
-    background-color: #000;
+    background-color: #050505;
     color: #fff;
     font-family: var(--font-geist-sans), system-ui, sans-serif;
     overflow-x: hidden;
   }
 
   ::selection {
-    background-color: rgba(197, 163, 86, 0.3);
+    background-color: rgba(123, 47, 247, 0.3);
     color: #fff;
   }
 
@@ -40,7 +40,7 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #c5a356;
+    background: #7b2ff7;
     border-radius: 3px;
   }
 }
@@ -51,10 +51,10 @@
   }
 
   .gold-text {
-    @apply bg-gold-gradient bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #c5a356 0%, #ffd700 50%, #a8873e 100%);
+    background-image: linear-gradient(135deg, #7b2ff7 0%, #a855f7 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .gold-border {
@@ -66,14 +66,14 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-black transition-all duration-200;
-    background: linear-gradient(135deg, #c5a356 0%, #ffd700 50%, #c5a356 100%);
+    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #7b2ff7 0%, #a855f7 100%);
     background-size: 200% auto;
   }
 
   .btn-primary:hover {
     background-position: right center;
-    box-shadow: 0 0 25px rgba(197, 163, 86, 0.5);
+    box-shadow: 0 0 30px rgba(123, 47, 247, 0.55);
     transform: translateY(-1px);
   }
 
@@ -89,7 +89,7 @@
 
 @layer utilities {
   .text-shadow-gold {
-    text-shadow: 0 0 30px rgba(197, 163, 86, 0.5);
+    text-shadow: 0 0 30px rgba(123, 47, 247, 0.5);
   }
 
   .bg-noise {

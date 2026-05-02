@@ -10,7 +10,7 @@ export default function CrowdMeter() {
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(180deg, transparent 0%, rgba(197,163,86,0.03) 50%, transparent 100%)",
+            "linear-gradient(180deg, transparent 0%, rgba(123,47,247,0.04) 50%, transparent 100%)",
         }}
       />
 

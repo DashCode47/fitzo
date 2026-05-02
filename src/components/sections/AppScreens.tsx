@@ -22,7 +22,7 @@ const screens = [
       "Ranking de los más activos",
       "Promociones personalizadas",
     ],
-    color: "#C5A356",
+    color: "#7B2FF7",
   },
   {
     image: mu2,
@@ -74,7 +74,7 @@ const screens = [
       "Títulos y rangos por rendimiento",
       "FOMO que convierte ausencias en asistencia",
     ],
-    color: "#FFD700",
+    color: "#FACC15",
   },
   {
     image: mu6,

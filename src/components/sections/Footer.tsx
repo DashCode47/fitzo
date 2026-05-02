@@ -1,11 +1,10 @@
 import Image from "next/image";
-import LogoImg from "@/assets/images/Logo.png";
+import LogoImg from "@/assets/images/logo-purple.png";
 
 const links = {
-  Producto: ["Características", "Precios", "Changelog", "Roadmap"],
-  Comunidad: ["Fitzo Legends", "Ranking Global", "Eventos", "Blog"],
-  Soporte: ["Centro de ayuda", "Contacto", "Estado del sistema", "API"],
-  Legal: ["Privacidad", "Términos de uso", "Cookies"],
+  Producto: ["Características", "Precios"],
+  Soporte: ["Contacto", "Centro de ayuda"],
+  Legal: ["Privacidad", "Términos de uso"],
 };
 
 export default function Footer() {
@@ -15,14 +14,14 @@ export default function Footer() {
     <footer className="relative border-t border-white/[0.06] section-padding pt-16 pb-10">
       <div className="max-w-6xl mx-auto">
         {/* Top row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-16">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-1 mb-4">
               <Image src={LogoImg} alt="Fitzo" height={32} className="h-8 w-auto" />
             </div>
             <p className="text-white/35 text-sm leading-relaxed max-w-[180px]">
-              Tu transformación comienza hoy. Máximo potencial.
+              El sistema que hace que tus miembros vuelvan — mes tras mes.
             </p>
             {/* Social links */}
             <div className="flex gap-3 mt-5">
@@ -67,7 +66,7 @@ export default function Footer() {
             © {currentYear} Fitzo. Todos los derechos reservados.
           </p>
           <p className="text-white/20 text-xs">
-            Hecho con 🦾 para atletas que van en serio.
+            Hecho con 🦾 para gimnasios que van en serio.
           </p>
         </div>
       </div>

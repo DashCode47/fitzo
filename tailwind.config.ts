@@ -10,32 +10,32 @@ const config: Config = {
     extend: {
       colors: {
         gold: {
-          DEFAULT: "#C5A356",
-          light: "#D4B96A",
-          dark: "#A8873E",
-          bright: "#FFD700",
+          DEFAULT: "#7B2FF7",
+          light: "#A855F7",
+          dark: "#5B1FCF",
+          bright: "#A855F7",
         },
         dark: {
-          DEFAULT: "#000000",
+          DEFAULT: "#050505",
           card: "#111111",
           surface: "#1A1A1A",
           border: "rgba(255,255,255,0.08)",
         },
-        flame: "#FF4500",
+        flame: "#EF4444",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
       },
       backgroundImage: {
-        "gold-gradient": "linear-gradient(135deg, #C5A356 0%, #FFD700 50%, #A8873E 100%)",
-        "dark-gradient": "linear-gradient(180deg, #000000 0%, #0d0d0d 50%, #000000 100%)",
-        "hero-gradient": "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(197,163,86,0.25) 0%, transparent 70%)",
+        "gold-gradient": "linear-gradient(135deg, #7B2FF7 0%, #A855F7 100%)",
+        "dark-gradient": "linear-gradient(180deg, #050505 0%, #0d0d0d 50%, #050505 100%)",
+        "hero-gradient": "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(123,47,247,0.25) 0%, transparent 70%)",
         "card-gradient": "linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
       },
       boxShadow: {
-        gold: "0 0 30px rgba(197,163,86,0.3)",
-        "gold-sm": "0 0 15px rgba(197,163,86,0.2)",
+        gold: "0 0 30px rgba(123,47,247,0.35)",
+        "gold-sm": "0 0 15px rgba(123,47,247,0.25)",
         glass: "0 8px 32px rgba(0,0,0,0.6)",
       },
       animation: {

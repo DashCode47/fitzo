@@ -1,45 +1,24 @@
-const features = [
+const pillars = [
   {
+    number: "01",
     icon: "🏆",
-    title: "Fitzo Legends Rankings",
-    description:
-      "Un ranking mensual gamificado que mantiene a tus miembros comprometidos. Puntos por asistencia, rutinas y referidos — incentivos que impulsan la retención.",
-    color: "#FFD700",
+    headline: "El ranking hace el trabajo sucio",
+    body: "Cuando tus miembros compiten por el podio, faltar tiene un costo emocional. El FOMO se convierte en tu herramienta de retención más poderosa — sin que tú hagas nada.",
+    accent: "#7B2FF7",
   },
   {
-    icon: "📍",
-    title: "Check-in Automático",
-    description:
-      "Geofencing detecta automáticamente cuando un miembro entra a tu gimnasio y registra su asistencia. Sin filas, sin personal extra, sin errores.",
-    color: "#C5A356",
+    number: "02",
+    icon: "⚡",
+    headline: "Check-in en menos de 2 segundos",
+    body: "Geofencing detecta la llegada automáticamente. Sin colas, sin personal extra, sin QR manual — tus miembros llegan y ya están registrados.",
+    accent: "#A855F7",
   },
   {
-    icon: "🥗",
-    title: "Planes Nutricionales",
-    description:
-      "Asigna planes de dieta personalizados a tus miembros según sus objetivos. Valor agregado que diferencia tu gimnasio de la competencia.",
-    color: "#22c55e",
-  },
-  {
-    icon: "📊",
-    title: "Ocupación en Tiempo Real",
-    description:
-      "Tus miembros consultan la capacidad del gimnasio desde la app antes de ir. Menos aglomeraciones, mejor experiencia, mayor satisfacción.",
-    color: "#3b82f6",
-  },
-  {
+    number: "03",
     icon: "🎯",
-    title: "Códigos QR por Actividad",
-    description:
-      "Genera QRs para cada actividad, clase o evento especial. Tus miembros los escanean para sumar puntos — tú controlas qué se premia y cómo.",
-    color: "#a855f7",
-  },
-  {
-    icon: "🔥",
-    title: "Rachas y Logros",
-    description:
-      "El sistema de rachas y badges crea un hábito de asistencia. Miembros que entrenan más frecuentemente cancelan menos — el dato lo respalda.",
-    color: "#FF4500",
+    headline: "Valor agregado sin contratar a nadie",
+    body: "Rutinas personalizadas, nutrición calculada y catálogo de productos — todo incluido. Tu gimnasio ofrece más que la competencia sin aumentar el equipo.",
+    accent: "#5B1FCF",
   },
 ];
 
@@ -47,47 +26,59 @@ export default function Features() {
   return (
     <section
       id="features"
-      className="relative py-24 md:py-32 section-padding"
+      className="relative py-20 md:py-24 section-padding"
     >
-      {/* Section header */}
-      <div className="text-center mb-16 md:mb-20">
-        <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
-          Características
-        </span>
-        <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-          Todo lo que tu gimnasio necesita
-          <br />
-          <span className="gold-text">para retener y crecer</span>
-        </h2>
-        <p className="text-white/50 max-w-xl mx-auto text-lg">
-          Diseñado para propietarios que quieren más que solo administrar —
-          quieren{" "}
-          <span className="text-white/80">fidelizar</span>.
-        </p>
-      </div>
+      {/* Subtle top border */}
+      <div className="absolute top-0 left-0 right-0 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(123,47,247,0.3) 30%, rgba(123,47,247,0.3) 70%, transparent)" }}
+        aria-hidden="true"
+      />
+      <div className="absolute bottom-0 left-0 right-0 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(123,47,247,0.15) 30%, rgba(123,47,247,0.15) 70%, transparent)" }}
+        aria-hidden="true"
+      />
 
-      {/* Feature grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
-        {features.map((feature, i) => (
-          <article
-            key={feature.title}
-            className="glass-card p-7 group hover:border-gold/20 transition-all duration-300 hover:shadow-gold-sm hover:-translate-y-1"
-            style={{ animationDelay: `${i * 100}ms` }}
-          >
-            <div
-              className="text-4xl mb-5 w-14 h-14 flex items-center justify-center rounded-2xl"
-              style={{ background: `${feature.color}15` }}
-            >
-              {feature.icon}
+      <div className="max-w-6xl mx-auto">
+        {/* Label */}
+        <div className="text-center mb-14">
+          <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-3">
+            Por qué funciona
+          </span>
+          <h2 className="text-3xl md:text-4xl font-black text-white">
+            Retención que{" "}
+            <span className="gold-text">no depende de ti</span>
+          </h2>
+        </div>
+
+        {/* Pillars */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 md:divide-x md:divide-white/[0.06]">
+          {pillars.map((p) => (
+            <div key={p.number} className="flex flex-col px-0 md:px-10 first:pl-0 last:pr-0 py-8 md:py-0 border-b border-white/[0.06] last:border-b-0 md:border-b-0">
+              {/* Watermark number */}
+              <div className="relative mb-6">
+                <span
+                  className="text-8xl font-black select-none pointer-events-none absolute -top-4 -left-2 opacity-[0.06]"
+                  style={{ color: p.accent }}
+                >
+                  {p.number}
+                </span>
+                <div
+                  className="relative z-10 w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                  style={{ background: `${p.accent}18`, border: `1px solid ${p.accent}30` }}
+                >
+                  {p.icon}
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black text-white mb-3 leading-snug">
+                {p.headline}
+              </h3>
+              <p className="text-white/45 text-sm leading-relaxed">
+                {p.body}
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3 group-hover:text-gold transition-colors">
-              {feature.title}
-            </h3>
-            <p className="text-white/50 text-sm leading-relaxed">
-              {feature.description}
-            </p>
-          </article>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

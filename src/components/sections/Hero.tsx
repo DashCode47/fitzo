@@ -14,11 +14,6 @@ export default function Hero() {
       price: "0",
       priceCurrency: "USD",
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.9",
-      ratingCount: "382",
-    },
   };
 
   return (
@@ -36,17 +31,17 @@ export default function Hero() {
         aria-hidden="true"
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full opacity-20"
-          style={{ background: "radial-gradient(ellipse, #C5A356 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse, #7B2FF7 0%, transparent 70%)" }}
         />
         <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] rounded-full opacity-10"
-          style={{ background: "radial-gradient(ellipse, #C5A356 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse, #5B1FCF 0%, transparent 70%)" }}
         />
         {/* Grid lines */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(197,163,86,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(197,163,86,0.5) 1px, transparent 1px)",
+              "linear-gradient(rgba(123,47,247,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(123,47,247,0.5) 1px, transparent 1px)",
             backgroundSize: "80px 80px",
           }}
         />
@@ -68,14 +63,13 @@ export default function Hero() {
         </h1>
 
         <p className="text-xl sm:text-2xl font-semibold text-white/80 mb-4 tracking-widest uppercase">
-          La App que tus miembros amarán
+          Más retención. Menos cancelaciones. Mejor gimnasio.
         </p>
 
         <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto mb-12 leading-relaxed">
-          Dale a tu gimnasio la app que controla el aforo, rutinas, gamifica
-          la experiencia y{" "}
-          <span className="text-gold font-semibold">retiene miembros</span>{" "}
-          mes a mes.
+          Gamifica el entrenamiento, automatiza el check-in y dale a tus miembros
+          un motivo real para regresar —{" "}
+          <span className="text-gold font-semibold">mes tras mes</span>.
         </p>
 
         {/* CTAs */}
@@ -90,7 +84,7 @@ export default function Hero() {
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
               <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.833L.057 23.25a.75.75 0 00.918.928l5.555-1.43A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.66-.523-5.176-1.432l-.372-.22-3.849.99.999-3.75-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
             </svg>
-            1 mes gratis — sin compromiso
+            Activar mi gimnasio gratis
           </a>
           <a href="#features" className="btn-secondary text-lg w-full sm:w-auto">
             Ver características
@@ -101,8 +95,8 @@ export default function Hero() {
         <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8 text-center">
           {[
             { value: "<2s", label: "Check-in automático" },
-            { value: "iOS + Android", label: "App para tus miembros" },
-            { value: "24/7", label: "Soporte disponible" },
+            { value: "Sin contratos", label: "Cancela cuando quieras" },
+            { value: "24/7", label: "Soporte incluido" },
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col items-center">
               <span className="text-3xl font-black gold-text">{stat.value}</span>

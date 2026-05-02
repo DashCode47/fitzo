@@ -64,7 +64,7 @@ export default function HowItWorks() {
       {/* Background accent */}
       <div
         className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-5 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse, #C5A356 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(ellipse, #7B2FF7 0%, transparent 70%)" }}
         aria-hidden="true"
       />
 
@@ -89,7 +89,7 @@ export default function HowItWorks() {
           <div
             className="hidden md:block absolute top-16 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px"
             style={{
-              background: "linear-gradient(90deg, transparent, rgba(197,163,86,0.3) 20%, rgba(197,163,86,0.3) 80%, transparent)",
+              background: "linear-gradient(90deg, transparent, rgba(123,47,247,0.3) 20%, rgba(123,47,247,0.3) 80%, transparent)",
             }}
             aria-hidden="true"
           />
@@ -108,10 +108,10 @@ export default function HowItWorks() {
                 <div
                   className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black relative z-10 transition-all duration-700"
                   style={{
-                    background: "linear-gradient(135deg, #C5A356 0%, #FFD700 100%)",
+                    background: "linear-gradient(135deg, #7B2FF7 0%, #A855F7 100%)",
                     boxShadow: visible[i]
-                      ? "0 0 40px rgba(197,163,86,0.6)"
-                      : "0 0 0px rgba(197,163,86,0)",
+                      ? "0 0 40px rgba(123,47,247,0.6)"
+                      : "0 0 0px rgba(123,47,247,0)",
                     transform: visible[i] ? "scale(1)" : "scale(0.7)",
                   }}
                 >

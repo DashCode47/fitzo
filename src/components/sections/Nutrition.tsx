@@ -1,5 +1,5 @@
 const macros = [
-  { label: "Proteína", value: 165, unit: "g", color: "#C5A356", percent: 70 },
+  { label: "Proteína", value: 165, unit: "g", color: "#7B2FF7", percent: 70 },
   { label: "Carbohidratos", value: 220, unit: "g", color: "#3b82f6", percent: 55 },
   { label: "Grasas", value: 65, unit: "g", color: "#22c55e", percent: 45 },
 ];
@@ -28,7 +28,7 @@ export default function Nutrition() {
         <div className="flex flex-col items-center lg:items-start">
           <div
             className="w-full max-w-sm glass-card p-7 rounded-3xl"
-            style={{ boxShadow: "0 0 60px rgba(197,163,86,0.1)" }}
+            style={{ boxShadow: "0 0 60px rgba(123,47,247,0.15)" }}
           >
             {/* Card header */}
             <div className="flex items-center justify-between mb-6">
@@ -39,9 +39,9 @@ export default function Nutrition() {
               <div
                 className="px-3 py-1.5 rounded-full text-xs font-bold"
                 style={{
-                  background: "rgba(197,163,86,0.15)",
-                  color: "#C5A356",
-                  border: "1px solid rgba(197,163,86,0.3)",
+                  background: "rgba(123,47,247,0.15)",
+                  color: "#A855F7",
+                  border: "1px solid rgba(123,47,247,0.3)",
                 }}
               >
                 ACTIVO
@@ -61,8 +61,8 @@ export default function Nutrition() {
                   />
                   <defs>
                     <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#C5A356" />
-                      <stop offset="100%" stopColor="#FFD700" />
+                      <stop offset="0%" stopColor="#7B2FF7" />
+                      <stop offset="100%" stopColor="#A855F7" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -105,9 +105,9 @@ export default function Nutrition() {
             <span className="gold-text">calculada para ti</span>
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Ingresa tu peso, altura, edad y objetivo. Fitzo calcula automáticamente
-            tus calorías y macros ideales, asignándote un plan de alimentación
-            personalizado para maximizar tus resultados.
+            Tus miembros ingresan su peso, altura, edad y objetivo. Fitzo calcula
+            automáticamente sus calorías y macros, y les asigna un plan de
+            alimentación personalizado — sin que tengas que contratar a un nutricionista.
           </p>
 
           {/* Goals */}
@@ -129,7 +129,7 @@ export default function Nutrition() {
             rel="noopener noreferrer"
             className="btn-primary inline-flex"
           >
-            Calcula tus macros gratis
+            Activar nutrición en mi gimnasio
           </a>
         </div>
       </div>

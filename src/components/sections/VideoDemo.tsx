@@ -36,7 +36,7 @@ export default function VideoDemo() {
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(180deg, transparent 0%, rgba(197,163,86,0.04) 50%, transparent 100%)",
+            "linear-gradient(180deg, transparent 0%, rgba(123,47,247,0.04) 50%, transparent 100%)",
         }}
       />
 
@@ -61,8 +61,8 @@ export default function VideoDemo() {
             className="relative rounded-2xl overflow-hidden w-full"
             style={{
               aspectRatio: "16/9",
-              border: "1px solid rgba(197,163,86,0.25)",
-              boxShadow: "0 0 80px rgba(197,163,86,0.15), 0 0 0 8px rgba(255,255,255,0.03)",
+              border: "1px solid rgba(123,47,247,0.35)",
+              boxShadow: "0 0 80px rgba(123,47,247,0.2), 0 0 0 8px rgba(255,255,255,0.03)",
             }}
           >
             <iframe
@@ -88,10 +88,10 @@ export default function VideoDemo() {
                   height: 64,
                   background: isPlaying
                     ? "rgba(0,0,0,0)"
-                    : "rgba(197,163,86,0.95)",
+                    : "linear-gradient(135deg, #7B2FF7, #A855F7)",
                   boxShadow: isPlaying
                     ? "none"
-                    : "0 0 40px rgba(197,163,86,0.5)",
+                    : "0 0 40px rgba(123,47,247,0.6)",
                   opacity: isPlaying ? 0 : 1,
                   transform: isPlaying ? "scale(0.8)" : "scale(1)",
                 }}
@@ -101,7 +101,7 @@ export default function VideoDemo() {
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
-                  fill="black"
+                  fill="white"
                   style={{ marginLeft: 3 }}
                 >
                   <polygon points="5,3 19,12 5,21" />

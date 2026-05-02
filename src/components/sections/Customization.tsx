@@ -16,7 +16,7 @@ export default function Customization() {
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(180deg, transparent 0%, rgba(197,163,86,0.04) 50%, transparent 100%)",
+            "linear-gradient(180deg, transparent 0%, rgba(123,47,247,0.04) 50%, transparent 100%)",
         }}
       />
 
@@ -70,8 +70,8 @@ export default function Customization() {
               className="w-44 rounded-3xl p-4 flex flex-col gap-3"
               style={{
                 background: "#111",
-                border: "1px solid rgba(197,163,86,0.25)",
-                boxShadow: "0 0 40px rgba(197,163,86,0.12)",
+                border: "1px solid rgba(123,47,247,0.35)",
+                boxShadow: "0 0 40px rgba(123,47,247,0.15)",
               }}
             >
               {/* Status bar mock */}
@@ -82,7 +82,7 @@ export default function Customization() {
                 </div>
               </div>
               {/* App header */}
-              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(197,163,86,0.1)" }}>
+              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(123,47,247,0.15)" }}>
                 <p className="text-[10px] font-black tracking-widest text-white">FITZO</p>
                 <p className="text-gold text-[8px] mt-0.5">Tu Gimnasio</p>
               </div>
@@ -103,9 +103,9 @@ export default function Customization() {
 
           {/* Divider arrow */}
           <div className="flex flex-col items-center gap-2 text-white/20">
-            <div className="w-px h-10 bg-gradient-to-b from-transparent via-gold/30 to-transparent" />
+            <div className="w-px h-10 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
             <span className="text-xl">→</span>
-            <div className="w-px h-10 bg-gradient-to-b from-transparent via-gold/30 to-transparent" />
+            <div className="w-px h-10 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
           </div>
 
           {/* Theme B — custom brand example */}
@@ -114,8 +114,8 @@ export default function Customization() {
             <div
               className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-black tracking-wider whitespace-nowrap"
               style={{
-                background: "linear-gradient(135deg, #C5A356, #FFD700)",
-                color: "#000",
+                background: "linear-gradient(135deg, #7B2FF7, #A855F7)",
+                color: "#fff",
               }}
             >
               PERSONALIZADO

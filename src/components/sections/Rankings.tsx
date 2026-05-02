@@ -14,7 +14,7 @@ const podium = [
     points: 6540,
     streak: 31,
     badge: "🥇",
-    color: "#FFD700",
+    color: "#FACC15",
     height: "h-44",
   },
   {
@@ -44,7 +44,7 @@ export default function Rankings() {
       {/* Gold radial background */}
       <div
         className="absolute left-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.07] pointer-events-none"
-        style={{ background: "radial-gradient(ellipse, #FFD700 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(ellipse, #7B2FF7 0%, transparent 70%)" }}
         aria-hidden="true"
       />
 
@@ -87,7 +87,7 @@ export default function Rankings() {
         {/* Right: Podium */}
         <div className="flex flex-col items-center">
           <p className="text-white/30 text-xs font-bold tracking-widest uppercase mb-8">
-            Ranking mensual — Marzo 2026
+            Ranking mensual — Mayo 2026
           </p>
 
           {/* Podium visualization */}
@@ -141,8 +141,8 @@ export default function Rankings() {
           <div
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full"
             style={{
-              background: "linear-gradient(135deg, rgba(197,163,86,0.15), rgba(255,215,0,0.1))",
-              border: "1px solid rgba(197,163,86,0.4)",
+              background: "linear-gradient(135deg, rgba(123,47,247,0.15), rgba(168,85,247,0.1))",
+              border: "1px solid rgba(123,47,247,0.4)",
             }}
           >
             <span className="text-gold-bright text-sm font-black tracking-widest">
