@@ -1,10 +1,20 @@
 import Image from "next/image";
+import Link from "next/link";
 import LogoImg from "@/assets/images/logo-purple.png";
 
-const links = {
-  Producto: ["Características", "Precios"],
-  Soporte: ["Contacto", "Centro de ayuda"],
-  Legal: ["Privacidad", "Términos de uso"],
+const links: Record<string, { label: string; href: string }[]> = {
+  Producto: [
+    { label: "Características", href: "#features" },
+    { label: "Blog", href: "/blog" },
+  ],
+  Soporte: [
+    { label: "Contacto", href: "https://wa.me/593978724619" },
+    { label: "Centro de ayuda", href: "#" },
+  ],
+  Legal: [
+    { label: "Privacidad", href: "#" },
+    { label: "Términos de uso", href: "#" },
+  ],
 };
 
 export default function Footer() {
@@ -46,13 +56,22 @@ export default function Footer() {
               </h4>
               <ul className="space-y-2.5">
                 {items.map((item) => (
-                  <li key={item}>
-                    <a
-                      href="#"
-                      className="text-white/35 text-sm hover:text-gold transition-colors"
-                    >
-                      {item}
-                    </a>
+                  <li key={item.label}>
+                    {item.href.startsWith("/") ? (
+                      <Link
+                        href={item.href}
+                        className="text-white/35 text-sm hover:text-gold transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={item.href}
+                        className="text-white/35 text-sm hover:text-gold transition-colors"
+                      >
+                        {item.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

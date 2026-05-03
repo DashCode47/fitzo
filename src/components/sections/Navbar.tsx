@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import LogoImg from "@/assets/images/logo-purple.png";
 
 const navLinks = [
@@ -9,6 +10,7 @@ const navLinks = [
   { label: "Cómo funciona", href: "#how-it-works" },
   { label: "Rankings", href: "#rankings" },
   { label: "Nutrición", href: "#nutrition" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export default function Navbar() {
@@ -35,16 +37,27 @@ export default function Navbar() {
 
         {/* Desktop links */}
         <ul className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <li key={link.href}>
-              <a
-                href={link.href}
-                className="text-sm text-white/60 hover:text-gold transition-colors duration-200 tracking-wide"
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
+          {navLinks.map((link) =>
+            link.href.startsWith("#") ? (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  className="text-sm text-white/60 hover:text-gold transition-colors duration-200 tracking-wide"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ) : (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="text-sm text-white/60 hover:text-gold transition-colors duration-200 tracking-wide"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            )
+          )}
         </ul>
 
         {/* CTA */}
@@ -90,16 +103,27 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-white/[0.06] px-6 py-6 flex flex-col gap-4">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className="text-white/70 hover:text-gold transition-colors py-2 text-lg"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) =>
+            link.href.startsWith("#") ? (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="text-white/70 hover:text-gold transition-colors py-2 text-lg"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="text-white/70 hover:text-gold transition-colors py-2 text-lg"
+              >
+                {link.label}
+              </Link>
+            )
+          )}
           <a
             href="https://wa.me/593978724619?text=Hola%2C%20me%20interesa%20una%20demo%20de%20Fitzo%20para%20mi%20gimnasio%20%F0%9F%92%AA"
             target="_blank"

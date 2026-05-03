@@ -85,9 +85,68 @@
     @apply border-gold/80 bg-gold/10;
     transform: translateY(-1px);
   }
+
+  /* Blog MDX prose styles */
+  .prose-fitzo {
+    @apply text-white/70 leading-relaxed;
+  }
+
+  .prose-fitzo h2 {
+    @apply text-2xl md:text-3xl font-black text-white mt-12 mb-4;
+  }
+
+  .prose-fitzo h3 {
+    @apply text-xl font-black text-white mt-8 mb-3;
+  }
+
+  .prose-fitzo p {
+    @apply mb-6 text-base md:text-lg leading-relaxed;
+  }
+
+  .prose-fitzo ul {
+    @apply mb-6 space-y-2 list-none pl-0;
+  }
+
+  .prose-fitzo ul li {
+    @apply pl-5 relative text-white/70;
+  }
+
+  .prose-fitzo ul li::before {
+    content: "→";
+    @apply absolute left-0 text-gold font-bold;
+  }
+
+  .prose-fitzo ol {
+    @apply mb-6 space-y-2 list-decimal pl-6;
+  }
+
+  .prose-fitzo ol li {
+    @apply text-white/70;
+  }
+
+  .prose-fitzo strong {
+    @apply text-white font-bold;
+  }
+
+  .prose-fitzo a {
+    @apply text-gold hover:text-gold-light underline transition-colors;
+  }
+
+  .prose-fitzo blockquote {
+    @apply border-l-4 border-gold/50 pl-6 my-8 text-white/50 italic;
+  }
+
+  .prose-fitzo code {
+    @apply bg-white/[0.06] text-gold px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+
+  .prose-fitzo hr {
+    @apply border-white/[0.06] my-10;
+  }
 }
 
 @layer utilities {
+
   .text-shadow-gold {
     text-shadow: 0 0 30px rgba(123, 47, 247, 0.5);
   }
