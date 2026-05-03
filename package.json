@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "serve out",
+    "start": "next start",
     "postbuild": "next-sitemap"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "@vimeo/player": "^2.30.3",
     "next": "^16.2.1",
     "react": "^19.0.0",

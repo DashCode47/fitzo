@@ -3,17 +3,46 @@ import Script from "next/script";
 export default function Hero() {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "Fitzo",
-    applicationCategory: "HealthApplication",
-    operatingSystem: "iOS, Android",
-    description:
-      "App gamificada de gestión de gimnasio con rankings, nutrición y seguimiento de asistencia por geolocalización.",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://fitzo.one/#organization",
+        name: "Fitzo",
+        url: "https://fitzo.one",
+        logo: "https://fitzo.one/icon.png",
+        description:
+          "Software gamificado de gestión para gimnasios con check-in por geofencing, rankings, planes nutricionales y retención de miembros.",
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: "+593-97-872-4619",
+          contactType: "sales",
+          areaServed: "EC",
+          availableLanguage: ["Spanish"],
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://fitzo.one/#website",
+        url: "https://fitzo.one",
+        name: "Fitzo",
+        publisher: { "@id": "https://fitzo.one/#organization" },
+        inLanguage: "es-EC",
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "Fitzo",
+        applicationCategory: "HealthApplication",
+        operatingSystem: "iOS, Android",
+        description:
+          "App gamificada de gestión de gimnasio con rankings, nutrición y seguimiento de asistencia por geolocalización.",
+        publisher: { "@id": "https://fitzo.one/#organization" },
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+      },
+    ],
   };
 
   return (

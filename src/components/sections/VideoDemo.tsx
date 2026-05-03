@@ -4,13 +4,30 @@ import { useEffect, useRef, useState } from "react";
 import Player from "@vimeo/player";
 
 export default function VideoDemo() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(false);
 
   useEffect(() => {
-    if (!iframeRef.current) return;
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!shouldLoad || !iframeRef.current) return;
 
     const player = new Player(iframeRef.current);
     playerRef.current = player;
@@ -21,7 +38,7 @@ export default function VideoDemo() {
     player.on("ended", () => setIsPlaying(false));
 
     return () => { player.destroy(); };
-  }, []);
+  }, [shouldLoad]);
 
   const togglePlay = () => {
     if (!playerRef.current) return;
@@ -56,7 +73,7 @@ export default function VideoDemo() {
         </div>
 
         {/* Video wrapper */}
-        <div className="flex justify-center">
+        <div ref={containerRef} className="flex justify-center">
           <div
             className="relative rounded-2xl overflow-hidden w-full"
             style={{
@@ -65,13 +82,16 @@ export default function VideoDemo() {
               boxShadow: "0 0 80px rgba(123,47,247,0.2), 0 0 0 8px rgba(255,255,255,0.03)",
             }}
           >
-            <iframe
-              ref={iframeRef}
-              src="https://player.vimeo.com/video/1177014189?badge=0&autopause=0&player_id=0&app_id=58479&portrait=0&byline=0&title=0&controls=0"
-              allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
-              className="absolute inset-0 w-full h-full"
-              title="Fitzo — Demo"
-            />
+            {shouldLoad && (
+              <iframe
+                ref={iframeRef}
+                src="https://player.vimeo.com/video/1177014189?badge=0&autopause=0&player_id=0&app_id=58479&portrait=0&byline=0&title=0&controls=0"
+                allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+                loading="lazy"
+                className="absolute inset-0 w-full h-full"
+                title="Fitzo — Demo en video del software de gestión gamificado para gimnasios"
+              />
+            )}
 
             {/* Custom play/pause overlay */}
             <button
