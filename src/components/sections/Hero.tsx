@@ -57,12 +57,20 @@ export default function Hero() {
           </span>
         </div>
 
-        {/* Main heading — H1 for SEO */}
-        <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight leading-none mb-6">
-          <span className="block gold-text">FITZO</span>
+        {/* Wordmark */}
+        <div
+          className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight leading-none mb-6 gold-text"
+          aria-hidden="true"
+        >
+          FITZO
+        </div>
+
+        {/* H1 for SEO — descriptive, keyword-rich */}
+        <h1 className="text-xl sm:text-2xl font-semibold text-white/80 mb-4 tracking-widest uppercase">
+          Software gamificado de gestión para gimnasios
         </h1>
 
-        <p className="text-xl sm:text-2xl font-semibold text-white/80 mb-4 tracking-widest uppercase">
+        <p className="text-lg sm:text-xl font-medium text-white/70 mb-4">
           Más retención. Menos cancelaciones. Mejor gimnasio.
         </p>
 

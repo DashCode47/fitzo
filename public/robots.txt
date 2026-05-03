@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://fitzo.app
+Host: https://fitzo.one
 
 # Sitemaps
-Sitemap: https://fitzo.app/sitemap.xml
+Sitemap: https://fitzo.one/sitemap.xml

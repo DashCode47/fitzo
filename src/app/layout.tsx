@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://fitzo.app"),
+  metadataBase: new URL("https://fitzo.one"),
   title: {
     default: "Fitzo — Tu Transformación Comienza Hoy",
     template: "%s | Fitzo",
@@ -37,8 +37,8 @@ export const metadata: Metadata = {
   publisher: "Fitzo",
   openGraph: {
     type: "website",
-    locale: "es_ES",
-    url: "https://fitzo.app",
+    locale: "es_EC",
+    url: "https://fitzo.one",
     siteName: "Fitzo",
     title: "Fitzo — Tu Transformación Comienza Hoy",
     description:
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://fitzo.app",
+    canonical: "https://fitzo.one",
   },
 };
 
