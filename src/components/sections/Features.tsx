@@ -2,22 +2,22 @@ const pillars = [
   {
     number: "01",
     icon: "🏆",
-    headline: "El ranking hace el trabajo sucio",
-    body: "Cuando tus miembros compiten por el podio, faltar tiene un costo emocional. El FOMO se convierte en tu herramienta de retención más poderosa — sin que tú hagas nada.",
+    headline: "El ranking los trae de vuelta",
+    body: "Cuando alguien ve que bajó tres lugares en el ranking porque no fue a entrenar, vuelve. No porque se lo pidas — sino porque no puede quedarse atrás.",
     accent: "#7B2FF7",
   },
   {
     number: "02",
     icon: "⚡",
-    headline: "Check-in en menos de 2 segundos",
-    body: "Geofencing detecta la llegada automáticamente. Sin colas, sin personal extra, sin QR manual — tus miembros llegan y ya están registrados.",
+    headline: "Aforo en tiempo real, sin esfuerzo",
+    body: "Cuando un miembro llega, su ubicación lo detecta automáticamente y el aforo se actualiza solo. Sin conteos, sin planillas, sin distracciones — tú y tu equipo saben en todo momento si hay espacio disponible.",
     accent: "#A855F7",
   },
   {
     number: "03",
     icon: "🎯",
     headline: "Valor agregado sin contratar a nadie",
-    body: "Rutinas personalizadas, nutrición calculada y catálogo de productos — todo incluido. Tu gimnasio ofrece más que la competencia sin aumentar el equipo.",
+    body: "Rutinas, nutrición y productos en un solo lugar. Tus miembros tienen todo lo que necesitan sin salir de tu app — y tú te diferencias sin contratar a nadie.",
     accent: "#5B1FCF",
   },
 ];
