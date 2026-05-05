@@ -19,29 +19,36 @@ export const CrowdMeter = ({ count, maxCapacity = 80, users = [] }: CrowdMeterPr
   const percentage = Math.min(Math.round((count / maxCapacity) * 100), 100);
   const status = percentage > 80 ? 'Alta' : percentage > 50 ? 'Media' : 'Baja';
   const barColor = percentage > 80 ? theme.error : percentage > 50 ? theme.warning : theme.success;
-  const dotColor = barColor;
+  const iconBg = percentage > 80
+    ? 'rgba(248,113,113,0.12)'
+    : percentage > 50
+    ? 'rgba(251,191,36,0.12)'
+    : 'rgba(52,211,153,0.12)';
 
   return (
     <View style={styles.crowdWrap}>
       <View style={styles.crowdCard}>
         {/* Left: icon + info */}
         <View style={styles.crowdLeft}>
-          <View style={styles.crowdIconBox}>
-            <MaterialIcons name="groups" size={20} color={theme.success} />
+          <View style={[styles.crowdIconBox, { backgroundColor: iconBg }]}>
+            <MaterialIcons name="groups" size={20} color={barColor} />
           </View>
           <View>
             <Text style={styles.crowdLabel}>AFLUENCIA</Text>
             <View style={styles.crowdStatusRow}>
-              <View style={[styles.crowdDot, { backgroundColor: dotColor }]} />
-              <Text style={styles.crowdStatusText}>{status}</Text>
+              <View style={[styles.crowdDot, { backgroundColor: barColor }]} />
+              <Text style={[styles.crowdStatusText, { color: barColor }]}>{status}</Text>
               <Text style={styles.crowdCount}>{count} / {maxCapacity}</Text>
             </View>
           </View>
         </View>
 
-        {/* Right: mini bar */}
-        <View style={styles.barTrack}>
-          <View style={[styles.barFill, { width: `${percentage}%` as any, backgroundColor: barColor }]} />
+        {/* Right: bar + percentage */}
+        <View style={styles.barWrapper}>
+          <Text style={[styles.barPercent, { color: barColor }]}>{percentage}%</Text>
+          <View style={styles.barTrack}>
+            <View style={[styles.barFill, { width: `${percentage}%` as any, backgroundColor: barColor }]} />
+          </View>
         </View>
       </View>
 
@@ -49,7 +56,7 @@ export const CrowdMeter = ({ count, maxCapacity = 80, users = [] }: CrowdMeterPr
         <View style={styles.crowdChips}>
           {users.map((u, i) => (
             <View key={u._id || i} style={styles.chip}>
-              <View style={[styles.chipDot, { backgroundColor: theme.success }]} />
+              <View style={[styles.chipDot, { backgroundColor: theme.accent }]} />
               <Text style={styles.chipText}>{u.metadata?.name || u.userId || '–'}</Text>
             </View>
           ))}
@@ -237,16 +244,25 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     color: theme.textMuted,
     fontSize: 12,
   },
+  barWrapper: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  barPercent: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   barTrack: {
-    width: 64,
-    height: 6,
+    width: 80,
+    height: 8,
     backgroundColor: theme.surface,
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   crowdChips: {
     flexDirection: 'row',

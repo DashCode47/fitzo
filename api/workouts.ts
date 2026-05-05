@@ -82,7 +82,7 @@ export const WorkoutsAPI = {
             id,
             workout_log_id,
             sets_completed,
-            workout_log (
+            workout_log:workout_logs (
               created_at
             )
           `)
@@ -95,8 +95,10 @@ export const WorkoutsAPI = {
       // Extract max weight or volume per session
       return data.map((log: any) => {
         const sets = log.sets_completed || [];
-        const maxWeight = Math.max(...sets.map((s: any) => s.weight || 0));
-        const totalVol = sets.reduce((acc: number, s: any) => acc + (s.weight * s.reps), 0);
+        const weights = sets.map((s: any) => s.weight || 0);
+        const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
+        const totalVol = sets.reduce((acc: number, s: any) => acc + ((s.weight || 0) * (s.reps || 0)), 0);
+        
         return {
           date: log.workout_log?.created_at,
           maxWeight,

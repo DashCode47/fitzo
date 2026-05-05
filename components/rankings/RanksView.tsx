@@ -200,8 +200,11 @@ export const RanksView: React.FC = () => {
               <Text style={styles.howToTitle}>¿CÓMO SUBIR DE NIVEL?</Text>
             </View>
             <Text style={styles.howToText}>
-              Tu rango se basa en tu <Text style={{fontWeight:'700', color: theme.textPrimary}}>fuerza relativa</Text>: el peso que levantas dividido por tu propio peso corporal (Ratio).
-              {'\n\n'}¡Aumenta el peso en los ejercicios con el tag <Text style={{fontWeight:'700', color: theme.accent}}>RANKING</Text> para progresar!
+              Tu rango se basa en tu <Text style={{fontWeight:'700', color: theme.textPrimary}}>fuerza relativa</Text> y tu <Text style={{fontWeight:'700', color: theme.accent}}>consistencia</Text>.
+              {'\n\n'}
+              1. <Text style={{fontWeight:'700', color: theme.textPrimary}}>Fuerza</Text>: Levanta más peso en los ejercicios marcados como <Text style={{fontWeight:'700', color: theme.accent}}>RANKING</Text>.
+              {'\n\n'}
+              2. <Text style={{fontWeight:'700', color: theme.textPrimary}}>Constancia</Text>: Por cada <Text style={{fontWeight:'700', color: theme.accent}}>30 días de racha</Text>, recibes un bono de <Text style={{fontWeight:'700', color: theme.textPrimary}}>+1.0 de nivel</Text> en tu ranking general.
             </Text>
           </View>
 

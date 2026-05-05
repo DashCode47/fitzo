@@ -57,9 +57,10 @@ interface AppState {
   userSchedule: UserSchedule[] | null;
 
   muscleRanks: UserRanks | null;
+  lastStreak: number;
   
   // Settings
-  themeMode: 'dark' | 'light' | 'cyan';
+  themeMode: 'dark' | 'light' | 'cyan' | 'gold';
   
   // Hydration state
   isHydrated: boolean;
@@ -79,7 +80,8 @@ interface AppState {
   resetWorkoutLogs: () => void;
   setUserSchedule: (schedule: UserSchedule[]) => void;
   setMuscleRanks: (ranks: UserRanks | null) => void;
-  setThemeMode: (mode: 'dark' | 'light' | 'cyan') => void;
+  setLastStreak: (streak: number) => void;
+  setThemeMode: (mode: 'dark' | 'light' | 'cyan' | 'gold') => void;
   setHydrated: (val: boolean) => void;
   
   // Actions
@@ -105,6 +107,7 @@ export const useAppStore = create<AppState>()(
       logsOffset: 0,
       userSchedule: null,
       muscleRanks: null,
+      lastStreak: 0,
       themeMode: 'dark',
       isHydrated: false,
 
@@ -126,6 +129,7 @@ export const useAppStore = create<AppState>()(
       resetWorkoutLogs: () => set({ workoutLogs: [], logsOffset: 0, hasMoreLogs: true }),
       setUserSchedule: (userSchedule) => set({ userSchedule }),
       setMuscleRanks: (muscleRanks) => set({ muscleRanks }),
+      setLastStreak: (lastStreak) => set({ lastStreak }),
       setThemeMode: (themeMode) => set({ themeMode }),
       setHydrated: (isHydrated) => set({ isHydrated }),
 
@@ -177,7 +181,8 @@ export const useAppStore = create<AppState>()(
         activeWorkout: null,
         workoutLogs: null,
         userSchedule: null,
-        muscleRanks: null
+        muscleRanks: null,
+        lastStreak: 0
       }),
     }),
     {

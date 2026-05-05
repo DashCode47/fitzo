@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Easing,
   FlatList,
   Image,
   Modal,
@@ -24,6 +25,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { RankingInfoModal } from '@/components/rankings/RankingInfoModal';
 
 const RANK_COLORS = ['#C5A356', '#A8A8B3', '#CD7F32'] as const;
 
@@ -234,129 +237,152 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     paddingVertical: 11,
   },
   retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-  // Info Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: theme.bgCard,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 12,
-    paddingBottom: 40,
-    maxHeight: '80%',
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.borderMuted,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    paddingHorizontal: 20,
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: theme.textMuted,
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  modalTierRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.borderSubtle,
-  },
-  modalTierIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalTierName: { fontSize: 15, fontWeight: '700', color: theme.textPrimary },
-  modalTierDesc: { fontSize: 12, color: theme.textMuted, marginTop: 1 },
-  modalCloseBtn: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  modalCloseBtnGradient: {
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  modalCloseBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
 
-const TIER_DESCRIPTIONS: Record<string, string> = {
-  Chulla:     'Nivel inicial. Estás empezando tu camino.',
-  Camellador: 'Ya tienes base. Constancia ante todo.',
-  Chagra:     'Fuerza sólida. El gym se nota.',
-  Capo:       'Alto rendimiento. Referente en el gym.',
-  Máquina:    'Nivel elite. Números que impresionan.',
-  Atahualpa:  'El pico. Fuerza de leyenda.',
-};
+// Modal styles removed (now shared)
 
-// ─── Info Modal ───────────────────────────────────────────────────────────────
-function InfoModal({ visible, onClose, theme, styles }: {
-  visible: boolean;
-  onClose: () => void;
+// ─── Podium ───────────────────────────────────────────────────────────────────
+function PodiumView({ top3, profileId, theme }: {
+  top3: LeaderboardItem[];
+  profileId?: string;
   theme: AppTheme;
-  styles: any;
 }) {
+  const first  = top3.find(i => i.position === 1);
+  const second = top3.find(i => i.position === 2);
+  const third  = top3.find(i => i.position === 3);
+
+  // Crown float animation for #1
+  const crownFloat = useRef(new Animated.Value(0)).current;
+  
+  // Slide-up animations for each slot
+  const anim1 = useRef(new Animated.Value(50)).current;
+  const fade1 = useRef(new Animated.Value(0)).current;
+  const anim2 = useRef(new Animated.Value(50)).current;
+  const fade2 = useRef(new Animated.Value(0)).current;
+  const anim3 = useRef(new Animated.Value(50)).current;
+  const fade3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(crownFloat, { toValue: -6, duration: 900, useNativeDriver: true }),
+        Animated.timing(crownFloat, { toValue: 0,  duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  useEffect(() => {
+    const makeParallel = (anim: Animated.Value, fade: Animated.Value, delay: number) =>
+      Animated.parallel([
+        Animated.timing(anim, { toValue: 0, duration: 480, delay, useNativeDriver: true, easing: Easing.out(Easing.back(1.1)) }),
+        Animated.timing(fade, { toValue: 1, duration: 380, delay, useNativeDriver: true }),
+      ]);
+
+    Animated.parallel([
+      makeParallel(anim1, fade1, 0),
+      makeParallel(anim2, fade2, 80),
+      makeParallel(anim3, fade3, 160),
+    ]).start();
+  }, []);
+
+  if (!first) return null;
+
+  const tierInfo = (entry?: LeaderboardItem) =>
+    entry ? (RANK_TIERS.find(t => t.name === entry.rankTier) || RANK_TIERS[0]) : RANK_TIERS[0];
+
+  const podiumSlot = (
+    entry: LeaderboardItem | undefined,
+    pos: 1 | 2 | 3,
+    podiumH: number,
+    slideAnim: Animated.Value,
+    fadeAnim: Animated.Value,
+  ) => {
+    if (!entry) return <View style={{ flex: 1 }} />;
+    const rankColor = RANK_COLORS[pos - 1];
+    const avatarSize = pos === 1 ? 64 : 52;
+    const isMe = entry.id === profileId;
+    const tier = tierInfo(entry);
+
+    return (
+      <Animated.View
+        style={{ flex: 1, alignItems: 'center', opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+      >
+        {/* Crown for #1 */}
+        {pos === 1 && (
+          <Animated.View style={{ transform: [{ translateY: crownFloat }], marginBottom: 4 }}>
+            <Text style={{ fontSize: 22 }}>👑</Text>
+          </Animated.View>
+        )}
+        {/* Medal for #2/#3 */}
+        {pos !== 1 && (
+          <Ionicons name="medal-outline" size={18} color={rankColor} style={{ marginBottom: 6 }} />
+        )}
+
+        {/* Avatar */}
+        <View style={{
+          width: avatarSize, height: avatarSize,
+          borderRadius: avatarSize * 0.3,
+          borderWidth: 2.5, borderColor: rankColor,
+          backgroundColor: theme.surface,
+          overflow: 'hidden',
+          justifyContent: 'center', alignItems: 'center',
+          marginBottom: 8,
+        }}>
+          {entry.avatar
+            ? <Image source={{ uri: entry.avatar }} style={{ width: '100%', height: '100%' }} />
+            : <Ionicons name="person" size={pos === 1 ? 28 : 22} color={theme.textMuted} />
+          }
+        </View>
+
+        {/* Name */}
+        <Text numberOfLines={1} style={{
+          fontSize: pos === 1 ? 13 : 12,
+          fontWeight: '800',
+          color: pos === 1 ? rankColor : theme.textPrimary,
+          marginBottom: 2,
+          maxWidth: '100%',
+          textAlign: 'center',
+          paddingHorizontal: 4,
+        }}>
+          {entry.name}{isMe ? ' ★' : ''}
+        </Text>
+
+        {/* Tier badge */}
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 3,
+          backgroundColor: tier.color + '22',
+          paddingHorizontal: 7, paddingVertical: 3,
+          borderRadius: 6, marginBottom: 8,
+        }}>
+          <Ionicons name={tier.icon as any} size={9} color={tier.color} />
+          <Text style={{ fontSize: 9, fontWeight: '800', color: tier.color }}>{tier.name}</Text>
+        </View>
+
+        {/* Podium block */}
+        <LinearGradient
+          colors={[rankColor + '55', rankColor + '22']}
+          style={{
+            width: '100%', height: podiumH,
+            borderTopLeftRadius: 10, borderTopRightRadius: 10,
+            justifyContent: 'center', alignItems: 'center',
+            borderWidth: 1, borderBottomWidth: 0,
+            borderColor: rankColor + '60',
+          }}
+        >
+          <Text style={{ fontSize: pos === 1 ? 22 : 18, fontWeight: '900', color: rankColor }}>
+            {pos}
+          </Text>
+        </LinearGradient>
+      </Animated.View>
+    );
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Sistema de Rangos</Text>
-            <Text style={styles.modalSubtitle}>
-              El ranking se basa en tu fuerza relativa al peso corporal.{'\n'}
-              Cada rango requiere levantar más peso proporcional a ti.
-            </Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {RANK_TIERS.map((tier, index) => (
-                <View key={tier.name} style={styles.modalTierRow}>
-                  <View style={[styles.modalTierIcon, { backgroundColor: tier.color + '20' }]}>
-                    <Ionicons name={tier.icon as any} size={20} color={tier.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalTierName}>{tier.name}</Text>
-                    <Text style={styles.modalTierDesc}>{TIER_DESCRIPTIONS[tier.name]}</Text>
-                  </View>
-                  <Text style={{ fontSize: 11, color: theme.textMuted }}>Nivel {index + 1}</Text>
-                </View>
-              ))}
-            </ScrollView>
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
-              <LinearGradient
-                colors={theme.gradients.accent}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.modalCloseBtnGradient}
-              >
-                <Text style={styles.modalCloseBtnText}>Entendido</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, marginBottom: 8 }}>
+      {podiumSlot(second, 2, 56,  anim2, fade2)}
+      {podiumSlot(first,  1, 80,  anim1, fade1)}
+      {podiumSlot(third,  3, 44,  anim3, fade3)}
+    </View>
   );
 }
 
@@ -371,6 +397,7 @@ function LeaderboardRow({ item, isMe, index, theme, styles }: {
   const isTop3 = item.position <= 3;
   const isFirst = item.position === 1;
   const isSecond = item.position === 2;
+  const isThird = item.position === 3;
   const rankColor = isTop3 ? RANK_COLORS[item.position - 1] : null;
   const tierInfo = RANK_TIERS.find(t => t.name === item.rankTier) || RANK_TIERS[0];
 
@@ -380,7 +407,7 @@ function LeaderboardRow({ item, isMe, index, theme, styles }: {
   useEffect(() => {
     const delay = index * 55;
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: 350, delay, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 350, delay, useNativeDriver: true, easing: Easing.out(Easing.back(1.1)) }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, delay, useNativeDriver: true }),
     ]).start();
   }, []);
@@ -410,6 +437,20 @@ function LeaderboardRow({ item, isMe, index, theme, styles }: {
     return () => loop.stop();
   }, [isSecond]);
 
+  // #3 — bronze glow pulsing border opacity
+  const bronzeAnim = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    if (!isThird) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bronzeAnim, { toValue: 0.8, duration: 1200, useNativeDriver: true }),
+        Animated.timing(bronzeAnim, { toValue: 0.3, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isThird]);
+
   const innerRow = (
     <>
       {/* #1 — fondo gradiente dorado */}
@@ -437,6 +478,21 @@ function LeaderboardRow({ item, isMe, index, theme, styles }: {
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
+      )}
+
+      {/* #3 — bronze glow border overlay */}
+      {isThird && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            borderRadius: 16,
+            borderWidth: 2,
+            borderColor: RANK_COLORS[2],
+            opacity: bronzeAnim,
+          }}
+        />
       )}
 
       <View style={styles.posCol}>
@@ -487,7 +543,7 @@ function LeaderboardRow({ item, isMe, index, theme, styles }: {
       isTop3 && styles.rowTop3,
       isFirst && styles.rowFirst,
       isMe && styles.rowMe,
-      (isFirst || isSecond) && { overflow: 'hidden' },
+      (isFirst || isSecond || isThird) && { overflow: 'hidden' },
     ]}>
       {innerRow}
     </View>
@@ -546,6 +602,9 @@ export default function RankingsScreen() {
   const myTierInfo = myEntry
     ? (RANK_TIERS.find(t => t.name === myEntry.rankTier) || RANK_TIERS[0])
     : null;
+
+  const top3Count = Math.min(3, leaderboard.length);
+  const showPodium = leaderboard.length >= 3;
 
   return (
     <View style={styles.root}>
@@ -643,8 +702,41 @@ export default function RankingsScreen() {
               </View>
             ) : (
               <View style={{ flex: 1, overflow: 'hidden' }}>
+                {/* Podium for top 3 */}
+                {showPodium && (
+                  <PodiumView
+                    top3={leaderboard.slice(0, 3)}
+                    profileId={profile?.id}
+                    theme={theme}
+                  />
+                )}
+
+                {/* Section header between podium and rest of list */}
+                {showPodium && leaderboard.length > 3 && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 20,
+                    marginTop: 8,
+                    marginBottom: 8,
+                    gap: 10,
+                  }}>
+                    <View style={{ flex: 1, height: 1, backgroundColor: theme.borderSubtle }} />
+                    <Text style={{
+                      fontSize: 11,
+                      fontWeight: '800',
+                      color: theme.textMuted,
+                      textTransform: 'uppercase',
+                      letterSpacing: 1.5,
+                    }}>
+                      RESTO DEL RANKING
+                    </Text>
+                    <View style={{ flex: 1, height: 1, backgroundColor: theme.borderSubtle }} />
+                  </View>
+                )}
+
                 <FlatList
-                  data={leaderboard}
+                  data={leaderboard.slice(top3Count)}
                   keyExtractor={item => item.id}
                   renderItem={({ item, index }) => (
                     <LeaderboardRow
@@ -666,11 +758,10 @@ export default function RankingsScreen() {
         )}
       </SafeAreaView>
 
-      <InfoModal
+      <RankingInfoModal
         visible={infoVisible}
         onClose={() => setInfoVisible(false)}
-        theme={theme}
-        styles={styles}
+        currentTierIndex={myEntry ? RANK_TIERS.findIndex(t => t.name === myEntry.rankTier) : -1}
       />
     </View>
   );

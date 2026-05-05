@@ -1,6 +1,6 @@
 
-import { theme } from '@/constants/theme';
 import { OnboardingSkeleton } from '@/components/home/OnboardingSkeleton';
+import { theme } from '@/constants/theme';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,10 +60,24 @@ export default function OnboardingScreen() {
   }, []);
 
   const checkSession = async () => {
+    const startTime = Date.now();
     try {
       const { data: { session } } = await supabase.auth.getSession();
+
+      const elapsed = Date.now() - startTime;
+      const minDelay = 2000; // 2 seconds total splash time
+      const remaining = Math.max(0, minDelay - elapsed);
+
       if (session) {
+        if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
         goToHome();
+      } else {
+        // For onboarding, we can show it faster or also wait. 
+        // User asked specifically "antes de seguir al home", so let's keep it fast for new users
+        // to reduce friction, unless they've seen it enough.
+        // Actually, let's wait at least 1.5s to see the logo if not logged in.
+        const onboardingDelay = Math.max(0, 1500 - elapsed);
+        if (onboardingDelay > 0) await new Promise(r => setTimeout(r, onboardingDelay));
       }
     } catch (e) {
       console.error("[Onboarding] Session check error:", e);

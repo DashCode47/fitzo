@@ -1,13 +1,13 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { RANK_TIERS } from '@/constants/ranks';
-import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { Svg, Circle } from 'react-native-svg';
-import { RankGuide } from './RankGuide';
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Circle, Svg } from 'react-native-svg';
+import { RankingInfoModal } from './RankingInfoModal';
 
 interface GeneralRankBadgeProps {
   tierIndex: number;
@@ -44,7 +44,7 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     marginBottom: 4,
   },
   tierName: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '900',
     color: '#FFFFFF',
     marginBottom: 8,
@@ -76,42 +76,6 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: theme.bgBase,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    maxHeight: '85%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: theme.textPrimary,
-  },
-  modalFooter: {
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: theme.borderSubtle,
-    marginTop: 8,
-  },
-  footerInfo: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 });
 
@@ -147,8 +111,8 @@ export const GeneralRankBadge: React.FC<GeneralRankBadgeProps> = ({ tierIndex, a
         end={{ x: 1, y: 1 }}
         style={styles.container}
       >
-        <TouchableOpacity 
-          style={styles.overlay} 
+        <TouchableOpacity
+          style={styles.overlay}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.9}
         >
@@ -158,10 +122,10 @@ export const GeneralRankBadge: React.FC<GeneralRankBadgeProps> = ({ tierIndex, a
                 <Text style={styles.rankTitle}>RANGO GENERAL</Text>
               </View>
               <Text style={styles.tierName}>{tierInfo.name}</Text>
-              
+
               {!isMaxTier ? (
                 <Text style={styles.description}>
-                  Faltan <Text style={{fontWeight:'900', color: '#fff'}}>{pointsNeeded}</Text> niveles para {RANK_TIERS[tierIndex + 1].name}
+                  Faltan <Text style={{ fontWeight: '900', color: '#fff' }}>{pointsNeeded}</Text> niveles para {RANK_TIERS[tierIndex + 1].name}
                 </Text>
               ) : (
                 <Text style={styles.description}>¡Máximo nivel alcanzado!</Text>
@@ -199,31 +163,11 @@ export const GeneralRankBadge: React.FC<GeneralRankBadgeProps> = ({ tierIndex, a
         </TouchableOpacity>
       </LinearGradient>
 
-      <Modal
+      <RankingInfoModal 
         visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sistema de Rangos</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={theme.textPrimary} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <RankGuide currentTierIndex={tierIndex} />
-              <View style={styles.modalFooter}>
-                <Text style={styles.footerInfo}>
-                  Los rangos se calculan evaluando el rendimiento de levantamiento máximo en relación al peso corporal.
-                </Text>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setModalVisible(false)}
+        currentTierIndex={tierIndex}
+      />
     </>
   );
 };

@@ -1,6 +1,6 @@
 import { StoreAPI } from '@/api/store';
 import { StoreSkeleton } from '@/components/store/StoreSkeleton';
-import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -69,9 +69,6 @@ export default function StoreScreen() {
         )}
         <View style={styles.priceRow}>
           <Text style={styles.price}>${item.price}</Text>
-          <View style={styles.addBtn}>
-            <Ionicons name="add" size={16} color="#fff" />
-          </View>
         </View>
       </View>
     </TouchableOpacity>

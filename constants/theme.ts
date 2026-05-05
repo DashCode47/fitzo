@@ -41,6 +41,17 @@ const palette = {
   vibrant500: '#81da7e',
   vibrant600: '#41bfe8',
   vibrant700: '#4cd6c8',
+
+  // Gold
+  gold400: '#D4B96A',
+  gold500: '#C5A356',
+  gold600: '#A8873E',
+  goldBright: '#FFD700',
+
+  // Dark (Gold theme backgrounds)
+  darkBg:      '#000000',
+  darkCard:    '#111111',
+  darkSurface: '#1A1A1A',
 } as const;
 
 // ─── Theme shape ──────────────────────────────────────────────────────────────
@@ -164,8 +175,45 @@ export const cyanTheme: AppTheme = {
   },
 } as const;
 
+export const goldTheme: AppTheme = {
+  // Backgrounds
+  bgDeep:   palette.darkBg,
+  bgBase:   palette.darkCard,
+  bgSubtle: palette.darkSurface,
+  bgCard:   palette.darkCard,
+  surface:  'rgba(197,163,86,0.06)',
+
+  // Text
+  textPrimary:   palette.white,
+  textSecondary: palette.gray300,
+  textMuted:     palette.gray500,
+
+  // Accent
+  accent:        palette.gold500,
+  accentLight:   palette.gold400,
+  accentDim:     'rgba(197,163,86,0.15)',
+  accentBorder:  'rgba(197,163,86,0.45)',
+  accentGlow:    'rgba(197,163,86,0.08)',
+
+  // Borders
+  borderSubtle:  'rgba(197,163,86,0.10)',
+  borderMuted:   'rgba(197,163,86,0.18)',
+
+  // Semantic
+  success: palette.green400,
+  error:   palette.red400,
+  warning: palette.goldBright,
+
+  // Gradient stops
+  gradients: {
+    bg:      [palette.darkBg, palette.darkCard, palette.darkSurface],
+    accent:  [palette.gold500, palette.gold400],
+    topGlow: ['rgba(197,163,86,0.16)', 'rgba(197,163,86,0)'],
+  },
+} as const;
+
 // ─── Active theme ─────────────────────────────────────────────────────────────
-export type ThemeMode = 'dark' | 'light' | 'cyan';
+export type ThemeMode = 'dark' | 'light' | 'cyan' | 'gold';
 
 /**
  * Helper to get the theme object based on mode string.
@@ -174,6 +222,7 @@ export const getTheme = (mode: ThemeMode): AppTheme => {
     switch (mode) {
         case 'light': return lightTheme;
         case 'cyan':  return cyanTheme;
+        case 'gold':  return goldTheme;
         default:      return darkTheme;
     }
 };

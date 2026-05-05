@@ -3,9 +3,9 @@ import { AuthAPI } from '@/api/auth';
 import { UserAPI } from '@/api/user';
 import { WorkoutsAPI } from '@/api/workouts';
 import { CustomModal } from '@/components/ui/CustomModal';
-import { theme, ThemeMode, AppTheme } from '@/constants/theme';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { AppTheme } from '@/constants/theme';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -318,27 +318,31 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.themeSelector}>
-            <ThemeOption 
-              label="Original" 
-              isActive={themeMode === 'dark'} 
-              color="#6C63FF" 
-              onPress={() => setThemeMode('dark')} 
+            <ThemeOption
+              isActive={themeMode === 'dark'}
+              color="#6C63FF"
+              onPress={() => setThemeMode('dark')}
               theme={theme}
               styles={styles}
             />
-            <ThemeOption 
-              label="Claro" 
-              isActive={themeMode === 'light'} 
-              color="#F4F4F5" 
-              onPress={() => setThemeMode('light')} 
+            <ThemeOption
+              isActive={themeMode === 'light'}
+              color="#F4F4F5"
+              onPress={() => setThemeMode('light')}
               theme={theme}
               styles={styles}
             />
-            <ThemeOption 
-              label="Cyan" 
-              isActive={themeMode === 'cyan'} 
-              color="#4CD6C8" 
-              onPress={() => setThemeMode('cyan')} 
+            <ThemeOption
+              isActive={themeMode === 'cyan'}
+              color="#4CD6C8"
+              onPress={() => setThemeMode('cyan')}
+              theme={theme}
+              styles={styles}
+            />
+            <ThemeOption
+              isActive={themeMode === 'gold'}
+              color="#C5A356"
+              onPress={() => setThemeMode('gold')}
               theme={theme}
               styles={styles}
             />
@@ -358,8 +362,8 @@ export default function ProfileScreen() {
           ) : (
             <View style={styles.historyList}>
               {(workoutLogs || []).map((log) => (
-                <TouchableOpacity 
-                  key={log.id} 
+                <TouchableOpacity
+                  key={log.id}
                   style={styles.historyItem}
                   onPress={() => loadWorkoutDetails(log)}
                 >
@@ -438,8 +442,8 @@ export default function ProfileScreen() {
 
                   <Text style={detailsModalStyles.sectionTitle}>EJERCICIOS</Text>
                   {workoutExercises.map((exLog, idx) => (
-                    <TouchableOpacity 
-                      key={idx} 
+                    <TouchableOpacity
+                      key={idx}
                       style={detailsModalStyles.exItem}
                       onPress={() => handleExercisePress(exLog.exercise_id)}
                     >
@@ -467,25 +471,28 @@ export default function ProfileScreen() {
   );
 }
 
-function ThemeOption({ label, isActive, color, onPress, theme, styles }: { 
-  label: string; 
-  isActive: boolean; 
-  color: string; 
+function ThemeOption({ isActive, color, onPress, theme, styles }: {
+  isActive: boolean;
+  color: string;
   onPress: () => void;
   theme: AppTheme;
   styles: any;
 }) {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
-        styles.themeOption, 
+        styles.themeOption,
         isActive && { borderColor: theme.accent, backgroundColor: theme.surface }
-      ]} 
+      ]}
       onPress={onPress}
     >
-      <View style={[styles.themeColorCircle, { backgroundColor: color }]} />
-      <Text style={[styles.themeLabel, isActive && { color: theme.accent }]}>{label}</Text>
-      {isActive && <Ionicons name="checkmark-circle" size={14} color={theme.accent} />}
+      <View style={[styles.themeColorCircle, { backgroundColor: color }]}>
+        {isActive && (
+          <View style={styles.themeActiveIndicator}>
+            <Ionicons name="checkmark" size={10} color="#fff" />
+          </View>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -692,30 +699,39 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
   },
   themeSelector: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     marginBottom: 8,
   },
   themeOption: {
-    flex: 1,
-    flexDirection: 'row',
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.bgCard,
     borderWidth: 1,
     borderColor: theme.borderSubtle,
-    borderRadius: 12,
-    padding: 10,
-    gap: 8,
+    borderRadius: 16,
   },
   themeColorCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  themeLabel: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.textSecondary,
+  themeActiveIndicator: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: theme.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.surface,
   },
   logoutBtn: {
     flexDirection: 'row',

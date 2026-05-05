@@ -1,71 +1,67 @@
-import { theme } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, Easing, Image, StyleSheet, Text, View } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-function Bone({ w, h, radius = 8, style }: { w: number | string; h: number; radius?: number; style?: any }) {
-  const shimmer = useRef(new Animated.Value(0)).current;
+/**
+ * OnboardingSkeleton is now a Premium Splash/Loader screen.
+ * Shows the app logo with a pulse animation and a loading indicator.
+ */
+export function OnboardingSkeleton() {
+  const pulseAnim = useRef(new Animated.Value(0.95)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Smooth entry
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
+    // Subtle breathing pulse
     Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(shimmer, { toValue: 0, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.04,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.95,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ])
     ).start();
-  }, [shimmer]);
+  }, []);
 
-  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.55] });
-
-  return (
-    <Animated.View
-      style={[
-        { width: w as any, height: h, borderRadius: radius, backgroundColor: 'rgba(255,255,255,0.08)', opacity },
-        style,
-      ]}
-    />
-  );
-}
-
-export function OnboardingSkeleton() {
   return (
     <View style={styles.container}>
-      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-
-      {/* Fake image area */}
-      <Bone w={width} h={height * 0.65} radius={0} style={{ position: 'absolute', top: 0 }} />
-
-      {/* Gradient overlay */}
+      {/* Premium dark gradient background */}
       <LinearGradient
-        colors={['transparent', 'rgba(7,7,15,0.6)', theme.bgDeep, 'black']}
+        colors={['#000000', '#000000']}
         style={StyleSheet.absoluteFill}
-        pointerEvents="none"
       />
 
-      {/* Text content area */}
-      <View style={styles.content}>
-        <Bone w="70%" h={38} radius={8} style={{ marginBottom: 10 }} />
-        <Bone w="50%" h={38} radius={8} style={{ marginBottom: 20 }} />
-        <Bone w="85%" h={16} radius={6} style={{ marginBottom: 8 }} />
-        <Bone w="70%" h={16} radius={6} />
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        {/* Dots */}
-        <View style={styles.pagination}>
-          <Bone w={20} h={6} radius={3} />
-          <Bone w={6} h={6} radius={3} />
-          <Bone w={6} h={6} radius={3} />
+      <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ scale: pulseAnim }] }]}>
+        <View style={styles.logoWrapper}>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
+        <Text style={styles.appName}>FITZO</Text>
 
-        {/* Button */}
-        <Bone w="100%" h={60} radius={18} style={{ marginBottom: 20 }} />
+      </Animated.View>
 
-        {/* Skip */}
-        <Bone w={80} h={12} radius={4} />
+      <View style={styles.footer}>
+        <ActivityIndicator size="small" color="#C5A356" style={{ marginBottom: 16 }} />
+        <Text style={styles.loadingText}>Preparando tu experiencia...</Text>
       </View>
     </View>
   );
@@ -75,24 +71,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
-    justifyContent: 'flex-end',
-  },
-  content: {
-    paddingHorizontal: 40,
-    paddingBottom: 240,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerContent: {
+    alignItems: 'center',
+  },
+  logoWrapper: {
+    width: 160,
+    height: 160,
+    marginBottom: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
+  },
+  appName: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 8,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   footer: {
     position: 'absolute',
-    bottom: 50,
-    width: '100%',
+    bottom: 80,
     alignItems: 'center',
-    paddingHorizontal: 30,
   },
-  pagination: {
-    flexDirection: 'row',
-    marginBottom: 40,
-    gap: 8,
-    alignItems: 'center',
+  loadingText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });

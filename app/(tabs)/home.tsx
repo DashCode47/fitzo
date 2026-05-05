@@ -5,7 +5,10 @@ import { ContentAPI } from '@/api/content';
 import { LeaderboardAPI } from '@/api/leaderboard';
 import { NutritionAPI } from '@/api/nutrition';
 import { UserAPI } from '@/api/user';
+import { AttendanceAPI, StreakData } from '@/api/attendance';
 import { CrowdMeter, PromoCarousel } from '@/components/home/HeaderComponents';
+import { CustomModal } from '@/components/ui/CustomModal';
+import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSkeleton } from '@/components/home/HomeSkeleton';
 import { EventsTimeline, NutritionCard, TopThreePodium } from '@/components/home/SectionComponents';
 import { theme as staticTheme, AppTheme } from '@/constants/theme';
@@ -69,7 +72,7 @@ function LocationPermissionNotice({ onAction, theme, styles }: { onAction: () =>
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { goToLogin, goToProfile, goToNutrition, goToScanner, goToRankings, goToLocationPermission } = useAppNavigation();
+  const { goToLogin, goToProfile, goToNutrition, goToScanner, goToLocationPermission } = useAppNavigation();
   const theme = useAppTheme();
   const styles = createStyles(theme);
 
@@ -82,11 +85,15 @@ export default function HomeScreen() {
     userSchedule, setUserSchedule,
     setActiveWorkout,
     isHydrated,
+    lastStreak, setLastStreak
   } = useAppStore();
-
+  
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
   const { count: gymCount, maxCapacity } = useGymOccupancy();
+  const [streakData, setStreakData] = useState<StreakData>({ streak: 0, weekDays: 0, todayCount: 0 });
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [showStreakLost, setShowStreakLost] = useState(false);
 
   const [data, setData] = useState<any>({
     promos: [],
@@ -139,20 +146,28 @@ export default function HomeScreen() {
       if (newLeaderboard) setLeaderboard(newLeaderboard);
       if (newNutrition !== undefined) setActiveDiet(newNutrition);
 
-      // Also get schedule for the CTA
       if (session.user.id) {
         RoutinesAPI.getUserSchedule(session.user.id).then(setUserSchedule).catch(() => {});
       }
 
       // SYNC RANK TO DB (Optimization: only if we have weights)
       if (session.user.id) {
-        RanksAPI.getUserMaxWeights(session.user.id).then(async (weights) => {
+        Promise.all([
+          RanksAPI.getUserMaxWeights(session.user.id),
+          AttendanceAPI.getStreakData(session.user.id)
+        ]).then(async ([weights, streakInfo]) => {
+          // Detect streak loss
+          if (streakInfo.streak === 0 && lastStreak > 0) {
+            setShowStreakLost(true);
+          }
+          setLastStreak(streakInfo.streak);
+          setStreakData(streakInfo);
+
           if (weights.length) {
-            // Get user stats for weight/gender
             const { data: stats } = await supabase.from('user_stats').select('weight, gender').eq('user_id', session.user.id).single();
             const bw = stats?.weight || 75;
             const gn = stats?.gender || 'M';
-            const calculated = calculateAllRanks(weights, bw, gn as any);
+            const calculated = calculateAllRanks(weights, bw, gn as any, streakInfo.streak);
             await RanksAPI.syncRankToProfile(session.user.id, calculated.avgIndex, calculated.generalTier);
           }
         }).catch(() => {});
@@ -162,6 +177,26 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    if (checkingIn || streakData.todayCount >= 1) return;
+    setCheckingIn(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const userId = session.user.id;
+      const result = await AttendanceAPI.checkIn(userId);
+      console.log('[CheckIn] result:', result);
+      if (result.success) {
+        const updated = await AttendanceAPI.getStreakData(userId);
+        setStreakData(updated);
+      }
+    } catch (e) {
+      console.error('[HomeScreen] Check-in failed:', e);
+    } finally {
+      setCheckingIn(false);
     }
   };
 
@@ -234,26 +269,46 @@ export default function HomeScreen() {
           }
         >
           {/* ── Header ── */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.greeting}>Hola, {profile?.username || 'Atleta'}</Text>
-              <TouchableOpacity style={styles.pointsBadge} onPress={goToRankings}>
-                <Ionicons name="flash" size={13} color={theme.accent} />
-                <Text style={styles.pointsText}>{profile?.total_points || 0} pts</Text>
-              </TouchableOpacity>
+          <HomeHeader
+            profile={profile}
+            streakData={streakData}
+            onScannerPress={goToScanner}
+            onProfilePress={goToProfile}
+          />
+
+          {/* ── Attendance Check-in ── */}
+          <View style={styles.attendanceCard}>
+            <View style={styles.attendanceInfo}>
+              <Ionicons name="calendar-outline" size={16} color={theme.accent} />
+              <Text style={styles.attendanceInfoText}>
+                {streakData.weekDays >= 4
+                  ? '¡Racha asegurada esta semana!'
+                  : `${streakData.weekDays}/4 días esta semana`}
+              </Text>
             </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.iconBtn} onPress={goToScanner}>
-                <Ionicons name="qr-code-outline" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.avatarBtn} onPress={goToProfile}>
-                {profile?.photo_url ? (
-                  <Image source={{ uri: profile.photo_url }} style={styles.avatar} />
-                ) : (
-                  <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
-                )}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={[
+                styles.checkInBtn,
+                streakData.todayCount >= 1 && styles.checkInBtnDone,
+              ]}
+              onPress={handleCheckIn}
+              disabled={streakData.todayCount >= 1 || checkingIn}
+              activeOpacity={0.8}
+            >
+              {streakData.todayCount >= 1 ? (
+                <>
+                  <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                  <Text style={[styles.checkInBtnText, { color: theme.success }]}>Registrado hoy</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="add-circle-outline" size={16} color="#fff" />
+                  <Text style={styles.checkInBtnText}>
+                    {checkingIn ? 'Registrando...' : 'Marcar asistencia'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
 
           {/* ── Crowd Meter ── */}
@@ -320,6 +375,15 @@ export default function HomeScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
+
+      <CustomModal
+        visible={showStreakLost}
+        type="error"
+        title="Racha Perdida"
+        message="¡Oh no! Tu racha ha vuelto a 0. Recuerda que la 'maestría' requiere constancia. ¡No te rindas y empieza una nueva racha hoy!"
+        buttonText="Aceptar el reto"
+        onClose={() => setShowStreakLost(false)}
+      />
     </View>
   );
 }
@@ -340,38 +404,50 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     paddingBottom: 20,
   },
 
-  // ── Header ──────────────────────────────────────────────────────────────────
-  header: {
+  // Header removed to HomeHeader.tsx
+
+  // ── Attendance card ──────────────────────────────────────────────────────────
+  attendanceCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    marginHorizontal: 20,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: theme.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.borderSubtle,
+    gap: 12,
   },
-  headerLeft: {
-    gap: 4,
-  },
-  greeting: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    letterSpacing: -0.3,
-  },
-  pointsBadge: {
+  attendanceInfo: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.accentDim,
-    borderWidth: 1,
-    borderColor: theme.accentBorder,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+    gap: 6,
   },
-  pointsText: {
-    color: theme.accent,
+  attendanceInfoText: {
+    color: theme.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  checkInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: theme.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  checkInBtnDone: {
+    backgroundColor: 'rgba(52,211,153,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.3)',
+  },
+  checkInBtnText: {
+    color: '#fff',
     fontSize: 12,
     fontWeight: '700',
   },

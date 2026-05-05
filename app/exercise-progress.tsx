@@ -1,7 +1,8 @@
 
 import { Exercise, RoutinesAPI } from '@/api/routines';
 import { WorkoutsAPI } from '@/api/workouts';
-import { theme } from '@/constants/theme';
+import { AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +29,8 @@ export default function ExerciseProgressScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { profile } = useAppStore();
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -161,7 +164,7 @@ export default function ExerciseProgressScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -194,7 +197,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#fff',
+    color: theme.textPrimary,
   },
   scroll: {
     padding: 20,

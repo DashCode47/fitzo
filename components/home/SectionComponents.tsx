@@ -1,9 +1,11 @@
-import { theme as staticTheme, AppTheme } from '@/constants/theme';
+import { AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const width = Dimensions.get('window').width;
 
 const createStyles = (theme: AppTheme) => StyleSheet.create({
   section: {
@@ -103,25 +105,31 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
 
   // ── Podium ──────────────────────────────────────────────────────────────────
   podiumCard: {
-    padding: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 12,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   podiumRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'flex-end',
+    gap: 8,
   },
   podiumItem: {
-    flex: 1,
+    width: (width - 64) / 3,
     alignItems: 'center',
     gap: 4,
   },
   podiumAvatarWrap: {
     position: 'relative',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   podiumAvatar: {
     borderWidth: 2,
-    borderColor: theme.borderMuted,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: theme.surface,
   },
   glowRing: {
     position: 'absolute',
@@ -132,44 +140,48 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
   },
   rankBadge: {
     position: 'absolute',
-    bottom: -4,
-    right: -4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: theme.bgCard,
+    borderColor: '#111',
   },
   rankBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
-    color: theme.bgDeep,
+    fontWeight: '900',
+    color: '#fff',
   },
   podiumName: {
     color: theme.textPrimary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
   },
   podiumScore: {
-    color: theme.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  tierPill: {
-    backgroundColor: theme.accentDim,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    color: theme.accent,
+    fontSize: 13,
+    fontWeight: '800',
     marginTop: 2,
   },
+  tierPill: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
   tierText: {
-    color: theme.accent,
+    color: theme.textSecondary,
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   // ── Nutrition ────────────────────────────────────────────────────────────────
@@ -343,12 +355,14 @@ export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
     return (
       <View style={[styles.podiumItem, elevated && { marginTop: -20 }]}>
         {elevated && (
-          <Ionicons name="trophy" size={22} color="#C5A356" style={{ marginBottom: 6 }} />
+          <View style={{ marginBottom: 6, alignItems: 'center' }}>
+            <Ionicons name="trophy" size={20} color="#C5A356" />
+          </View>
         )}
         <View style={styles.podiumAvatarWrap}>
           {elevated && (
             <LinearGradient
-              colors={['#C5A356', '#E5C78B']}
+              colors={['#C5A356', 'transparent']}
               style={[styles.glowRing, { borderRadius: avatarSize / 2 + 6 }]}
             />
           )}
@@ -360,9 +374,10 @@ export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
             <Text style={styles.rankBadgeText}>{entry.rank}</Text>
           </View>
         </View>
-        <Text style={[styles.podiumName, elevated && { fontSize: 15, fontWeight: '800' }]} numberOfLines={1}>
+        <Text style={[styles.podiumName, elevated && { fontSize: 14, fontWeight: '800' }]} numberOfLines={1}>
           {entry.name}
         </Text>
+        <Text style={styles.podiumScore}>{entry.score.toFixed(1)}</Text>
         <View style={styles.tierPill}>
           <Text style={styles.tierText}>{entry.tier || 'Chulla'}</Text>
         </View>
@@ -372,8 +387,14 @@ export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
 
   return (
     <View style={styles.section}>
-      <SectionHeader title="Los mas Rankeados" onSeeAll={onSeeAll} />
+      <SectionHeader title="Top Ranking General" onSeeAll={onSeeAll} />
       <View style={[styles.card, styles.podiumCard]}>
+        {/* Background Glow */}
+        <LinearGradient
+          colors={['rgba(197, 163, 86, 0.05)', 'transparent']}
+          style={[StyleSheet.absoluteFill, { height: '150%' }]}
+        />
+
         <View style={styles.podiumRow}>
           <PodiumItem entry={second} size="sm" />
           <PodiumItem entry={first} size="lg" elevated />

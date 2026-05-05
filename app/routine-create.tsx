@@ -9,8 +9,8 @@ import {
   TextInput,
   Modal,
   FlatList,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +31,8 @@ const MUSCLE_MAP: Record<string, string> = {
   'abs': 'Abdomen',
   'cardio': 'Cardio',
   'glutes': 'Glúteos',
-  'full body': 'Cuerpo Completo'
+  'full body': 'Cuerpo Completo',
+  'forearms': 'Antebrazos'
 };
 
 export default function RoutineCreateScreen() {
@@ -219,7 +220,7 @@ export default function RoutineCreateScreen() {
               <View style={styles.exerciseMain}>
                 <View style={styles.exerciseAvatar}>
                   {item.exercise.image_url ? (
-                    <Image source={{ uri: item.exercise.image_url }} style={styles.avatarImage} resizeMode="cover" />
+                    <Image source={{ uri: item.exercise.image_url }} style={styles.avatarImage} contentFit="cover" />
                   ) : (
                     <Ionicons name="fitness" size={20} color={theme.accent} />
                   )}
@@ -312,7 +313,7 @@ export default function RoutineCreateScreen() {
                             <View style={styles.catalogLeft}>
                                 <View style={styles.catalogAvatar}>
                                   {item.image_url ? (
-                                    <Image source={{ uri: item.image_url }} style={styles.avatarImage} resizeMode="cover" />
+                                    <Image source={{ uri: item.image_url }} style={styles.avatarImage} contentFit="cover" />
                                   ) : (
                                     <Ionicons name="fitness" size={18} color={theme.accent} />
                                   )}
@@ -365,7 +366,7 @@ export default function RoutineCreateScreen() {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View style={styles.previewImageContainer}>
                                 {previewExercise.image_url ? (
-                                    <Image source={{ uri: previewExercise.image_url }} style={styles.previewImage} resizeMode="cover" />
+                                    <Image source={{ uri: previewExercise.image_url }} style={styles.previewImage} contentFit="cover" />
                                 ) : (
                                     <View style={styles.modalIconPlaceholder}>
                                         <Ionicons name="barbell" size={60} color={theme.accentDim} />

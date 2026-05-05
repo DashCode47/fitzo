@@ -13,6 +13,7 @@ import {
   Modal,
   ActivityIndicator,
   Image,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,6 +39,136 @@ const MUSCLE_MAP: Record<string, string> = {
   'full body': 'Cuerpo Completo'
 };
 import { StatusBar } from 'expo-status-bar';
+
+function GlowCheckBtn({
+  completed,
+  isActive,
+  onPress,
+  accentColor,
+  successColor,
+  mutedColor,
+  surfaceColor,
+  borderColor,
+}: {
+  completed: boolean;
+  isActive: boolean;
+  onPress: () => void;
+  accentColor: string;
+  successColor: string;
+  mutedColor: string;
+  surfaceColor: string;
+  borderColor: string;
+}) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  const glowOpacity = useRef(new Animated.Value(0.5)).current;
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (isActive && !completed) {
+      loopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.parallel([
+            Animated.timing(pulse, { toValue: 1.55, duration: 900, useNativeDriver: true }),
+            Animated.timing(glowOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(pulse, { toValue: 1, duration: 0, useNativeDriver: true }),
+            Animated.timing(glowOpacity, { toValue: 0.5, duration: 0, useNativeDriver: true }),
+          ]),
+          Animated.delay(400),
+        ])
+      );
+      loopRef.current.start();
+    } else {
+      loopRef.current?.stop();
+      pulse.setValue(1);
+      glowOpacity.setValue(0);
+    }
+    return () => loopRef.current?.stop();
+  }, [isActive, completed]);
+
+  return (
+    <View style={{ width: 40, height: 40 }}>
+      {isActive && !completed && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0, left: 0,
+            width: 40, height: 40,
+            borderRadius: 10,
+            backgroundColor: accentColor,
+            opacity: glowOpacity,
+            transform: [{ scale: pulse }],
+          }}
+        />
+      )}
+      <TouchableOpacity
+        style={{
+          width: 40, height: 40,
+          borderRadius: 10,
+          backgroundColor: completed ? successColor : surfaceColor,
+          borderWidth: 1,
+          borderColor: completed ? successColor : borderColor,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+        onPress={onPress}
+      >
+        <Ionicons name="checkmark" size={18} color={completed ? '#fff' : mutedColor} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function GlowInputWrap({
+  isEmpty,
+  accentColor,
+  children,
+  style,
+}: {
+  isEmpty: boolean;
+  accentColor: string;
+  children: React.ReactNode;
+  style: object;
+}) {
+  const glowOpacity = useRef(new Animated.Value(0.6)).current;
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (isEmpty) {
+      loopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowOpacity, { toValue: 0, duration: 800, useNativeDriver: true }),
+          Animated.timing(glowOpacity, { toValue: 0.6, duration: 800, useNativeDriver: true }),
+          Animated.delay(200),
+        ])
+      );
+      loopRef.current.start();
+    } else {
+      loopRef.current?.stop();
+      glowOpacity.setValue(0);
+    }
+    return () => loopRef.current?.stop();
+  }, [isEmpty]);
+
+  return (
+    <View style={[style, { position: 'relative' }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -1, left: -1, right: -1, bottom: -1,
+          borderRadius: 11,
+          borderWidth: 1.5,
+          borderColor: accentColor,
+          opacity: glowOpacity,
+        }}
+      />
+      {children}
+    </View>
+  );
+}
 
 export default function WorkoutSessionScreen() {
   const theme = useAppTheme();
@@ -141,6 +272,18 @@ export default function WorkoutSessionScreen() {
 
   if (!activeWorkout) return null;
 
+  let activeGlowEx = -1;
+  let activeGlowSet = -1;
+  outer: for (let ei = 0; ei < activeWorkout.exercises.length; ei++) {
+    for (let si = 0; si < activeWorkout.exercises[ei].sets.length; si++) {
+      if (!activeWorkout.exercises[ei].sets[si].completed) {
+        activeGlowEx = ei;
+        activeGlowSet = si;
+        break outer;
+      }
+    }
+  }
+
   return (
     <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
@@ -194,7 +337,11 @@ export default function WorkoutSessionScreen() {
                     <View key={setIdx} style={[styles.setRow, set.completed && styles.setRowCompleted]}>
                       <Text style={styles.setNumber}>{set.set}</Text>
 
-                      <View style={styles.inputWrap}>
+                      <GlowInputWrap
+                        isEmpty={set.weight === 0}
+                        accentColor="#FBBF24"
+                        style={styles.inputWrap}
+                      >
                         <TextInput
                           style={styles.setInput}
                           keyboardType="numeric"
@@ -203,7 +350,7 @@ export default function WorkoutSessionScreen() {
                           value={set.weight > 0 ? set.weight.toString() : ''}
                           onChangeText={(val) => updateWorkoutSet(exIdx, setIdx, { weight: parseFloat(val) || 0 })}
                         />
-                      </View>
+                      </GlowInputWrap>
 
                       <View style={styles.inputWrap}>
                         <TextInput
@@ -216,16 +363,16 @@ export default function WorkoutSessionScreen() {
                         />
                       </View>
 
-                      <TouchableOpacity
-                        style={[styles.checkBtn, set.completed && styles.checkBtnActive]}
+                      <GlowCheckBtn
+                        completed={set.completed}
+                        isActive={exIdx === activeGlowEx && setIdx === activeGlowSet && set.weight > 0}
                         onPress={() => updateWorkoutSet(exIdx, setIdx, { completed: !set.completed })}
-                      >
-                        <Ionicons
-                            name="checkmark"
-                            size={18}
-                            color={set.completed ? '#fff' : theme.textMuted}
-                        />
-                      </TouchableOpacity>
+                        accentColor={theme.accent}
+                        successColor={theme.success}
+                        mutedColor={theme.textMuted}
+                        surfaceColor={theme.surface}
+                        borderColor={theme.borderMuted}
+                      />
 
                       {ex.sets.length > 1 && (
                         <TouchableOpacity

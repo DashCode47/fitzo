@@ -26,7 +26,9 @@ export interface MuscleRank {
 export interface UserRanks {
   generalTier: RankTier;
   generalTierIndex: number;
-  avgIndex: number; // Raw average of muscle tiers
+  avgIndex: number; // Raw average of muscle tiers + streak bonus
+  performanceAvg: number; // Average without streak bonus
+  streakBonus: number;
   muscleRanks: MuscleRank[];
 }
 
@@ -88,6 +90,7 @@ export function calculateAllRanks(
   maxWeights: MaxWeightRow[],
   bodyWeight: number,
   gender: Gender,
+  streak: number = 0,
 ): UserRanks {
   const muscleRanks: MuscleRank[] = MUSCLE_GROUPS.map(({ key }) => {
     const repExercise = REPRESENTATIVE_EXERCISES[key];
@@ -98,15 +101,23 @@ export function calculateAllRanks(
     return calculateMuscleRank(maxWeight, bodyWeight, key, gender);
   });
 
-  // General rank = average of all tier indices, rounded
-  const avgIndex =
+  // 1. Performance average (0-5)
+  const performanceAvg =
     muscleRanks.reduce((sum, r) => sum + r.tierIndex, 0) / muscleRanks.length;
-  const generalTierIndex = Math.round(avgIndex);
+
+  // 2. Consistency Bonus: Every 30 training days in streak = +1.0 level (Max 1.0)
+  const streakBonus = Math.min(streak / 30, 1.0);
+
+  // 3. Final Score
+  const avgIndex = performanceAvg + streakBonus;
+  const generalTierIndex = Math.min(Math.round(avgIndex), RANK_TIERS.length - 1);
 
   return {
     generalTier: RANK_TIERS[generalTierIndex].name,
     generalTierIndex,
     avgIndex,
+    performanceAvg,
+    streakBonus,
     muscleRanks,
   };
 }
