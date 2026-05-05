@@ -40,26 +40,26 @@ const screens = [
   {
     image: mu3,
     tag: "Catálogo",
-    title: "Muestra tus productos dentro de la app",
+    title: "Ventas integradas, ingresos pasivos",
     description:
-      "Tu gimnasio tiene su propio catálogo integrado. Tus miembros pueden consultar suplementos, bebidas y productos disponibles directamente desde la app — sin salir de la experiencia Fitzo.",
+      "Transforma tu gimnasio en una tienda 24/7. Tus miembros pueden consultar suplementos, bebidas y productos directamente desde la app. Una vitrina digital que impulsa las ventas sin necesidad de personal adicional.",
     benefits: [
-      "Catálogo personalizable por el gimnasio",
-      "Visibilidad de productos en todo momento",
-      "Impulsa las ventas de tu tienda física",
+      "Catálogo digital personalizable",
+      "Visibilidad 24/7 de tus productos",
+      "Impulsa compras por impulso",
     ],
     color: "#a855f7",
   },
   {
     image: mu4,
     tag: "Nutrición",
-    title: "Plan de alimentación calculado para cada miembro",
+    title: "Nutrición con IA: Valor premium sin costos",
     description:
-      "Fitzo calcula automáticamente las calorías y macros según el perfil de cada miembro y les asigna un plan de comidas detallado con opciones para cada tiempo del día.",
+      "Ofrece planes de alimentación profesionales sin contratar nutricionistas. Fitzo calcula automáticamente las calorías y macros según el perfil de cada miembro, dándote una ventaja competitiva brutal.",
     benefits: [
-      "Cálculo automático de calorías y macros",
-      "Dieta asignada por objetivo",
-      "Menú diario con opciones de desayuno, almuerzo y cena",
+      "Automatización de planes alimenticios",
+      "Diferenciación inmediata de tu competencia",
+      "Valor agregado de alto impacto",
     ],
     color: "#22c55e",
   },

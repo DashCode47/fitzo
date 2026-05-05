@@ -96,17 +96,16 @@ export default function Hero() {
 
         {/* H1 for SEO — descriptive, keyword-rich */}
         <h1 className="text-xl sm:text-2xl font-semibold text-white/80 mb-4 tracking-widest uppercase">
-          Software gamificado de gestión para gimnasios
+          La solución definitiva para dueños de gimnasios
         </h1>
 
         <p className="text-lg sm:text-xl font-medium text-white/70 mb-4">
-          Más retención. Menos cancelaciones. Mejor gimnasio.
+          Transforma a tus miembros en fanáticos y duplica tu retención.
         </p>
 
         <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto mb-12 leading-relaxed">
-          Gamifica el entrenamiento, automatiza el check-in y dale a tus miembros
-          un motivo real para regresar —{" "}
-          <span className="text-gold font-semibold">mes tras mes</span>.
+          Gamifica el entrenamiento, automatiza la operación y toma el control total de tu negocio —{" "}
+          <span className="text-gold font-semibold">sin complicaciones</span>.
         </p>
 
         {/* CTAs */}
@@ -131,7 +130,7 @@ export default function Hero() {
         {/* Social proof */}
         <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8 text-center">
           {[
-            { value: "<2s", label: "Check-in automático" },
+            { value: "Live", label: "Aforo en tiempo real" },
             { value: "Sin contratos", label: "Cancela cuando quieras" },
             { value: "24/7", label: "Soporte incluido" },
           ].map((stat) => (

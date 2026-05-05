@@ -1,23 +1,23 @@
 const pillars = [
   {
     number: "01",
-    icon: "🏆",
-    headline: "El ranking los trae de vuelta",
-    body: "Cuando alguien ve que bajó tres lugares en el ranking porque no fue a entrenar, vuelve. No porque se lo pidas — sino porque no puede quedarse atrás.",
+    icon: "📈",
+    headline: "Retención que se paga sola",
+    body: "La gamificación crea una adicción saludable. Cuando tus miembros ven que bajan en el ranking, regresan sin que tú tengas que llamarlos. Menos deserción significa más ingresos recurrentes.",
     accent: "#7B2FF7",
   },
   {
     number: "02",
-    icon: "⚡",
-    headline: "Aforo en tiempo real, sin esfuerzo",
-    body: "Cuando un miembro llega, su ubicación lo detecta automáticamente y el aforo se actualiza solo. Sin conteos, sin planillas, sin distracciones — tú y tu equipo saben en todo momento si hay espacio disponible.",
+    icon: "📊",
+    headline: "Aforo automático",
+    body: "Tus miembros ven la ocupación en tiempo real antes de ir. Mediante geofencing, el sistema detecta la presencia y actualiza el aforo automáticamente, dándote reportes precisos de asistencia y horas pico sin intervención manual.",
     accent: "#A855F7",
   },
   {
     number: "03",
-    icon: "🎯",
-    headline: "Valor agregado sin contratar a nadie",
-    body: "Rutinas, nutrición y productos en un solo lugar. Tus miembros tienen todo lo que necesitan sin salir de tu app — y tú te diferencias sin contratar a nadie.",
+    icon: "💰",
+    headline: "Multiplica tus ingresos",
+    body: "Vende suplementos, bebidas y planes especiales directamente en la app. Convierte tu gimnasio en un ecosistema de ventas 24/7 con el catálogo integrado y notificaciones push.",
     accent: "#5B1FCF",
   },
 ];

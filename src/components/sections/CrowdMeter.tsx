@@ -19,7 +19,7 @@ export default function CrowdMeter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
           {[
             { value: "98%", label: "Uptime del sistema", icon: "⚡" },
-            { value: "<2s", label: "Check-in automático", icon: "📍" },
+            { value: "Auto", label: "Aforo por geofencing", icon: "📍" },
             { value: "360°", label: "Visión del gimnasio", icon: "👁️" },
             { value: "24/7", label: "Soporte disponible", icon: "💬" },
           ].map((stat) => (

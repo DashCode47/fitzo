@@ -5,24 +5,24 @@ import { useEffect, useRef, useState } from "react";
 const steps = [
   {
     number: "01",
-    title: "Nosotros lo configuramos",
+    title: "Cero esfuerzo inicial",
     description:
-      "Tú solo nos das los datos de tu gimnasio y nosotros nos encargamos de todo — cuenta, perfil, geofencing y configuración inicial. Listo para usar desde el día uno.",
-    icon: "🏢",
+      "Tú nos das los datos básicos y nosotros configuramos todo: perfiles, geofencing y personalización. No tienes que aprender a programar nada.",
+    icon: "🛋️",
   },
   {
     number: "02",
-    title: "Personaliza la Experiencia",
+    title: "Toma el mando",
     description:
-      "Configura tus planes nutricionales, genera los QRs de actividades y activa el ranking. La plataforma se adapta a la dinámica de tu negocio.",
-    icon: "⚙️",
+      "Carga tus rutinas y productos en minutos. El panel es tan intuitivo que tu equipo lo dominará en la primera hora de uso.",
+    icon: "🎮",
   },
   {
     number: "03",
-    title: "Tus Miembros lo Usan",
+    title: "Mira cómo crece",
     description:
-      "Comparte la app con tus miembros y listo. Ellos se registran, hacen check-in automático y compiten. Tú ves los resultados desde el panel.",
-    icon: "🚀",
+      "Tus miembros compiten, compran y regresan. Tú recibes reportes de aforo y ventas mientras el sistema trabaja solo.",
+    icon: "📈",
   },
 ];
 
