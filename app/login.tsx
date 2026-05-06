@@ -55,10 +55,14 @@ export default function LoginScreen() {
         const data = await AuthAPI.lookupEmailByCedula(nationalId);
         if (!data.email) throw new Error('Cédula no encontrada');
         setEmail(data.email);
-        await AuthAPI.signInWithOtp(data.email);
+        if (data.email !== 'google@mail.com') {
+          await AuthAPI.signInWithOtp(data.email);
+          setSuccessMessage(`Código enviado a: ${data.email}`);
+        } else {
+          setSuccessMessage(`Bypass activado para revisión`);
+        }
         Keyboard.dismiss();
         setStep('OTP');
-        setSuccessMessage(`Código enviado a: ${data.email}`);
         setSuccessVisible(true);
       } catch (error: any) {
         setErrorMessage(error.response?.data?.message || 'Cédula no registrada o inválida');
@@ -74,9 +78,20 @@ export default function LoginScreen() {
       }
       setLoading(true);
       try {
-        const result = await AuthAPI.verifyOtp(email, otp);
-        if (result.session?.user) {
-          await UserAPI.syncProfile(result.session.user).catch(err => {
+        let result;
+        // BYPASS PARA REVISIÓN DE GOOGLE
+        if (email === 'google@mail.com' && otp === '123456') {
+          console.log('[LoginScreen] Google Review Bypass active');
+          const user = await AuthAPI.login(email, 'FitzoGoogle2026!');
+          result = { session: { user }, user }; // Mock structure for consistency
+        } else {
+          result = await AuthAPI.verifyOtp(email, otp);
+        }
+
+        const user = result.session?.user || result.user || result;
+        
+        if (user) {
+          await UserAPI.syncProfile(user).catch(err => {
             console.error('[LoginScreen] Initial sync failed:', err);
           });
         }
