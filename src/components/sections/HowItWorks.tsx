@@ -7,7 +7,7 @@ const steps = [
     number: "01",
     title: "Cero esfuerzo inicial",
     description:
-      "Tú nos das los datos básicos y nosotros configuramos todo: perfiles, geofencing y personalización. No tienes que aprender a programar nada.",
+      "Tú nos das los datos básicos y nosotros configuramos todo: perfiles, notificaciones y personalización. No tienes que aprender a programar nada.",
     icon: "🛋️",
   },
   {
@@ -21,7 +21,7 @@ const steps = [
     number: "03",
     title: "Mira cómo crece",
     description:
-      "Tus miembros compiten, compran y regresan. Tú recibes reportes de aforo y ventas mientras el sistema trabaja solo.",
+      "Tus miembros compiten, compran y regresan. Reciben notificaciones que los reactivan y tú ves los resultados mientras el sistema trabaja solo.",
     icon: "📈",
   },
 ];

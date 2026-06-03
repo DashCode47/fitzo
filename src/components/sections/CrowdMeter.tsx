@@ -19,7 +19,7 @@ export default function CrowdMeter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
           {[
             { value: "98%", label: "Uptime del sistema", icon: "⚡" },
-            { value: "Auto", label: "Aforo por geofencing", icon: "📍" },
+            { value: "Auto", label: "Notificaciones automáticas", icon: "🔔" },
             { value: "360°", label: "Visión del gimnasio", icon: "👁️" },
             { value: "24/7", label: "Soporte disponible", icon: "💬" },
           ].map((stat) => (
@@ -38,22 +38,22 @@ export default function CrowdMeter() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
-              CrowdMeter
+              Smart Notifications
             </span>
             <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-              Sabe cuándo ir{" "}
-              <span className="gold-text">antes de salir</span>
+              El mensaje{" "}
+              <span className="gold-text">correcto, en el momento justo</span>
             </h2>
             <p className="text-white/50 text-lg leading-relaxed mb-8">
-              Tus miembros consultan la ocupación del gimnasio en tiempo real
-              desde la app. Sin sorpresas, sin aglomeraciones. Verde, amarillo
-              o rojo — siempre saben qué esperar antes de salir de casa.
+              Fitzo detecta cuándo un miembro lleva días sin ir y le envía
+              automáticamente una notificación push personalizada. Sin que tú
+              tengas que hacer nada — el sistema trabaja mientras tú descansas.
             </p>
             <ul className="flex flex-col gap-3">
               {[
-                "Aforo actualizado cada 30 segundos",
-                "Indicador visual por nivel de ocupación",
-                "Menos quejas, mejor experiencia para todos",
+                "Notificaciones por inactividad, cumpleaños y promociones",
+                "Mensajes personalizados por perfil de miembro",
+                "Más retención sin esfuerzo manual de tu parte",
               ].map((b) => (
                 <li key={b} className="flex items-center gap-3">
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gold" />
@@ -72,7 +72,7 @@ export default function CrowdMeter() {
             >
               <Image
                 src={af1}
-                alt="CrowdMeter — Aforo en tiempo real"
+                alt="Fitzo — Notificaciones push automáticas"
                 className="w-full max-w-lg rounded-2xl"
               />
             </div>

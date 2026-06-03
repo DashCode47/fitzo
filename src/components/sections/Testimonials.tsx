@@ -1,7 +1,7 @@
 const messages = [
   { name: "Carlos F.", handle: "@carlosf_gym", text: "La app está 🔥 mis miembros no paran de competir en el ranking", color: "#7B2FF7" },
   { name: "Rodrigo S.", handle: "@rodrigo.elite", text: "Nunca pensé que mis clientes iban a pelear por ir al gym más seguido 😂", color: "#a855f7" },
-  { name: "Tomás R.", handle: "@tomasfit", text: "Lo del CrowdMeter es una locura, mis miembros me preguntan si ya está en App Store", color: "#3b82f6" },
+  { name: "Tomás R.", handle: "@tomasfit", text: "Las notificaciones automáticas son una locura, mis miembros me preguntan si ya está en App Store", color: "#3b82f6" },
   { name: "Valeria M.", handle: "@vale.training", text: "El plan nutricional personalizado fue lo que me convenció. Vale cada peso 💪", color: "#22c55e" },
   { name: "Diego A.", handle: "@diegoactivo", text: "Llevaba años buscando algo así. Sencillo para el usuario, potente por dentro", color: "#EF4444" },
 ];

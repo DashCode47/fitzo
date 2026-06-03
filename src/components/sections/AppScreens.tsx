@@ -16,9 +16,9 @@ const screens = [
     tag: "Dashboard",
     title: "Todo lo que importa, en una sola pantalla",
     description:
-      "Al abrir la app, tus miembros ven su posición en el ranking, la ocupación actual del gimnasio, promociones activas y su plan nutricional asignado. Información útil desde el primer segundo.",
+      "Al abrir la app, tus miembros ven su posición en el ranking, notificaciones activas, promociones y su plan nutricional asignado. Información útil desde el primer segundo.",
     benefits: [
-      "CrowdMeter en tiempo real",
+      "Notificaciones personalizadas",
       "Ranking de los más activos",
       "Promociones personalizadas",
     ],

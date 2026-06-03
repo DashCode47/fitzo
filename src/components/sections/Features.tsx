@@ -9,8 +9,8 @@ const pillars = [
   {
     number: "02",
     icon: "📊",
-    headline: "Aforo automático",
-    body: "Tus miembros ven la ocupación en tiempo real antes de ir. Mediante geofencing, el sistema detecta la presencia y actualiza el aforo automáticamente, dándote reportes precisos de asistencia y horas pico sin intervención manual.",
+    headline: "Notificaciones que retienen",
+    body: "El sistema detecta miembros inactivos y les envía notificaciones push personalizadas en el momento justo. Recordatorios de rutina, promociones exclusivas y mensajes motivacionales que los hacen regresar sin que tú tengas que llamar a nadie.",
     accent: "#A855F7",
   },
   {

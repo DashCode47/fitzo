@@ -130,7 +130,7 @@ export default function Hero() {
         {/* Social proof */}
         <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8 text-center">
           {[
-            { value: "Live", label: "Aforo en tiempo real" },
+            { value: "Push", label: "Notificaciones automáticas" },
             { value: "Sin contratos", label: "Cancela cuando quieras" },
             { value: "24/7", label: "Soporte incluido" },
           ].map((stat) => (
