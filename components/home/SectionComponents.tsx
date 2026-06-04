@@ -258,14 +258,14 @@ function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => vo
 
 // ─── EventsTimeline ───────────────────────────────────────────────────────────
 interface EventsProps {
-  data: Array<{
+  data: {
     id: string;
     name: string;
     short_description: string;
     event_date: string;
     event_time: string;
     image_url?: string;
-  }>;
+  }[];
   onPressItem?: (item: any) => void;
 }
 
@@ -322,7 +322,7 @@ export const EventsTimeline = ({ data, onPressItem }: EventsProps) => {
 
 // ─── TopThreePodium ───────────────────────────────────────────────────────────
 interface LeaderboardProps {
-  data: Array<{ rank: number; name: string; score: number; avatar: string }>;
+  data: { rank: number; name: string; score: number; avatar: string }[];
   onSeeAll?: () => void;
 }
 

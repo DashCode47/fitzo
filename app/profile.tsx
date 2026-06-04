@@ -1,16 +1,15 @@
-
-import { AuthAPI } from '@/api/auth';
-import { UserAPI } from '@/api/user';
-import { WorkoutsAPI } from '@/api/workouts';
-import { CustomModal } from '@/components/ui/CustomModal';
-import { AppTheme } from '@/constants/theme';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { useProfileImage } from '@/hooks/useProfileImage';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import { AuthAPI } from "@/api/auth";
+import { UserAPI } from "@/api/user";
+import { WorkoutsAPI } from "@/api/workouts";
+import { CustomModal } from "@/components/ui/CustomModal";
+import { AppTheme } from "@/constants/theme";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { useAppTheme } from "@/hooks/useAppTheme";
+import { useProfileImage } from "@/hooks/useProfileImage";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -20,13 +19,12 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { MUSCLE_GROUPS, RANK_TIERS } from '@/constants/ranks';
-import { useAppStore } from '@/store/useAppStore';
-import { useRouter } from 'expo-router';
-
+import { MUSCLE_GROUPS, RANK_TIERS } from "@/constants/ranks";
+import { useAppStore } from "@/store/useAppStore";
+import { useRouter } from "expo-router";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -45,7 +43,7 @@ export default function ProfileScreen() {
     muscleRanks,
     userStats,
     themeMode,
-    setThemeMode
+    setThemeMode,
   } = useAppStore();
 
   const theme = useAppTheme();
@@ -63,10 +61,10 @@ export default function ProfileScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalConfig, setModalConfig] = useState({
-    title: '',
-    message: '',
-    type: 'error' as 'error' | 'success' | 'confirm',
-    onConfirm: () => { },
+    title: "",
+    message: "",
+    type: "error" as "error" | "success" | "confirm",
+    onConfirm: () => {},
   });
 
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -77,6 +75,7 @@ export default function ProfileScreen() {
       loadProfile();
       loadHistory(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated, profile?.id]);
 
   const loadHistory = async (reset = false) => {
@@ -86,11 +85,15 @@ export default function ProfileScreen() {
       const currentOffset = reset ? 0 : logsOffset;
       if (reset) resetWorkoutLogs();
 
-      const data = await WorkoutsAPI.getWorkoutLogs(profile.id, LIMIT, currentOffset);
+      const data = await WorkoutsAPI.getWorkoutLogs(
+        profile.id,
+        LIMIT,
+        currentOffset,
+      );
 
       appendWorkoutLogs(data, data.length === LIMIT);
     } catch (e) {
-      console.error('[ProfileScreen] Failed to load history:', e);
+      console.error("[ProfileScreen] Failed to load history:", e);
     } finally {
       setLoadingHistory(false);
     }
@@ -104,7 +107,7 @@ export default function ProfileScreen() {
       const data = await WorkoutsAPI.getWorkoutDetails(log.id);
       setWorkoutExercises(data);
     } catch (e) {
-      console.error('[ProfileScreen] Failed to load details:', e);
+      console.error("[ProfileScreen] Failed to load details:", e);
     } finally {
       setLoadingDetails(false);
     }
@@ -113,8 +116,8 @@ export default function ProfileScreen() {
   const handleExercisePress = (exerciseId: number) => {
     setDetailsModalVisible(false);
     router.push({
-      pathname: '/exercise-progress',
-      params: { id: exerciseId }
+      pathname: "/exercise-progress",
+      params: { id: exerciseId },
     });
   };
 
@@ -124,7 +127,7 @@ export default function ProfileScreen() {
       const data = await UserAPI.getProfile();
       if (data) setProfile(data);
     } catch (e: any) {
-      console.error('[ProfileScreen] Profile load failed:', e.message);
+      console.error("[ProfileScreen] Profile load failed:", e.message);
     } finally {
       setLoading(false);
     }
@@ -132,9 +135,9 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     setModalConfig({
-      title: 'Cerrar sesión',
-      message: '¿Estás seguro que deseas salir de tu cuenta?',
-      type: 'confirm',
+      title: "Cerrar sesión",
+      message: "¿Estás seguro que deseas salir de tu cuenta?",
+      type: "confirm",
       onConfirm: async () => {
         setModalVisible(false);
         try {
@@ -142,7 +145,7 @@ export default function ProfileScreen() {
           clearAll();
           goToLogin();
         } catch (error) {
-          console.error('Logout failed:', error);
+          console.error("Logout failed:", error);
         }
       },
     });
@@ -151,30 +154,45 @@ export default function ProfileScreen() {
 
   const handleUpdateAvatar = async () => {
     const url = await uploadAvatar();
-    if (url) setAvatarTimestamp(Date.now());
+    if (url && profile) {
+      setAvatarTimestamp(Date.now());
+      setProfile({ ...profile, photo_url: url });
+    }
   };
 
   if (loading && !profile) {
     return (
       <View style={styles.loadingRoot}>
-        <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={theme.gradients.bg}
+          style={StyleSheet.absoluteFill}
+        />
         <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
 
-  const username = profile?.username || 'Atleta';
-  const email = profile?.email || '–';
-  const phone = profile?.phone || 'No registrado';
-  const role = profile?.role || 'CLIENT';
+  const username = profile?.username || "Atleta";
+  const email = profile?.email || "–";
+  const phone = profile?.phone || "No registrado";
+  const role = profile?.role || "CLIENT";
   const points = profile?.total_points || 0;
-  const photoUrl = profile?.photo_url ? `${profile.photo_url}?t=${avatarTimestamp}` : null;
+  const photoUrl = profile?.photo_url
+    ? `${profile.photo_url}?t=${avatarTimestamp}`
+    : null;
 
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+      <LinearGradient
+        colors={theme.gradients.bg}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={theme.gradients.topGlow}
+        style={styles.topGlow}
+        pointerEvents="none"
+      />
 
       <CustomModal
         visible={modalVisible}
@@ -185,8 +203,7 @@ export default function ProfileScreen() {
         onConfirm={modalConfig.onConfirm}
       />
 
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-
+      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         {/* ── Header ── */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={goBack}>
@@ -200,7 +217,6 @@ export default function ProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-
           {/* ── Avatar section ── */}
           <View style={styles.avatarSection}>
             <View style={styles.avatarWrap}>
@@ -208,7 +224,9 @@ export default function ProfileScreen() {
                 <Image source={{ uri: photoUrl }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarInitial}>{username[0]?.toUpperCase()}</Text>
+                  <Text style={styles.avatarInitial}>
+                    {username[0]?.toUpperCase()}
+                  </Text>
                 </View>
               )}
               {uploading && (
@@ -240,7 +258,9 @@ export default function ProfileScreen() {
                 style={StyleSheet.absoluteFill}
               />
               <Ionicons name="flash" size={14} color="#fff" />
-              <Text style={styles.pointsText}>{points.toLocaleString()} pts</Text>
+              <Text style={styles.pointsText}>
+                {points.toLocaleString()} pts
+              </Text>
             </View>
           </View>
 
@@ -248,7 +268,7 @@ export default function ProfileScreen() {
           {!userStats?.weight && (
             <TouchableOpacity
               style={styles.weightWarning}
-              onPress={() => router.push('/(tabs)/nutrition')}
+              onPress={() => router.push("/(tabs)/nutrition")}
               activeOpacity={0.85}
             >
               <Ionicons name="warning-outline" size={18} color="#f59e0b" />
@@ -261,17 +281,31 @@ export default function ProfileScreen() {
 
           {/* ── Info card ── */}
           <View style={styles.card}>
-            <InfoRow icon="mail-outline" label="Correo" value={email} theme={theme} styles={styles} />
+            <InfoRow
+              icon="mail-outline"
+              label="Correo"
+              value={email}
+              theme={theme}
+              styles={styles}
+            />
             <View style={styles.divider} />
-            <InfoRow icon="call-outline" label="Teléfono" value={phone} theme={theme} styles={styles} />
+            <InfoRow
+              icon="call-outline"
+              label="Teléfono"
+              value={phone}
+              theme={theme}
+              styles={styles}
+            />
             <View style={styles.divider} />
             <InfoRow
               icon="barbell-outline"
               label="Peso Corporal"
-              value={userStats?.weight ? `${userStats.weight} kg` : 'No configurado'}
+              value={
+                userStats?.weight ? `${userStats.weight} kg` : "No configurado"
+              }
               theme={theme}
               styles={styles}
-              onPress={() => router.push('/(tabs)/nutrition')}
+              onPress={() => router.push("/(tabs)/nutrition")}
               highlight={!userStats?.weight}
             />
           </View>
@@ -281,7 +315,14 @@ export default function ProfileScreen() {
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Mis Rangos</Text>
-                <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/rankings', params: { view: 'ranks' } })}>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(tabs)/rankings",
+                      params: { view: "ranks" },
+                    })
+                  }
+                >
                   <Text style={styles.viewMoreRanks}>VER TODOS</Text>
                 </TouchableOpacity>
               </View>
@@ -291,18 +332,40 @@ export default function ProfileScreen() {
                 contentContainerStyle={styles.ranksScroll}
               >
                 {muscleRanks.muscleRanks.map((rank) => {
-                  const muscle = MUSCLE_GROUPS.find(m => m.key === rank.muscleGroup);
+                  const muscle = MUSCLE_GROUPS.find(
+                    (m) => m.key === rank.muscleGroup,
+                  );
                   const tier = RANK_TIERS[rank.tierIndex];
                   return (
                     <TouchableOpacity
                       key={rank.muscleGroup}
                       style={styles.miniRankCard}
-                      onPress={() => router.push({ pathname: '/(tabs)/rankings', params: { view: 'ranks' } })}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(tabs)/rankings",
+                          params: { view: "ranks" },
+                        })
+                      }
                     >
-                      <Ionicons name={muscle?.icon as any} size={16} color={theme.accent} />
-                      <Text style={styles.miniRankMuscle} numberOfLines={1}>{muscle?.label}</Text>
-                      <View style={[styles.miniTierBadge, { backgroundColor: tier.color + '20' }]}>
-                        <Text style={[styles.miniTierText, { color: tier.color }]}>{tier.name}</Text>
+                      <Ionicons
+                        name={muscle?.icon as any}
+                        size={16}
+                        color={theme.accent}
+                      />
+                      <Text style={styles.miniRankMuscle} numberOfLines={1}>
+                        {muscle?.label}
+                      </Text>
+                      <View
+                        style={[
+                          styles.miniTierBadge,
+                          { backgroundColor: tier.color + "20" },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.miniTierText, { color: tier.color }]}
+                        >
+                          {tier.name}
+                        </Text>
                       </View>
                     </TouchableOpacity>
                   );
@@ -314,35 +377,39 @@ export default function ProfileScreen() {
           {/* ── Theme Selection ── */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Apariencia</Text>
-            <Ionicons name="color-palette-outline" size={16} color={theme.textMuted} />
+            <Ionicons
+              name="color-palette-outline"
+              size={16}
+              color={theme.textMuted}
+            />
           </View>
 
           <View style={styles.themeSelector}>
             <ThemeOption
-              isActive={themeMode === 'dark'}
+              isActive={themeMode === "dark"}
               color="#6C63FF"
-              onPress={() => setThemeMode('dark')}
+              onPress={() => setThemeMode("dark")}
               theme={theme}
               styles={styles}
             />
             <ThemeOption
-              isActive={themeMode === 'light'}
+              isActive={themeMode === "light"}
               color="#F4F4F5"
-              onPress={() => setThemeMode('light')}
+              onPress={() => setThemeMode("light")}
               theme={theme}
               styles={styles}
             />
             <ThemeOption
-              isActive={themeMode === 'cyan'}
+              isActive={themeMode === "cyan"}
               color="#4CD6C8"
-              onPress={() => setThemeMode('cyan')}
+              onPress={() => setThemeMode("cyan")}
               theme={theme}
               styles={styles}
             />
             <ThemeOption
-              isActive={themeMode === 'gold'}
+              isActive={themeMode === "gold"}
               color="#C5A356"
-              onPress={() => setThemeMode('gold')}
+              onPress={() => setThemeMode("gold")}
               theme={theme}
               styles={styles}
             />
@@ -351,13 +418,23 @@ export default function ProfileScreen() {
           {/* ── Workout History ── */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Historial de Entrenamiento</Text>
-            <Ionicons name="calendar-outline" size={16} color={theme.textMuted} />
+            <Ionicons
+              name="calendar-outline"
+              size={16}
+              color={theme.textMuted}
+            />
           </View>
 
           {(!workoutLogs || workoutLogs.length === 0) && !loadingHistory ? (
             <View style={styles.emptyCard}>
-              <Ionicons name="barbell-outline" size={32} color={theme.textMuted} />
-              <Text style={styles.emptyText}>Aún no has registrado entrenamientos.</Text>
+              <Ionicons
+                name="barbell-outline"
+                size={32}
+                color={theme.textMuted}
+              />
+              <Text style={styles.emptyText}>
+                Aún no has registrado entrenamientos.
+              </Text>
             </View>
           ) : (
             <View style={styles.historyList}>
@@ -371,11 +448,22 @@ export default function ProfileScreen() {
                     <Ionicons name="barbell" size={18} color={theme.accent} />
                   </View>
                   <View style={styles.historyContent}>
-                    <Text style={styles.historyName}>{log.routine?.name || 'Rutina Personalizada'}</Text>
-                    <Text style={styles.historyDate}>{new Date(log.started_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</Text>
+                    <Text style={styles.historyName}>
+                      {log.routine?.name || "Rutina Personalizada"}
+                    </Text>
+                    <Text style={styles.historyDate}>
+                      {new Date(log.started_at).toLocaleDateString("es-ES", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Text>
                   </View>
                   <View style={styles.historyMetrics}>
-                    <Text style={styles.metricVal}>{Math.round(log.duration_seconds / 60)}m</Text>
+                    <Text style={styles.metricVal}>
+                      {Math.round(log.duration_seconds / 60)}m
+                    </Text>
                     <Text style={styles.metricVal}>{log.total_volume}kg</Text>
                   </View>
                 </TouchableOpacity>
@@ -384,21 +472,29 @@ export default function ProfileScreen() {
               {hasMoreLogs && (
                 <TouchableOpacity
                   style={styles.loadMoreBtn}
-                  onPress={() => router.push('/history')}
+                  onPress={() => router.push("/history")}
                 >
                   <Text style={styles.loadMoreText}>VER TODO MI HISTORIAL</Text>
-                  <Ionicons name="arrow-forward" size={14} color={theme.textMuted} style={{ marginLeft: 6 }} />
+                  <Ionicons
+                    name="arrow-forward"
+                    size={14}
+                    color={theme.textMuted}
+                    style={{ marginLeft: 6 }}
+                  />
                 </TouchableOpacity>
               )}
             </View>
           )}
 
           {/* ── Logout ── */}
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogout}
+            activeOpacity={0.85}
+          >
             <Ionicons name="log-out-outline" size={18} color={theme.error} />
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
-
         </ScrollView>
         {/* ── Workout Details Modal ── */}
         <Modal
@@ -412,13 +508,20 @@ export default function ProfileScreen() {
               <View style={detailsModalStyles.header}>
                 <View>
                   <Text style={detailsModalStyles.title}>
-                    {selectedWorkout?.routine?.name || 'Rutina Personalizada'}
+                    {selectedWorkout?.routine?.name || "Rutina Personalizada"}
                   </Text>
                   <Text style={detailsModalStyles.subtitle}>
-                    {selectedWorkout && new Date(selectedWorkout.started_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                    {selectedWorkout &&
+                      new Date(selectedWorkout.started_at).toLocaleDateString(
+                        "es-ES",
+                        { day: "numeric", month: "long" },
+                      )}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => setDetailsModalVisible(false)} style={detailsModalStyles.closeBtn}>
+                <TouchableOpacity
+                  onPress={() => setDetailsModalVisible(false)}
+                  style={detailsModalStyles.closeBtn}
+                >
                   <Ionicons name="close" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
               </View>
@@ -431,16 +534,25 @@ export default function ProfileScreen() {
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <View style={detailsModalStyles.statsRow}>
                     <View style={detailsModalStyles.stat}>
-                      <Text style={detailsModalStyles.statVal}>{Math.round((selectedWorkout?.duration_seconds || 0) / 60)}m</Text>
+                      <Text style={detailsModalStyles.statVal}>
+                        {Math.round(
+                          (selectedWorkout?.duration_seconds || 0) / 60,
+                        )}
+                        m
+                      </Text>
                       <Text style={detailsModalStyles.statLabel}>TIEMPO</Text>
                     </View>
                     <View style={detailsModalStyles.stat}>
-                      <Text style={detailsModalStyles.statVal}>{selectedWorkout?.total_volume}kg</Text>
+                      <Text style={detailsModalStyles.statVal}>
+                        {selectedWorkout?.total_volume}kg
+                      </Text>
                       <Text style={detailsModalStyles.statLabel}>VOLUMEN</Text>
                     </View>
                   </View>
 
-                  <Text style={detailsModalStyles.sectionTitle}>EJERCICIOS</Text>
+                  <Text style={detailsModalStyles.sectionTitle}>
+                    EJERCICIOS
+                  </Text>
                   {workoutExercises.map((exLog, idx) => (
                     <TouchableOpacity
                       key={idx}
@@ -448,15 +560,28 @@ export default function ProfileScreen() {
                       onPress={() => handleExercisePress(exLog.exercise_id)}
                     >
                       <View style={detailsModalStyles.exHeader}>
-                        <Text style={detailsModalStyles.exName}>{exLog.exercise?.name}</Text>
-                        <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+                        <Text style={detailsModalStyles.exName}>
+                          {exLog.exercise?.name}
+                        </Text>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color={theme.textMuted}
+                        />
                       </View>
                       <View style={detailsModalStyles.setsRow}>
-                        {(exLog.sets_completed || []).map((s: any, sIdx: number) => (
-                          <View key={sIdx} style={detailsModalStyles.setBadge}>
-                            <Text style={detailsModalStyles.setText}>{s.weight}kg x {s.reps}</Text>
-                          </View>
-                        ))}
+                        {(exLog.sets_completed || []).map(
+                          (s: any, sIdx: number) => (
+                            <View
+                              key={sIdx}
+                              style={detailsModalStyles.setBadge}
+                            >
+                              <Text style={detailsModalStyles.setText}>
+                                {s.weight}kg x {s.reps}
+                              </Text>
+                            </View>
+                          ),
+                        )}
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -471,7 +596,13 @@ export default function ProfileScreen() {
   );
 }
 
-function ThemeOption({ isActive, color, onPress, theme, styles }: {
+function ThemeOption({
+  isActive,
+  color,
+  onPress,
+  theme,
+  styles,
+}: {
   isActive: boolean;
   color: string;
   onPress: () => void;
@@ -482,7 +613,10 @@ function ThemeOption({ isActive, color, onPress, theme, styles }: {
     <TouchableOpacity
       style={[
         styles.themeOption,
-        isActive && { borderColor: theme.accent, backgroundColor: theme.surface }
+        isActive && {
+          borderColor: theme.accent,
+          backgroundColor: theme.surface,
+        },
       ]}
       onPress={onPress}
     >
@@ -497,503 +631,551 @@ function ThemeOption({ isActive, color, onPress, theme, styles }: {
   );
 }
 
-function InfoRow({ icon, label, value, theme, styles, onPress, highlight }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string; theme: AppTheme; styles: any; onPress?: () => void; highlight?: boolean }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+  theme,
+  styles,
+  onPress,
+  highlight,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  value: string;
+  theme: AppTheme;
+  styles: any;
+  onPress?: () => void;
+  highlight?: boolean;
+}) {
   const content = (
     <View style={styles.infoRow}>
-      <View style={[styles.infoIconBox, highlight && { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.4)' }]}>
-        <Ionicons name={icon} size={16} color={highlight ? '#f59e0b' : theme.accent} />
+      <View
+        style={[
+          styles.infoIconBox,
+          highlight && {
+            backgroundColor: "rgba(245,158,11,0.15)",
+            borderColor: "rgba(245,158,11,0.4)",
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={16}
+          color={highlight ? "#f59e0b" : theme.accent}
+        />
       </View>
       <View style={styles.infoContent}>
         <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={[styles.infoValue, highlight && { color: '#f59e0b' }]} numberOfLines={1}>{value}</Text>
+        <Text
+          style={[styles.infoValue, highlight && { color: "#f59e0b" }]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
       </View>
-      {onPress && <Ionicons name="chevron-forward" size={16} color={highlight ? '#f59e0b' : theme.textMuted} />}
+      {onPress && (
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={highlight ? "#f59e0b" : theme.textMuted}
+        />
+      )}
     </View>
   );
-  if (onPress) return <TouchableOpacity onPress={onPress} activeOpacity={0.7}>{content}</TouchableOpacity>;
+  if (onPress)
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
   return content;
 }
 
-const createStyles = (theme: AppTheme) => StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: theme.bgDeep,
-  },
-  loadingRoot: {
-    flex: 1,
-    backgroundColor: theme.bgDeep,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topGlow: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 220,
-    zIndex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: theme.surface,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    letterSpacing: -0.3,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-    gap: 16,
-  },
-  avatarSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    gap: 10,
-  },
-  avatarWrap: {
-    position: 'relative',
-    marginBottom: 4,
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
-    borderWidth: 2,
-    borderColor: theme.accentBorder,
-  },
-  avatarPlaceholder: {
-    backgroundColor: theme.accentDim,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitial: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: theme.accent,
-  },
-  uploadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraBtn: {
-    position: 'absolute',
-    bottom: -4,
-    right: -4,
-    width: 28,
-    height: 28,
-    borderRadius: 9,
-    backgroundColor: theme.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.bgDeep,
-    shadowColor: theme.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  username: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    letterSpacing: -0.5,
-  },
-  rolePill: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: theme.surface,
-    borderWidth: 1,
-    borderColor: theme.borderMuted,
-  },
-  roleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.textSecondary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  pointsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: theme.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  pointsText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.3,
-  },
-  card: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    overflow: 'hidden',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.borderSubtle,
-    marginLeft: 64,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  infoIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: theme.accentDim,
-    borderWidth: 1,
-    borderColor: theme.accentBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoContent: {
-    flex: 1,
-    gap: 2,
-  },
-  infoLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.textMuted,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  infoValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: theme.textPrimary,
-  },
-  themeSelector: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  themeOption: {
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.bgCard,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    borderRadius: 16,
-  },
-  themeColorCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  themeActiveIndicator: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: theme.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.surface,
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.3)',
-    backgroundColor: 'rgba(248,113,113,0.08)',
-  },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.error,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  emptyCard: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 18,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: theme.textMuted,
-    textAlign: 'center',
-  },
-  historyList: {
-    gap: 12,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.bgCard,
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    gap: 12,
-  },
-  historyIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: theme.accentDim,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  historyContent: {
-    flex: 1,
-    gap: 2,
-  },
-  historyName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.textPrimary,
-  },
-  historyDate: {
-    fontSize: 11,
-    color: theme.textMuted,
-  },
-  historyMetrics: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  metricVal: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: theme.accent,
-  },
-  loadMoreBtn: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  loadMoreText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: theme.textMuted,
-    letterSpacing: 1,
-  },
-  weightWarning: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 10,
-    backgroundColor: 'rgba(245,158,11,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.35)',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  weightWarningText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#f59e0b',
-  },
-  viewMoreRanks: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: theme.accent,
-    letterSpacing: 0.5,
-  },
-  ranksScroll: {
-    gap: 10,
-    paddingBottom: 4,
-  },
-  miniRankCard: {
-    width: 90,
-    backgroundColor: theme.bgCard,
-    borderRadius: 14,
-    padding: 10,
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-  },
-  miniRankMuscle: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.textMuted,
-    textTransform: 'uppercase',
-  },
-  miniTierBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  miniTierText: {
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: theme.bgDeep,
+    },
+    loadingRoot: {
+      flex: 1,
+      backgroundColor: theme.bgDeep,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    topGlow: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 220,
+      zIndex: 1,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 16,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    headerTitle: {
+      fontSize: 17,
+      fontWeight: "700",
+      color: theme.textPrimary,
+      letterSpacing: -0.3,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 100,
+      gap: 16,
+    },
+    avatarSection: {
+      alignItems: "center",
+      paddingVertical: 24,
+      gap: 10,
+    },
+    avatarWrap: {
+      position: "relative",
+      marginBottom: 4,
+    },
+    avatar: {
+      width: 96,
+      height: 96,
+      borderRadius: 28,
+      borderWidth: 2,
+      borderColor: theme.accentBorder,
+    },
+    avatarPlaceholder: {
+      backgroundColor: theme.accentDim,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    avatarInitial: {
+      fontSize: 36,
+      fontWeight: "800",
+      color: theme.accent,
+    },
+    uploadingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      borderRadius: 28,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    cameraBtn: {
+      position: "absolute",
+      bottom: -4,
+      right: -4,
+      width: 28,
+      height: 28,
+      borderRadius: 9,
+      backgroundColor: theme.accent,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: theme.bgDeep,
+      shadowColor: theme.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    username: {
+      fontSize: 22,
+      fontWeight: "800",
+      color: theme.textPrimary,
+      letterSpacing: -0.5,
+    },
+    rolePill: {
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 20,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderMuted,
+    },
+    roleText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: theme.textSecondary,
+      letterSpacing: 0.5,
+      textTransform: "uppercase",
+    },
+    pointsBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      overflow: "hidden",
+      shadowColor: theme.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    pointsText: {
+      fontSize: 14,
+      fontWeight: "800",
+      color: "#fff",
+      letterSpacing: 0.3,
+    },
+    card: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      overflow: "hidden",
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.borderSubtle,
+      marginLeft: 64,
+    },
+    infoRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    infoIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: 11,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    infoContent: {
+      flex: 1,
+      gap: 2,
+    },
+    infoLabel: {
+      fontSize: 10,
+      fontWeight: "700",
+      color: theme.textMuted,
+      letterSpacing: 0.5,
+      textTransform: "uppercase",
+    },
+    infoValue: {
+      fontSize: 15,
+      fontWeight: "500",
+      color: theme.textPrimary,
+    },
+    themeSelector: {
+      flexDirection: "row",
+      gap: 12,
+      marginBottom: 8,
+    },
+    themeOption: {
+      width: 48,
+      height: 48,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.bgCard,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      borderRadius: 16,
+    },
+    themeColorCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      justifyContent: "center",
+      alignItems: "center",
+      position: "relative",
+    },
+    themeActiveIndicator: {
+      position: "absolute",
+      top: -4,
+      right: -4,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: theme.accent,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: theme.surface,
+    },
+    logoutBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: "rgba(248,113,113,0.3)",
+      backgroundColor: "rgba(248,113,113,0.08)",
+    },
+    logoutText: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.error,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: "800",
+      color: theme.textPrimary,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+    },
+    emptyCard: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      padding: 32,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      gap: 12,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.textMuted,
+      textAlign: "center",
+    },
+    historyList: {
+      gap: 12,
+    },
+    historyItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.bgCard,
+      borderRadius: 16,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      gap: 12,
+    },
+    historyIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.accentDim,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    historyContent: {
+      flex: 1,
+      gap: 2,
+    },
+    historyName: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.textPrimary,
+    },
+    historyDate: {
+      fontSize: 11,
+      color: theme.textMuted,
+    },
+    historyMetrics: {
+      alignItems: "flex-end",
+      gap: 2,
+    },
+    metricVal: {
+      fontSize: 12,
+      fontWeight: "800",
+      color: theme.accent,
+    },
+    loadMoreBtn: {
+      paddingVertical: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "row",
+    },
+    loadMoreText: {
+      fontSize: 12,
+      fontWeight: "800",
+      color: theme.textMuted,
+      letterSpacing: 1,
+    },
+    weightWarning: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 10,
+      backgroundColor: "rgba(245,158,11,0.1)",
+      borderWidth: 1,
+      borderColor: "rgba(245,158,11,0.35)",
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    weightWarningText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "600" as const,
+      color: "#f59e0b",
+    },
+    viewMoreRanks: {
+      fontSize: 11,
+      fontWeight: "800",
+      color: theme.accent,
+      letterSpacing: 0.5,
+    },
+    ranksScroll: {
+      gap: 10,
+      paddingBottom: 4,
+    },
+    miniRankCard: {
+      width: 90,
+      backgroundColor: theme.bgCard,
+      borderRadius: 14,
+      padding: 10,
+      alignItems: "center",
+      gap: 6,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    miniRankMuscle: {
+      fontSize: 10,
+      fontWeight: "700",
+      color: theme.textMuted,
+      textTransform: "uppercase",
+    },
+    miniTierBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    miniTierText: {
+      fontSize: 9,
+      fontWeight: "800",
+      textTransform: "uppercase",
+    },
+  });
 
-const createDetailsModalStyles = (theme: AppTheme) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'flex-end',
-  },
-  content: {
-    backgroundColor: theme.bgBase,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    height: '80%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: theme.textPrimary,
-    textTransform: 'uppercase',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: theme.textMuted,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: theme.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: theme.surface,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 24,
-    gap: 12,
-  },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statVal: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: theme.accent,
-  },
-  statLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: theme.textMuted,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: theme.textMuted,
-    letterSpacing: 2,
-    marginBottom: 16,
-  },
-  exItem: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-  },
-  exHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  exName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.textPrimary,
-  },
-  setsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  setBadge: {
-    backgroundColor: theme.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-  },
-  setText: {
-    fontSize: 11,
-    color: theme.textSecondary,
-    fontWeight: '700',
-  },
-});
+const createDetailsModalStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.85)",
+      justifyContent: "flex-end",
+    },
+    content: {
+      backgroundColor: theme.bgBase,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      padding: 24,
+      height: "80%",
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 24,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "900",
+      color: theme.textPrimary,
+      textTransform: "uppercase",
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.textMuted,
+      marginTop: 2,
+    },
+    closeBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.surface,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    loading: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    statsRow: {
+      flexDirection: "row",
+      backgroundColor: theme.surface,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 24,
+      gap: 12,
+    },
+    stat: {
+      flex: 1,
+      alignItems: "center",
+    },
+    statVal: {
+      fontSize: 18,
+      fontWeight: "900",
+      color: theme.accent,
+    },
+    statLabel: {
+      fontSize: 9,
+      fontWeight: "800",
+      color: theme.textMuted,
+      marginTop: 4,
+    },
+    sectionTitle: {
+      fontSize: 11,
+      fontWeight: "800",
+      color: theme.textMuted,
+      letterSpacing: 2,
+      marginBottom: 16,
+    },
+    exItem: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    exHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    exName: {
+      fontSize: 15,
+      fontWeight: "800",
+      color: theme.textPrimary,
+    },
+    setsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    setBadge: {
+      backgroundColor: theme.surface,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    setText: {
+      fontSize: 11,
+      color: theme.textSecondary,
+      fontWeight: "700",
+    },
+  });

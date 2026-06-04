@@ -22,8 +22,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "android.permission.CAMERA"
       ],
       "package": "com.fitzo.one"
     },
@@ -46,16 +45,6 @@
         }
       ],
       "expo-font",
-      [
-        "react-native-radar",
-        {
-          "iosNSLocationWhenInUseUsageDescription": "Tu ubicación es necesaria para detectar cuándo entras al gimnasio.",
-          "iosNSLocationAlwaysAndWhenInUseUsageDescription": "Tu ubicación es necesaria para detectar tu entrada al gimnasio en segundo plano.",
-          "iosBackgroundMode": true,
-          "androidBackgroundPermission": true,
-          "androidFineLocationPermission": true
-        }
-      ],
       [
         "expo-build-properties",
         {

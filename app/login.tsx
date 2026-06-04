@@ -96,7 +96,7 @@ export default function LoginScreen() {
           });
         }
         goToHome();
-      } catch (error: any) {
+      } catch {
         setErrorMessage('Código incorrecto o expirado');
         setErrorVisible(true);
       } finally {

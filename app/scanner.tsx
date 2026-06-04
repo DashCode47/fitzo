@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Scanner() {
   const router = useRouter();
-  const { profile, setProfile } = useAppStore();
+  const { setProfile } = useAppStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);

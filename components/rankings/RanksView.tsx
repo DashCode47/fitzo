@@ -1,115 +1,123 @@
+import { RanksAPI, calculateAllRanks } from "@/api/ranks";
+import { useAppStore } from "@/store/useAppStore";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { GeneralRankBadge } from "./GeneralRankBadge";
+import { MuscleRankCard } from "./MuscleRankCard";
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
-import { useAppStore } from '@/store/useAppStore';
-import { RanksAPI, calculateAllRanks } from '@/api/ranks';
-import { GeneralRankBadge } from './GeneralRankBadge';
-import { MuscleRankCard } from './MuscleRankCard';
+import { AppTheme } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
+import { useFocusEffect } from "@react-navigation/native";
 
-import { theme as staticTheme, AppTheme } from '@/constants/theme';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { useFocusEffect } from '@react-navigation/native';
-
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const createStyles = (theme: AppTheme) => StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.bgDeep,
-  },
-  loadingText: {
-    marginTop: 16,
-    color: theme.textSecondary,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: theme.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: theme.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#000000',
-    fontWeight: '700',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  howToBox: {
-    backgroundColor: theme.bgCard,
-    borderRadius: 20,
-    padding: 20,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-  },
-  howToHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  howToTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: theme.textPrimary,
-    letterSpacing: 1,
-  },
-  howToText: {
-    fontSize: 13,
-    color: theme.textSecondary,
-    lineHeight: 20,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: theme.bgCard,
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 24,
-    gap: 12,
-    alignItems: 'center',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: theme.textSecondary,
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 40,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.bgDeep,
+    },
+    loadingText: {
+      marginTop: 16,
+      color: theme.textSecondary,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 40,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: theme.textPrimary,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      textAlign: "center",
+      lineHeight: 20,
+      marginBottom: 24,
+    },
+    button: {
+      backgroundColor: theme.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 12,
+    },
+    buttonText: {
+      color: "#000000",
+      fontWeight: "700",
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "800",
+      color: theme.textPrimary,
+      marginTop: 12,
+      marginBottom: 16,
+    },
+    howToBox: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 20,
+      padding: 20,
+      marginVertical: 16,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    howToHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 10,
+    },
+    howToTitle: {
+      fontSize: 14,
+      fontWeight: "900",
+      color: theme.textPrimary,
+      letterSpacing: 1,
+    },
+    howToText: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      lineHeight: 20,
+    },
+    infoBox: {
+      flexDirection: "row",
+      backgroundColor: theme.bgCard,
+      padding: 16,
+      borderRadius: 12,
+      marginTop: 24,
+      gap: 12,
+      alignItems: "center",
+    },
+    infoText: {
+      flex: 1,
+      fontSize: 12,
+      color: theme.textSecondary,
+      lineHeight: 18,
+    },
+  });
 
 export const RanksView: React.FC = () => {
   const theme = useAppTheme();
@@ -129,16 +137,20 @@ export const RanksView: React.FC = () => {
     try {
       const maxWeights = await RanksAPI.getUserMaxWeights(profile.id);
       const ranks = calculateAllRanks(
-        maxWeights, 
-        userStats.weight, 
-        (userStats.gender as any) || 'M'
+        maxWeights,
+        userStats.weight,
+        (userStats.gender as any) || "M",
       );
       setMuscleRanks(ranks);
-      
+
       // Update general rank in profile Table to keep Leaderboard (Tabla) in sync
-      await RanksAPI.syncRankToProfile(profile.id, ranks.avgIndex, ranks.generalTier);
+      await RanksAPI.syncRankToProfile(
+        profile.id,
+        ranks.avgIndex,
+        ranks.generalTier,
+      );
     } catch (e) {
-      console.error('[RanksView] fetchRanks failed:', e);
+      console.error("[RanksView] fetchRanks failed:", e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -148,7 +160,8 @@ export const RanksView: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       fetchRanks();
-    }, [profile?.id, userStats?.weight])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [profile?.id, userStats?.weight]),
   );
 
   const onRefresh = () => {
@@ -162,9 +175,13 @@ export const RanksView: React.FC = () => {
         <Ionicons name="barbell-outline" size={64} color={theme.textMuted} />
         <Text style={styles.emptyTitle}>Configura tu peso</Text>
         <Text style={styles.emptySubtitle}>
-          Necesitamos conocer tu peso corporal para calcular tus rangos de fuerza relativos.
+          Necesitamos conocer tu peso corporal para calcular tus rangos de
+          fuerza relativos.
         </Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/(tabs)/nutrition')}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/(tabs)/nutrition")}
+        >
           <Text style={styles.buttonText}>Configurar peso</Text>
         </TouchableOpacity>
       </View>
@@ -181,15 +198,21 @@ export const RanksView: React.FC = () => {
   }
 
   return (
-    <ScrollView 
-      style={styles.container} 
+    <ScrollView
+      style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.accent}
+        />
+      }
     >
       {muscleRanks && (
         <>
-          <GeneralRankBadge 
-            tierIndex={muscleRanks.generalTierIndex} 
+          <GeneralRankBadge
+            tierIndex={muscleRanks.generalTierIndex}
             avgIndex={muscleRanks.avgIndex}
             muscleCount={muscleRanks.muscleRanks.length}
           />
@@ -200,23 +223,61 @@ export const RanksView: React.FC = () => {
               <Text style={styles.howToTitle}>¿CÓMO SUBIR DE NIVEL?</Text>
             </View>
             <Text style={styles.howToText}>
-              Tu rango se basa en tu <Text style={{fontWeight:'700', color: theme.textPrimary}}>fuerza relativa</Text> y tu <Text style={{fontWeight:'700', color: theme.accent}}>consistencia</Text>.
-              {'\n\n'}
-              1. <Text style={{fontWeight:'700', color: theme.textPrimary}}>Fuerza</Text>: Levanta más peso en los ejercicios marcados como <Text style={{fontWeight:'700', color: theme.accent}}>RANKING</Text>.
-              {'\n\n'}
-              2. <Text style={{fontWeight:'700', color: theme.textPrimary}}>Constancia</Text>: Por cada <Text style={{fontWeight:'700', color: theme.accent}}>30 días de racha</Text>, recibes un bono de <Text style={{fontWeight:'700', color: theme.textPrimary}}>+1.0 de nivel</Text> en tu ranking general.
+              Tu rango se basa en tu{" "}
+              <Text style={{ fontWeight: "700", color: theme.textPrimary }}>
+                fuerza relativa
+              </Text>{" "}
+              y tu{" "}
+              <Text style={{ fontWeight: "700", color: theme.accent }}>
+                consistencia
+              </Text>
+              .{"\n\n"}
+              1.{" "}
+              <Text style={{ fontWeight: "700", color: theme.textPrimary }}>
+                Fuerza
+              </Text>
+              : Levanta más peso en los ejercicios marcados como{" "}
+              <Text style={{ fontWeight: "700", color: theme.accent }}>
+                RANKING
+              </Text>
+              .{"\n\n"}
+              2.{" "}
+              <Text style={{ fontWeight: "700", color: theme.textPrimary }}>
+                Constancia
+              </Text>
+              : Por cada{" "}
+              <Text style={{ fontWeight: "700", color: theme.accent }}>
+                30 días de racha
+              </Text>
+              , recibes un bono de{" "}
+              <Text style={{ fontWeight: "700", color: theme.textPrimary }}>
+                +1.0 de nivel
+              </Text>{" "}
+              en tu ranking general.
             </Text>
           </View>
 
           <Text style={styles.sectionTitle}>Grupos Musculares</Text>
           {muscleRanks.muscleRanks.map((rank) => (
-            <MuscleRankCard key={rank.muscleGroup} rank={rank} bodyWeight={userStats?.weight || 0} />
+            <MuscleRankCard
+              key={rank.muscleGroup}
+              rank={rank}
+              bodyWeight={userStats?.weight || 0}
+            />
           ))}
 
           <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={20} color={theme.accent} />
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={theme.accent}
+            />
             <Text style={styles.infoText}>
-              Solo los ejercicios marcados con el sello <Text style={{color: theme.accent, fontWeight:'800'}}>RANKING</Text> en el catálogo actualizan estos niveles.
+              Solo los ejercicios marcados con el sello{" "}
+              <Text style={{ color: theme.accent, fontWeight: "800" }}>
+                RANKING
+              </Text>{" "}
+              en el catálogo actualizan estos niveles.
             </Text>
           </View>
         </>

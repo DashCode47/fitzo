@@ -1,11 +1,10 @@
-import { theme as staticTheme } from '@/constants/theme';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { HapticTab } from '@/components/haptic-tab';
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { HapticTab } from "@/components/haptic-tab";
+import { useAppTheme } from "@/hooks/useAppTheme";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React from "react";
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
   const theme = useAppTheme();
@@ -37,7 +36,7 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '600',
+          fontWeight: "600",
           letterSpacing: 0.3,
         },
       }}
@@ -45,36 +44,58 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Inicio',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} />,
+          title: "Inicio",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name={focused ? "home" : "home-outline"}
+              focused={focused}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="routines"
         options={{
-          title: 'Rutinas',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'fitness' : 'fitness-outline'} focused={focused} />,
+          title: "Rutinas",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name={focused ? "fitness" : "fitness-outline"}
+              focused={focused}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="store"
         options={{
-          title: 'Tienda',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bag' : 'bag-outline'} focused={focused} />,
+          title: "Tienda",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "bag" : "bag-outline"} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="nutrition"
         options={{
-          title: 'Nutrición',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'restaurant' : 'restaurant-outline'} focused={focused} />,
+          title: "Nutrición",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name={focused ? "restaurant" : "restaurant-outline"}
+              focused={focused}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="rankings"
         options={{
-          title: 'Ranking',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'trophy' : 'trophy-outline'} focused={focused} />,
+          title: "Ranking",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name={focused ? "trophy" : "trophy-outline"}
+              focused={focused}
+            />
+          ),
         }}
       />
     </Tabs>

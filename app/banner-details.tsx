@@ -1,5 +1,6 @@
 
-import { theme } from '@/constants/theme';
+import { AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +15,8 @@ export default function DetailsScreen() {
   const insets = useSafeAreaInsets();
   const { id, type } = useLocalSearchParams();
   const { promos, events } = useAppStore();
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
 
   let content: any = null;
   if (type === 'event') {
@@ -145,7 +148,7 @@ export default function DetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,

@@ -1,12 +1,11 @@
-
-import { OnboardingSkeleton } from '@/components/home/OnboardingSkeleton';
-import { theme } from '@/constants/theme';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { supabase } from '@/lib/supabase';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef, useState } from 'react';
+import { OnboardingSkeleton } from "@/components/home/OnboardingSkeleton";
+import { theme } from "@/constants/theme";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -14,30 +13,36 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const SLIDES = [
   {
-    id: '1',
-    title: 'BIENVENIDO A\nFITZO',
-    description: 'Tu transformación comienza hoy.\nEntrena con los mejores equipos y programas.',
-    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1200',
+    id: "1",
+    title: "BIENVENIDO A\nFITZO",
+    description:
+      "Tu transformación comienza hoy.\nEntrena con los mejores equipos y programas.",
+    image:
+      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1200",
   },
   {
-    id: '2',
-    title: 'SEGUIMIENTO\nTOTAL',
-    description: 'Monitorea tu progreso, marcas personales\ny nutrición en tiempo real.',
-    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200',
+    id: "2",
+    title: "SEGUIMIENTO\nTOTAL",
+    description:
+      "Monitorea tu progreso, marcas personales\ny nutrición en tiempo real.",
+    image:
+      "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200",
   },
   {
-    id: '3',
-    title: 'MÁXIMO\nPOTENCIAL',
-    description: 'Únete a la elite del fitness y comparte tus logros con nuestra comunidad.',
-    image: 'https://images.unsplash.com/photo-1541534741688-6078c64b5903?q=80&w=1200',
+    id: "3",
+    title: "MÁXIMO\nPOTENCIAL",
+    description:
+      "Únete a la elite del fitness y comparte tus logros con nuestra comunidad.",
+    image:
+      "https://images.unsplash.com/photo-1541534741688-6078c64b5903?q=80&w=1200",
   },
 ];
 
@@ -53,31 +58,37 @@ export default function OnboardingScreen() {
     }
   }).current;
 
-  const viewConfigRef = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  const viewConfigRef = useRef({
+    viewAreaCoveragePercentThreshold: 50,
+  }).current;
 
   useEffect(() => {
     checkSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkSession = async () => {
     const startTime = Date.now();
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       const elapsed = Date.now() - startTime;
       const minDelay = 2000; // 2 seconds total splash time
       const remaining = Math.max(0, minDelay - elapsed);
 
       if (session) {
-        if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+        if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
         goToHome();
       } else {
-        // For onboarding, we can show it faster or also wait. 
+        // For onboarding, we can show it faster or also wait.
         // User asked specifically "antes de seguir al home", so let's keep it fast for new users
         // to reduce friction, unless they've seen it enough.
         // Actually, let's wait at least 1.5s to see the logo if not logged in.
         const onboardingDelay = Math.max(0, 1500 - elapsed);
-        if (onboardingDelay > 0) await new Promise(r => setTimeout(r, onboardingDelay));
+        if (onboardingDelay > 0)
+          await new Promise((r) => setTimeout(r, onboardingDelay));
       }
     } catch (e) {
       console.error("[Onboarding] Session check error:", e);
@@ -98,11 +109,15 @@ export default function OnboardingScreen() {
     }
   };
 
-  const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
+  const renderSlide = ({ item }: { item: (typeof SLIDES)[0] }) => (
     <View style={styles.slide}>
-      <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+      <Image
+        source={{ uri: item.image }}
+        style={styles.image}
+        resizeMode="cover"
+      />
       <LinearGradient
-        colors={['transparent', 'rgba(7, 7, 15, 0.5)', theme.bgDeep, 'black']}
+        colors={["transparent", "rgba(7, 7, 15, 0.5)", theme.bgDeep, "black"]}
         style={styles.gradient}
       >
         <SafeAreaView style={styles.content}>
@@ -118,7 +133,11 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <LinearGradient colors={theme.gradients.topGlow} style={styles.topGlow} pointerEvents="none" />
+      <LinearGradient
+        colors={theme.gradients.topGlow}
+        style={styles.topGlow}
+        pointerEvents="none"
+      />
 
       <FlatList
         ref={flatListRef}
@@ -138,16 +157,17 @@ export default function OnboardingScreen() {
           {SLIDES.map((_, index) => (
             <View
               key={index}
-              style={[
-                styles.dot,
-                currentIndex === index && styles.activeDot,
-              ]}
+              style={[styles.dot, currentIndex === index && styles.activeDot]}
             />
           ))}
         </View>
 
         {/* Action Button */}
-        <TouchableOpacity style={styles.mainBtn} onPress={handleNext} activeOpacity={0.9}>
+        <TouchableOpacity
+          style={styles.mainBtn}
+          onPress={handleNext}
+          activeOpacity={0.9}
+        >
           <LinearGradient
             colors={theme.gradients.accent}
             start={{ x: 0, y: 0 }}
@@ -155,10 +175,14 @@ export default function OnboardingScreen() {
             style={styles.btnGradient}
           >
             <Text style={styles.buttonText}>
-              {currentIndex === SLIDES.length - 1 ? 'COMENZAR AHORA' : 'SIGUIENTE'}
+              {currentIndex === SLIDES.length - 1
+                ? "COMENZAR AHORA"
+                : "SIGUIENTE"}
             </Text>
             <Ionicons
-              name={currentIndex === SLIDES.length - 1 ? 'flash' : 'arrow-forward'}
+              name={
+                currentIndex === SLIDES.length - 1 ? "flash" : "arrow-forward"
+              }
               size={20}
               color="#fff"
               style={{ marginLeft: 8 }}
@@ -179,16 +203,18 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: "black",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   topGlow: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
     height: height * 0.4,
     zIndex: 1,
   },
@@ -203,42 +229,42 @@ const styles = StyleSheet.create({
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   content: {
     paddingHorizontal: 40,
     paddingBottom: 240,
   },
   textContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: 34,
-    fontWeight: '900',
-    color: 'white',
-    textAlign: 'center',
+    fontWeight: "900",
+    color: "white",
+    textAlign: "center",
     letterSpacing: -1,
     lineHeight: 38,
     marginBottom: 16,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   description: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
     lineHeight: 24,
-    maxWidth: '90%',
+    maxWidth: "90%",
   },
   footer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 50,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
     paddingHorizontal: 30,
     zIndex: 10,
   },
   pagination: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 40,
     gap: 8,
   },
@@ -246,17 +272,17 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   activeDot: {
     backgroundColor: theme.accent,
     width: 20,
   },
   mainBtn: {
-    width: '100%',
+    width: "100%",
     height: 60,
     borderRadius: 18,
-    overflow: 'hidden',
+    overflow: "hidden",
     shadowColor: theme.accent,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.4,
@@ -266,14 +292,14 @@ const styles = StyleSheet.create({
   },
   btnGradient: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 1,
   },
   skipButton: {
@@ -282,7 +308,7 @@ const styles = StyleSheet.create({
   skipText: {
     color: theme.textMuted,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 1,
   },
 });

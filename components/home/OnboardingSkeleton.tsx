@@ -1,8 +1,14 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Dimensions, Easing, Image, StyleSheet, Text, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Image,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 /**
  * OnboardingSkeleton is now a Premium Splash/Loader screen.
@@ -35,32 +41,41 @@ export function OnboardingSkeleton() {
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <View style={styles.container}>
       {/* Premium dark gradient background */}
       <LinearGradient
-        colors={['#000000', '#000000']}
+        colors={["#000000", "#000000"]}
         style={StyleSheet.absoluteFill}
       />
 
-      <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ scale: pulseAnim }] }]}>
+      <Animated.View
+        style={[
+          styles.centerContent,
+          { opacity: fadeAnim, transform: [{ scale: pulseAnim }] },
+        ]}
+      >
         <View style={styles.logoWrapper}>
           <Image
-            source={require('../../assets/images/icon.png')}
+            source={require("../../assets/images/icon.png")}
             style={styles.logo}
             resizeMode="contain"
           />
         </View>
         <Text style={styles.appName}>FITZO</Text>
-
       </Animated.View>
 
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color="#C5A356" style={{ marginBottom: 16 }} />
+        <ActivityIndicator
+          size="small"
+          color="#C5A356"
+          style={{ marginBottom: 16 }}
+        />
         <Text style={styles.loadingText}>Preparando tu experiencia...</Text>
       </View>
     </View>
@@ -70,42 +85,42 @@ export function OnboardingSkeleton() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "black",
+    alignItems: "center",
+    justifyContent: "center",
   },
   centerContent: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   logoWrapper: {
     width: 160,
     height: 160,
     marginBottom: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   logo: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   appName: {
     fontSize: 42,
-    fontWeight: '900',
-    color: '#fff',
+    fontWeight: "900",
+    color: "#fff",
     letterSpacing: 8,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   footer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 80,
-    alignItems: 'center',
+    alignItems: "center",
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: "rgba(255,255,255,0.4)",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 2,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
 });

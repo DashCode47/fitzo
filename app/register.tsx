@@ -1,12 +1,11 @@
-import { AuthAPI } from '@/api/auth';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import { AuthAPI } from "@/api/auth";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,42 +13,64 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View,
+} from "react-native";
 
-import { CustomModal } from '@/components/ui/CustomModal';
-import { theme } from '@/constants/theme';
+import { CustomModal } from "@/components/ui/CustomModal";
+import { theme } from "@/constants/theme";
 
-const { accent: ACCENT, bgDeep: BG_DEEP, bgCard: BG_CARD, surface: SURFACE,
-        textPrimary: TEXT_PRIMARY, textSecondary: TEXT_SECONDARY, textMuted: TEXT_MUTED } = theme;
+const {
+  accent: ACCENT,
+  bgDeep: BG_DEEP,
+  bgCard: BG_CARD,
+  surface: SURFACE,
+  textPrimary: TEXT_PRIMARY,
+  textSecondary: TEXT_SECONDARY,
+  textMuted: TEXT_MUTED,
+} = theme;
 
 type Field = {
   key: keyof typeof INITIAL_FORM;
   label: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  keyboard?: React.ComponentProps<typeof TextInput>['keyboardType'];
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  keyboard?: React.ComponentProps<typeof TextInput>["keyboardType"];
   maxLength?: number;
-  autoCapitalize?: React.ComponentProps<typeof TextInput>['autoCapitalize'];
+  autoCapitalize?: React.ComponentProps<typeof TextInput>["autoCapitalize"];
 };
 
 const INITIAL_FORM = {
-  email: '',
-  firstName: '',
-  lastName: '',
-  nationalId: '',
-  phone: '',
-  gender: '' as 'male' | 'female' | '',
-  weight: '',
+  email: "",
+  firstName: "",
+  lastName: "",
+  nationalId: "",
+  phone: "",
+  gender: "" as "male" | "female" | "",
+  weight: "",
 };
 
 const FIELDS: Field[] = [
-  { key: 'email',      label: 'Correo electrónico', icon: 'mail-outline',   keyboard: 'email-address', autoCapitalize: 'none' },
-  { key: 'firstName',  label: 'Nombre',              icon: 'person-outline' },
-  { key: 'lastName',   label: 'Apellido',             icon: 'person-outline' },
-  { key: 'nationalId', label: 'Cédula',               icon: 'card-outline',   keyboard: 'numeric', maxLength: 10 },
-  { key: 'phone',      label: 'Teléfono',             icon: 'call-outline',   keyboard: 'phone-pad' },
+  {
+    key: "email",
+    label: "Correo electrónico",
+    icon: "mail-outline",
+    keyboard: "email-address",
+    autoCapitalize: "none",
+  },
+  { key: "firstName", label: "Nombre", icon: "person-outline" },
+  { key: "lastName", label: "Apellido", icon: "person-outline" },
+  {
+    key: "nationalId",
+    label: "Cédula",
+    icon: "card-outline",
+    keyboard: "numeric",
+    maxLength: 10,
+  },
+  {
+    key: "phone",
+    label: "Teléfono",
+    icon: "call-outline",
+    keyboard: "phone-pad",
+  },
 ];
 
 export default function RegisterScreen() {
@@ -57,28 +78,43 @@ export default function RegisterScreen() {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
   const [successVisible, setSuccessVisible] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleChange = (key: keyof typeof INITIAL_FORM, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+    setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleRegister = async () => {
-    const { email, firstName, lastName, nationalId, phone, gender, weight } = formData;
-    if (!email || !firstName || !lastName || !nationalId || !phone || !gender || !weight) {
-      setErrorMessage('Por favor complete todos los campos, incluyendo género y peso');
+    const { email, firstName, lastName, nationalId, phone, gender, weight } =
+      formData;
+    if (
+      !email ||
+      !firstName ||
+      !lastName ||
+      !nationalId ||
+      !phone ||
+      !gender ||
+      !weight
+    ) {
+      setErrorMessage(
+        "Por favor complete todos los campos, incluyendo género y peso",
+      );
       setErrorVisible(true);
       return;
     }
     setLoading(true);
     try {
       await AuthAPI.registerUser({ ...formData, password: nationalId });
-      setSuccessMessage('¡Registro exitoso! Revisa tu correo para activar tu cuenta.');
+      setSuccessMessage(
+        "¡Registro exitoso! Revisa tu correo para activar tu cuenta.",
+      );
       setSuccessVisible(true);
     } catch (error: any) {
-      setErrorMessage(error.message || 'Error en el registro. Verifica tus datos.');
+      setErrorMessage(
+        error.message || "Error en el registro. Verifica tus datos.",
+      );
       setErrorVisible(true);
     } finally {
       setLoading(false);
@@ -101,7 +137,10 @@ export default function RegisterScreen() {
         message={successMessage}
         type="success"
         buttonText="IR AL LOGIN"
-        onClose={() => { setSuccessVisible(false); goBack(); }}
+        onClose={() => {
+          setSuccessVisible(false);
+          goBack();
+        }}
       />
 
       <LinearGradient
@@ -117,7 +156,7 @@ export default function RegisterScreen() {
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -150,12 +189,13 @@ export default function RegisterScreen() {
               </LinearGradient>
             </View>
             <Text style={styles.heroTitle}>Crea tu cuenta</Text>
-            <Text style={styles.heroSubtitle}>Completa los datos para empezar</Text>
+            <Text style={styles.heroSubtitle}>
+              Completa los datos para empezar
+            </Text>
           </View>
 
           {/* ── Card ── */}
           <View style={styles.card}>
-
             {/* Name row */}
             <View style={styles.row}>
               <InputField
@@ -173,7 +213,7 @@ export default function RegisterScreen() {
             </View>
 
             {/* Remaining fields */}
-            {[FIELDS[0], FIELDS[3], FIELDS[4]].map(field => (
+            {[FIELDS[0], FIELDS[3], FIELDS[4]].map((field) => (
               <InputField
                 key={field.key}
                 field={field}
@@ -188,58 +228,80 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 style={[
                   styles.genderBtn,
-                  formData.gender === 'male' && styles.genderBtnActive
+                  formData.gender === "male" && styles.genderBtnActive,
                 ]}
-                onPress={() => handleChange('gender', 'male')}
+                onPress={() => handleChange("gender", "male")}
               >
                 <Ionicons
                   name="male"
                   size={18}
-                  color={formData.gender === 'male' ? '#fff' : TEXT_SECONDARY}
+                  color={formData.gender === "male" ? "#fff" : TEXT_SECONDARY}
                 />
-                <Text style={[
-                  styles.genderBtnText,
-                  formData.gender === 'male' && styles.genderBtnTextActive
-                ]}>Hombre</Text>
+                <Text
+                  style={[
+                    styles.genderBtnText,
+                    formData.gender === "male" && styles.genderBtnTextActive,
+                  ]}
+                >
+                  Hombre
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.genderBtn,
-                  formData.gender === 'female' && styles.genderBtnActive
+                  formData.gender === "female" && styles.genderBtnActive,
                 ]}
-                onPress={() => handleChange('gender', 'female')}
+                onPress={() => handleChange("gender", "female")}
               >
                 <Ionicons
                   name="female"
                   size={18}
-                  color={formData.gender === 'female' ? '#fff' : TEXT_SECONDARY}
+                  color={formData.gender === "female" ? "#fff" : TEXT_SECONDARY}
                 />
-                <Text style={[
-                  styles.genderBtnText,
-                  formData.gender === 'female' && styles.genderBtnTextActive
-                ]}>Mujer</Text>
+                <Text
+                  style={[
+                    styles.genderBtnText,
+                    formData.gender === "female" && styles.genderBtnTextActive,
+                  ]}
+                >
+                  Mujer
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* Weight Input */}
             <Text style={styles.sectionLabel}>Peso (kg)</Text>
             <InputField
-              field={{ key: 'weight', label: 'Ej: 75', icon: 'speedometer-outline', keyboard: 'numeric' }}
+              field={{
+                key: "weight",
+                label: "Ej: 75",
+                icon: "speedometer-outline",
+                keyboard: "numeric",
+              }}
               value={formData.weight}
               onChange={handleChange as any}
             />
 
             {/* Info hint */}
             <View style={styles.hint}>
-              <Ionicons name="information-circle-outline" size={14} color={TEXT_MUTED} />
+              <Ionicons
+                name="information-circle-outline"
+                size={14}
+                color={TEXT_MUTED}
+              />
               <Text style={styles.hintText}>
-                Tu peso se usa para calcular tu ranking de fuerza relativo. Puedes actualizarlo luego en tu Perfil.
+                Tu peso se usa para calcular tu ranking de fuerza relativo.
+                Puedes actualizarlo luego en tu Perfil.
               </Text>
             </View>
 
             <View style={[styles.hint, { marginTop: 0 }]}>
-              <Ionicons name="lock-closed-outline" size={14} color={TEXT_MUTED} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={14}
+                color={TEXT_MUTED}
+              />
               <Text style={styles.hintText}>
                 Tu cédula se usará como contraseña temporal.
               </Text>
@@ -263,7 +325,12 @@ export default function RegisterScreen() {
                 ) : (
                   <>
                     <Text style={styles.primaryBtnText}>Crear cuenta</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color="#fff"
+                      style={{ marginLeft: 6 }}
+                    />
                   </>
                 )}
               </LinearGradient>
@@ -273,10 +340,10 @@ export default function RegisterScreen() {
           {/* Footer */}
           <TouchableOpacity style={styles.loginLink} onPress={goBack}>
             <Text style={styles.loginLinkText}>
-              ¿Ya tienes cuenta? <Text style={styles.accentText}>Inicia sesión</Text>
+              ¿Ya tienes cuenta?{" "}
+              <Text style={styles.accentText}>Inicia sesión</Text>
             </Text>
           </TouchableOpacity>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -297,16 +364,21 @@ function InputField({
 }) {
   return (
     <View style={[fieldStyles.wrapper, style]}>
-      <Ionicons name={field.icon} size={16} color={TEXT_SECONDARY} style={fieldStyles.icon} />
+      <Ionicons
+        name={field.icon}
+        size={16}
+        color={TEXT_SECONDARY}
+        style={fieldStyles.icon}
+      />
       <TextInput
         style={fieldStyles.input}
         placeholder={field.label}
         placeholderTextColor={TEXT_MUTED}
         value={value}
-        onChangeText={text => onChange(field.key, text)}
-        keyboardType={field.keyboard ?? 'default'}
+        onChangeText={(text) => onChange(field.key, text)}
+        keyboardType={field.keyboard ?? "default"}
         maxLength={field.maxLength}
-        autoCapitalize={field.autoCapitalize ?? 'words'}
+        autoCapitalize={field.autoCapitalize ?? "words"}
       />
     </View>
   );
@@ -314,8 +386,8 @@ function InputField({
 
 const fieldStyles = StyleSheet.create({
   wrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: SURFACE,
     borderRadius: 14,
     borderWidth: 1,
@@ -341,7 +413,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG_DEEP,
   },
   topGlow: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -364,13 +436,13 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: theme.borderSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // ── Hero ──────────────────────────────────────────────────────────────────
   hero: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 24,
     gap: 8,
   },
@@ -386,12 +458,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   heroTitle: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: "800",
     color: TEXT_PRIMARY,
     letterSpacing: -0.5,
   },
@@ -407,7 +479,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: theme.borderSubtle,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.4,
     shadowRadius: 24,
@@ -415,11 +487,11 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   hint: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: 16,
     marginTop: 4,
@@ -432,12 +504,12 @@ const styles = StyleSheet.create({
   sectionLabel: {
     color: TEXT_SECONDARY,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
     marginLeft: 4,
   },
   genderRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
     marginBottom: 16,
   },
@@ -448,9 +520,9 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: theme.borderMuted,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   genderBtnActive: {
@@ -460,17 +532,17 @@ const styles = StyleSheet.create({
   genderBtnText: {
     color: TEXT_SECONDARY,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   genderBtnTextActive: {
-    color: '#fff',
-    fontWeight: '700',
+    color: "#fff",
+    fontWeight: "700",
   },
 
   // ── Button ────────────────────────────────────────────────────────────────
   primaryBtn: {
     borderRadius: 14,
-    overflow: 'hidden',
+    overflow: "hidden",
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
@@ -479,21 +551,21 @@ const styles = StyleSheet.create({
   },
   primaryBtnGradient: {
     height: 52,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   primaryBtnText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.3,
   },
 
   // ── Footer ────────────────────────────────────────────────────────────────
   loginLink: {
     marginTop: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   loginLinkText: {
     color: TEXT_SECONDARY,
@@ -501,6 +573,6 @@ const styles = StyleSheet.create({
   },
   accentText: {
     color: ACCENT,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
