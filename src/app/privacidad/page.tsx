@@ -86,7 +86,7 @@ export default function PrivacyPolicy() {
                     <li key={i} className="flex gap-3">
                       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gold mt-2" />
                       <span className="text-white/55 text-sm leading-relaxed">
-                        {item.label && (
+                        {"label" in item && item.label && (
                           <span className="text-white font-semibold">{item.label}: </span>
                         )}
                         {item.text}
