@@ -34,11 +34,15 @@ const sections = [
     content: "Implementamos medidas de seguridad técnicas y organizativas para proteger tus datos contra acceso no autorizado, pérdida o alteración. Sin embargo, ningún método de transmisión por internet es 100% seguro.",
   },
   {
-    title: "5. Tus Derechos",
+    title: "5. Conservación de Datos",
+    content: "Conservamos tus datos personales mientras tu cuenta permanezca activa. Si solicitas la eliminación de tu cuenta, eliminamos tus datos personales en un plazo máximo de 30 días, salvo que debamos conservar cierta información por obligaciones legales o para resolver disputas.",
+  },
+  {
+    title: "6. Tus Derechos",
     content: "Tienes derecho a acceder, corregir o eliminar tus datos personales en cualquier momento. Puedes hacerlo directamente desde la configuración de tu perfil en la app o contactándonos por correo electrónico.",
   },
   {
-    title: "6. Cambios en esta Política",
+    title: "7. Cambios en esta Política",
     content: "Podemos actualizar esta política ocasionalmente. Te notificaremos sobre cualquier cambio significativo a través de la aplicación o por correo electrónico.",
   },
 ];
@@ -100,7 +104,7 @@ export default function PrivacyPolicy() {
 
           {/* Contact section */}
           <div className="glass-card p-6">
-            <h2 className="text-white font-bold text-lg mb-3">7. Contacto</h2>
+            <h2 className="text-white font-bold text-lg mb-3">8. Contacto</h2>
             <p className="text-white/55 leading-relaxed mb-3">
               Si tienes preguntas sobre esta política o el tratamiento de tus datos, puedes contactarnos en:
             </p>
