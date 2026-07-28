@@ -45,6 +45,8 @@ app-example
 
 # google services
 google-services.json
+google-service-account*.json
+fitzo-cloud-895e0f52c04b.json
 
 #claude
 settings.local.json

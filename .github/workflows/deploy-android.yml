@@ -1,0 +1,29 @@
+name: Deploy Android to Play Store
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install -g eas-cli
+
+      - run: yarn install --frozen-lockfile
+
+      - name: Build Android AAB
+        run: eas build --platform android --profile production --non-interactive --no-wait=false
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit to Play Store (internal track)
+        run: eas submit --platform android --profile production --latest --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
