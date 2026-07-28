@@ -156,10 +156,6 @@ export const RadarService = {
     Radar.onEventsReceived(null);
   },
 
-  getGeofenceUsers: async (tag: string, externalId: string) => {
-    // ... (existing code)
-  },
-
   trackOnce: async (): Promise<{ status: string; events?: any[]; location?: any }> => {
     if (!isRadarAvailable) return { status: 'ERROR' };
     try {

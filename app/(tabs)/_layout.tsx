@@ -66,11 +66,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="store"
+        name="stats"
         options={{
-          title: "Tienda",
+          title: "Stats",
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={focused ? "bag" : "bag-outline"} focused={focused} />
+            <TabIcon
+              name={focused ? "stats-chart" : "stats-chart-outline"}
+              focused={focused}
+            />
           ),
         }}
       />

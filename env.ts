@@ -7,7 +7,6 @@
 export const RADAR_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY || '';
 export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
-export const RADAR_SECRET_KEY = process.env.EXPO_PUBLIC_RADAR_SECRET_KEY || '';
 export const GEOFENCE_ID = process.env.EXPO_PUBLIC_GEOFENCE_ID || '';
 
 if (!RADAR_PUBLISHABLE_KEY) {

@@ -9,8 +9,8 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
+  BackHandler,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -217,8 +217,10 @@ export default function WorkoutSessionScreen() {
     setActiveWorkout,
   } = useAppStore();
 
-  const [elapsed, setElapsed] = useState(0);
+  const [, forceTick] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [infoAlert, setInfoAlert] = useState<{ title: string; message: string; isError?: boolean } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Info Modal states
@@ -233,9 +235,10 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
-    // Start timer
+    // Re-render every second; actual elapsed time is derived from startTime so it
+    // stays correct even if the screen was off or the JS thread was suspended.
     timerRef.current = setInterval(() => {
-      setElapsed((prev) => prev + 1);
+      forceTick((n) => n + 1);
     }, 1000);
 
     return () => {
@@ -243,6 +246,19 @@ export default function WorkoutSessionScreen() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      setShowCancelModal(true);
+      return true;
+    };
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
+  }, []);
+
+  const elapsed = activeWorkout
+    ? Math.max(0, Math.floor((Date.now() - new Date(activeWorkout.startTime).getTime()) / 1000))
+    : 0;
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -271,6 +287,16 @@ export default function WorkoutSessionScreen() {
 
   const handleFinish = () => {
     if (!activeWorkout || !profile) return;
+    const hasCompletedSet = activeWorkout.exercises.some((ex) =>
+      ex.sets.some((s) => s.completed),
+    );
+    if (!hasCompletedSet) {
+      setInfoAlert({
+        title: "Sin series completadas",
+        message: "Marca al menos una serie antes de finalizar el entrenamiento.",
+      });
+      return;
+    }
     setShowFinishModal(true);
   };
 
@@ -303,7 +329,11 @@ export default function WorkoutSessionScreen() {
       setShowSuccessModal(true);
     } catch (e) {
       console.error("[WorkoutSession] Failed to save:", e);
-      Alert.alert("Error", "No pudimos guardar tu sesión. Revisa tu conexión.");
+      setInfoAlert({
+        title: "Error",
+        message: "No pudimos guardar tu sesión. Revisa tu conexión.",
+        isError: true,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -312,6 +342,12 @@ export default function WorkoutSessionScreen() {
   const handleExit = () => {
     setActiveWorkout(null);
     setShowSuccessModal(false);
+    router.replace("/(tabs)/routines");
+  };
+
+  const confirmCancel = () => {
+    setShowCancelModal(false);
+    setActiveWorkout(null);
     router.replace("/(tabs)/routines");
   };
 
@@ -350,7 +386,7 @@ export default function WorkoutSessionScreen() {
           {/* Header Dashboard */}
           <View style={styles.sessionHeader}>
             <View style={styles.headerTop}>
-              <TouchableOpacity onPress={() => router.back()}>
+              <TouchableOpacity onPress={() => setShowCancelModal(true)}>
                 <Ionicons name="close" size={24} color={theme.textMuted} />
               </TouchableOpacity>
               <View style={styles.timerBox}>
@@ -490,6 +526,61 @@ export default function WorkoutSessionScreen() {
             ))}
             <View style={{ height: 100 }} />
           </ScrollView>
+
+          {/* Info / Error Modal */}
+          <Modal visible={!!infoAlert} transparent animationType="fade">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHeaderIcon}>
+                  <Ionicons
+                    name={infoAlert?.isError ? "alert-circle-outline" : "information-circle-outline"}
+                    size={32}
+                    color={infoAlert?.isError ? theme.error : theme.accent}
+                  />
+                </View>
+                <Text style={styles.modalTitle}>{infoAlert?.title}</Text>
+                <Text style={styles.modalSub}>{infoAlert?.message}</Text>
+
+                <TouchableOpacity
+                  style={styles.exitBtn}
+                  onPress={() => setInfoAlert(null)}
+                >
+                  <Text style={styles.exitBtnText}>ENTENDIDO</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Cancel Session Confirmation Modal */}
+          <Modal visible={showCancelModal} transparent animationType="fade">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHeaderIcon}>
+                  <Ionicons name="warning-outline" size={32} color={theme.error} />
+                </View>
+                <Text style={styles.modalTitle}>¿Cancelar Sesión?</Text>
+                <Text style={styles.modalSub}>
+                  Perderás el progreso de este entrenamiento, incluyendo{" "}
+                  {formatTime(elapsed)} y las series registradas.
+                </Text>
+
+                <View style={styles.modalFooter}>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => setShowCancelModal(false)}
+                  >
+                    <Text style={styles.cancelBtnText}>SEGUIR ENTRENANDO</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.discardBtn}
+                    onPress={confirmCancel}
+                  >
+                    <Text style={styles.discardBtnText}>DESCARTAR</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
 
           {/* Finish Confirmation Modal */}
           <Modal visible={showFinishModal} transparent animationType="fade">
@@ -923,6 +1014,19 @@ const createStyles = (theme: AppTheme) =>
       fontSize: 14,
       fontWeight: "800",
       color: theme.textSecondary,
+    },
+    discardBtn: {
+      flex: 2,
+      height: 54,
+      borderRadius: 16,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.error,
+    },
+    discardBtnText: {
+      fontSize: 14,
+      fontWeight: "900",
+      color: "#fff",
     },
     confirmBtn: {
       flex: 2,

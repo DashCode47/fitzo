@@ -75,15 +75,5 @@ export const NotificationService = {
       console.error('Error en registerForPushNotificationsAsync:', error);
       return null;
     }
-  },
-
-  // Escuchar cuando llega una notificación (Foreground)
-  addListener(callback: (notification: Notifications.Notification) => void) {
-    return Notifications.addNotificationReceivedListener(callback);
-  },
-
-  // Escuchar cuando el usuario hace clic en la notificación
-  addResponseListener(callback: (response: Notifications.NotificationResponse) => void) {
-    return Notifications.addNotificationResponseReceivedListener(callback);
   }
 };

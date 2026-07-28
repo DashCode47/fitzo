@@ -484,7 +484,7 @@ export default function RoutineCreateScreen() {
                       <Image
                         source={{ uri: previewExercise.image_url }}
                         style={styles.previewImage}
-                        contentFit="cover"
+                        contentFit="contain"
                       />
                     ) : (
                       <View style={styles.modalIconPlaceholder}>

@@ -1,4 +1,5 @@
 import { AuthAPI } from "@/api/auth";
+import { NutritionAPI } from "@/api/nutrition";
 import { UserAPI } from "@/api/user";
 import { WorkoutsAPI } from "@/api/workouts";
 import { CustomModal } from "@/components/ui/CustomModal";
@@ -42,6 +43,7 @@ export default function ProfileScreen() {
     resetWorkoutLogs,
     muscleRanks,
     userStats,
+    setUserStats,
     themeMode,
     setThemeMode,
   } = useAppStore();
@@ -74,9 +76,20 @@ export default function ProfileScreen() {
     if (isHydrated && profile?.id) {
       loadProfile();
       loadHistory(true);
+      if (!userStats) loadUserStats();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated, profile?.id]);
+
+  const loadUserStats = async () => {
+    if (!profile?.id) return;
+    try {
+      const stats = await NutritionAPI.getUserStats(profile.id);
+      if (stats) setUserStats(stats);
+    } catch (e) {
+      console.error("[ProfileScreen] Failed to load user stats:", e);
+    }
+  };
 
   const loadHistory = async (reset = false) => {
     if (!profile?.id || loadingHistory) return;

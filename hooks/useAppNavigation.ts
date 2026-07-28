@@ -8,7 +8,7 @@ export const useAppNavigation = () => {
   const goToLogin = () => router.replace(ROUTES.LOGIN);
   const goToRegister = () => router.push(ROUTES.REGISTER);
   const goToHome = () => router.replace(ROUTES.HOME);
-  const goToStore = () => router.replace(ROUTES.STORE);
+  const goToStats = () => router.replace(ROUTES.STATS);
   const goToNutrition = () => router.replace(ROUTES.NUTRITION);
   const goToProfile = () => router.push(ROUTES.PROFILE);
   const goBack = () => router.back();
@@ -28,7 +28,7 @@ export const useAppNavigation = () => {
     goToLogin,
     goToRegister,
     goToHome,
-    goToStore,
+    goToStats,
     goToNutrition,
     goToProfile,
     goBack,

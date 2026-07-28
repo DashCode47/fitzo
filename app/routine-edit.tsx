@@ -58,6 +58,8 @@ export default function RoutineEditScreen() {
   const [saving, setSaving] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogGroup, setCatalogGroup] = useState<string | null>(null);
+  const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -448,15 +450,93 @@ export default function RoutineEditScreen() {
                       </Text>
                     </View>
                   </View>
-                  <TouchableOpacity
-                    style={styles.catalogActionBtn}
-                    onPress={() => addExercise(item)}
-                  >
-                    <Ionicons name="add" size={20} color={theme.accent} />
-                  </TouchableOpacity>
+                  <View style={styles.catalogActions}>
+                    <TouchableOpacity
+                      style={styles.catalogActionBtn}
+                      onPress={() => {
+                        setPreviewExercise(item);
+                        setShowPreview(true);
+                      }}
+                    >
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={24}
+                        color={theme.textMuted}
+                      />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.catalogActionBtn}
+                      onPress={() => addExercise(item)}
+                    >
+                      <Ionicons name="add" size={20} color={theme.accent} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             />
+
+            {showPreview && previewExercise && (
+              <View style={styles.previewContainer}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Vista Previa</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowPreview(false)}
+                    style={styles.closePreviewBtn}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={theme.textPrimary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  <View style={styles.previewImageContainer}>
+                    {previewExercise.image_url ? (
+                      <Image
+                        source={{ uri: previewExercise.image_url }}
+                        style={styles.previewImage}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View style={styles.modalIconPlaceholder}>
+                        <Ionicons
+                          name="barbell"
+                          size={60}
+                          color={theme.accentDim}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.previewBody}>
+                    <Text style={styles.previewExTitle}>
+                      {previewExercise.name}
+                    </Text>
+                    <View style={styles.modalBadges}>
+                      <View style={styles.modalBadge}>
+                        <Text style={styles.modalBadgeText}>
+                          {translateMuscle(previewExercise.muscle_group)}
+                        </Text>
+                      </View>
+                      <View style={styles.modalBadge}>
+                        <Text style={styles.modalBadgeText}>
+                          {previewExercise.equipment}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.descLabel}>DESCRIPCIÓN</Text>
+                    <Text style={styles.previewDesc}>
+                      {previewExercise.description ||
+                        "No hay una descripción detallada para este ejercicio aún."}
+                    </Text>
+                  </View>
+                </ScrollView>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -629,6 +709,11 @@ const createStyles = (theme: AppTheme) =>
       color: theme.textSecondary,
       textTransform: "capitalize",
     },
+    catalogActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
     catalogActionBtn: {
       width: 38,
       height: 38,
@@ -636,6 +721,75 @@ const createStyles = (theme: AppTheme) =>
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: theme.accentDim,
+    },
+    previewContainer: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: theme.bgBase,
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      padding: 24,
+      zIndex: 10,
+    },
+    closePreviewBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.surface,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    previewImageContainer: {
+      width: "100%",
+      height: 220,
+      borderRadius: 20,
+      overflow: "hidden",
+      marginBottom: 20,
+    },
+    previewImage: {
+      width: "100%",
+      height: "100%",
+    },
+    modalIconPlaceholder: {
+      flex: 1,
+      backgroundColor: theme.surface,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    previewBody: {
+      gap: 16,
+    },
+    previewExTitle: {
+      fontSize: 22,
+      fontWeight: "900",
+      color: theme.textPrimary,
+      textTransform: "uppercase",
+    },
+    modalBadges: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    modalBadge: {
+      backgroundColor: theme.accentDim,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    modalBadgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: theme.accent,
+      textTransform: "capitalize",
+    },
+    descLabel: {
+      fontSize: 11,
+      fontWeight: "800",
+      color: theme.textMuted,
+      letterSpacing: 1,
+    },
+    previewDesc: {
+      fontSize: 15,
+      color: theme.textSecondary,
+      lineHeight: 22,
     },
     rankBadge: {
       flexDirection: "row",

@@ -1,6 +1,9 @@
 import { RoutinesAPI, UserSchedule } from "@/api/routines";
-import { theme } from "@/constants/theme";
+import { AppTheme } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAppStore } from "@/store/useAppStore";
+import { getErrorMessage } from "@/utils/errors";
+import { CustomModal } from "@/components/ui/CustomModal";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -26,6 +29,8 @@ const DAYS_FULL = [
 ];
 
 export default function ScheduleEditScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const router = useRouter();
   const { day } = useLocalSearchParams();
   const { profile, routines, userSchedule, setUserSchedule } = useAppStore();
@@ -35,6 +40,7 @@ export default function ScheduleEditScreen() {
     null,
   );
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState({ visible: false, message: "" });
 
   useEffect(() => {
     const current = userSchedule?.find((s) => s.day_of_week === selectedDay);
@@ -54,21 +60,18 @@ export default function ScheduleEditScreen() {
         active: !!selectedRoutineId,
       };
 
-      const updated = await RoutinesAPI.upsertSchedule(scheduleData);
+      await RoutinesAPI.upsertSchedule(scheduleData);
 
-      // Update local store
-      const newSchedule = [...(userSchedule || [])];
-      const idx = newSchedule.findIndex((s) => s.day_of_week === selectedDay);
-      if (idx > -1) newSchedule[idx] = updated[0];
-      else newSchedule.push(updated[0]);
-
-      // Refresh full schedule to ensure routines are populated or just rely on API refresh
       const refreshed = await RoutinesAPI.getUserSchedule(profile.id);
       setUserSchedule(refreshed);
 
       router.back();
     } catch (e) {
       console.error("[ScheduleEdit] Failed to save:", e);
+      setErrorModal({
+        visible: true,
+        message: getErrorMessage(e, "No pudimos guardar tu horario. Revisa tu conexión."),
+      });
     } finally {
       setLoading(false);
     }
@@ -80,6 +83,14 @@ export default function ScheduleEditScreen() {
       <LinearGradient
         colors={theme.gradients.bg}
         style={StyleSheet.absoluteFill}
+      />
+
+      <CustomModal
+        visible={errorModal.visible}
+        title="Error"
+        message={errorModal.message}
+        type="error"
+        onClose={() => setErrorModal({ visible: false, message: "" })}
       />
 
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
@@ -189,7 +200,8 @@ export default function ScheduleEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bgDeep,
@@ -300,4 +312,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textTransform: "capitalize",
   },
-});
+  });

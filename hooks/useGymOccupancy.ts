@@ -1,5 +1,6 @@
 import { GEOFENCE_ID } from '@/env';
 import { supabase } from '@/lib/supabase';
+import { getErrorMessage } from '@/utils/errors';
 import { useEffect, useState } from 'react';
 
 export interface GymOccupancy {
@@ -35,9 +36,10 @@ export function useGymOccupancy(geofenceId: string = DEFAULT_GEOFENCE_ID) {
           setOccupancy(data);
           setError(null);
         }
-      } catch (e: any) {
-        console.error('[useGymOccupancy] Exception:', e.message);
-        setError(e.message);
+      } catch (e) {
+        const message = getErrorMessage(e);
+        console.error('[useGymOccupancy] Exception:', message);
+        setError(message);
       } finally {
         setLoading(false);
       }

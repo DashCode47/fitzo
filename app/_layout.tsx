@@ -196,14 +196,6 @@ export default function RootLayout() {
             options={{ presentation: "modal" }}
           />
           <Stack.Screen name="exercise-progress" />
-          <Stack.Screen
-            name="modal"
-            options={{
-              presentation: "modal",
-              title: "Modal",
-              headerShown: true,
-            }}
-          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
