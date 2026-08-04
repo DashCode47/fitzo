@@ -32,6 +32,7 @@ export default function WorkoutsHistoryScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+  const [loadError, setLoadError] = useState(false);
 
   // Modal states
   const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
@@ -47,12 +48,14 @@ export default function WorkoutsHistoryScreen() {
   const loadInitial = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const data = await WorkoutsAPI.getWorkoutLogs(profile!.id!, PAGE_SIZE, 0);
       setLogs(data);
       setHasMore(data.length === PAGE_SIZE);
       setOffset(data.length);
     } catch (e) {
       console.error("[HistoryScreen] Failed to load initial:", e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -158,7 +161,22 @@ export default function WorkoutsHistoryScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
-            loading ? null : (
+            loading ? null : loadError ? (
+              <View style={styles.empty}>
+                <Ionicons
+                  name="cloud-offline-outline"
+                  size={48}
+                  color={theme.textMuted}
+                />
+                <Text style={styles.emptyText}>
+                  No pudimos cargar tu historial.
+                </Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={loadInitial}>
+                  <Ionicons name="refresh" size={14} color={theme.accent} />
+                  <Text style={styles.retryBtnText}>Reintentar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
               <View style={styles.empty}>
                 <Ionicons
                   name="barbell-outline"
@@ -372,6 +390,22 @@ const createStyles = (theme: AppTheme) =>
     emptyText: {
       color: theme.textMuted,
       fontSize: 16,
+    },
+    retryBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    retryBtnText: {
+      color: theme.accent,
+      fontSize: 13,
+      fontWeight: "800",
     },
 
     // Modal Styles

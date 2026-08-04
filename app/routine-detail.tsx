@@ -1,8 +1,9 @@
 import { Exercise, Routine, RoutinesAPI } from "@/api/routines";
 import { REPRESENTATIVE_EXERCISES } from "@/constants/ranks";
 import { AppTheme } from "@/constants/theme";
+import { CustomModal } from "@/components/ui/CustomModal";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { useAppStore } from "@/store/useAppStore";
+import { useStartWorkout } from "@/hooks/useStartWorkout";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -36,7 +37,7 @@ export default function RoutineDetailScreen() {
   const styles = createStyles(theme);
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { setActiveWorkout } = useAppStore();
+  const { startWorkout, replaceModalProps } = useStartWorkout();
 
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,30 +66,6 @@ export default function RoutineDetailScreen() {
     }
   };
 
-  const startWorkout = () => {
-    if (!routine) return;
-
-    // Transform routine into ActiveWorkout format for the store
-    const activeWorkout = {
-      routineId: routine.id,
-      routineName: routine.name,
-      startTime: new Date().toISOString(),
-      exercises:
-        routine.exercises?.map((re) => ({
-          exerciseId: re.exercise_id,
-          name: re.exercise?.name || "Ejercicio",
-          sets: Array.from({ length: re.sets }).map((_, i) => ({
-            set: i + 1,
-            reps: parseInt(re.reps) || 10,
-            weight: 0,
-            completed: false,
-          })),
-        })) || [],
-    };
-
-    setActiveWorkout(activeWorkout);
-    router.push("/workout-session");
-  };
 
   if (loading) {
     return (
@@ -224,7 +201,10 @@ export default function RoutineDetailScreen() {
 
       {/* Footer Start Button */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.startBtn} onPress={startWorkout}>
+        <TouchableOpacity
+          style={styles.startBtn}
+          onPress={() => routine && startWorkout(routine)}
+        >
           <LinearGradient
             colors={theme.gradients.accent}
             style={styles.startBtnGradient}
@@ -302,6 +282,8 @@ export default function RoutineDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      <CustomModal {...replaceModalProps} />
     </View>
   );
 }

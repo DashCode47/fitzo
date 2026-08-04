@@ -567,10 +567,6 @@ export default function NutritionScreen() {
   };
 
   const handleSaveStats = async () => {
-    const {
-      data: { session },
-    } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
-    if (!session?.user) return;
     if (!weight || !height || !age) {
       setModalConfig({
         title: "Campos incompletos",
@@ -582,6 +578,11 @@ export default function NutritionScreen() {
     }
     try {
       setSubmitting(true);
+      const {
+        data: { session },
+      } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
+      if (!session?.user) return;
+
       const calc = calculateCalories(
         parseFloat(weight),
         parseFloat(height),

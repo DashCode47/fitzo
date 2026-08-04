@@ -393,6 +393,9 @@ export default function WorkoutSessionScreen() {
                 <Ionicons name="time" size={16} color={theme.accent} />
                 <Text style={styles.timerText}>{formatTime(elapsed)}</Text>
               </View>
+              <TouchableOpacity onPress={() => router.back()}>
+                <Ionicons name="chevron-down" size={24} color={theme.textMuted} />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.finishBtn} onPress={handleFinish}>
                 <Text style={styles.finishBtnText}>FINALIZAR</Text>
               </TouchableOpacity>

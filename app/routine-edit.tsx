@@ -10,11 +10,13 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  BackHandler,
   FlatList,
   Image,
   Modal,
@@ -43,6 +45,7 @@ export default function RoutineEditScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const router = useRouter();
+  const navigation = useNavigation();
   const { id } = useLocalSearchParams();
   const { profile } = useAppStore();
 
@@ -60,11 +63,54 @@ export default function RoutineEditScreen() {
   const [catalogGroup, setCatalogGroup] = useState<string | null>(null);
   const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const initialSnapshot = useRef<string | null>(null);
+  const pendingLeaveAction = useRef<any>(null);
+  const leaving = useRef(false);
+
+  const hasChanges =
+    !saved &&
+    initialSnapshot.current !== null &&
+    JSON.stringify({ name, description, difficulty, goal, selectedExercises }) !==
+      initialSnapshot.current;
 
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (hasChanges) {
+        setShowDiscardModal(true);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
+  }, [hasChanges]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e: any) => {
+      if (!hasChanges || leaving.current) return;
+      e.preventDefault();
+      pendingLeaveAction.current = e.data.action;
+      setShowDiscardModal(true);
+    });
+    return unsubscribe;
+  }, [navigation, hasChanges]);
+
+  const discardAndLeave = () => {
+    setShowDiscardModal(false);
+    leaving.current = true;
+    const action = pendingLeaveAction.current;
+    pendingLeaveAction.current = null;
+    if (action) navigation.dispatch(action);
+    else router.back();
+  };
 
   const loadAll = async () => {
     try {
@@ -77,11 +123,6 @@ export default function RoutineEditScreen() {
       setExercisesCatalog(catalog);
 
       if (routine) {
-        setName(routine.name);
-        setDescription(routine.description || "");
-        setDifficulty(routine.difficulty);
-        setGoal(routine.goal);
-
         const mappedEx = (routine.exercises || []).map((re) => ({
           exercise_id: re.exercise_id,
           exercise: re.exercise,
@@ -89,7 +130,20 @@ export default function RoutineEditScreen() {
           reps: re.reps,
           rest_seconds: re.rest_seconds,
         }));
+
+        setName(routine.name);
+        setDescription(routine.description || "");
+        setDifficulty(routine.difficulty);
+        setGoal(routine.goal);
         setSelectedExercises(mappedEx);
+
+        initialSnapshot.current = JSON.stringify({
+          name: routine.name,
+          description: routine.description || "",
+          difficulty: routine.difficulty,
+          goal: routine.goal,
+          selectedExercises: mappedEx,
+        });
       }
     } catch (e) {
       console.error("[RoutineEdit] Failed to load:", e);
@@ -140,7 +194,15 @@ export default function RoutineEditScreen() {
   };
 
   const handleSave = async () => {
-    if (!name || selectedExercises.length === 0 || !profile) return;
+    if (!name.trim()) {
+      Alert.alert("Falta el nombre", "Ponle un nombre a tu rutina para poder guardarla.");
+      return;
+    }
+    if (selectedExercises.length === 0) {
+      Alert.alert("Sin ejercicios", "Añade al menos un ejercicio para poder guardar la rutina.");
+      return;
+    }
+    if (!profile) return;
 
     try {
       setSaving(true);
@@ -162,6 +224,7 @@ export default function RoutineEditScreen() {
         routineData,
         cleanedExercises,
       );
+      setSaved(true);
       router.replace("/(tabs)/routines");
     } catch (e) {
       console.error("[RoutineEdit] Failed to save:", e);
@@ -193,16 +256,15 @@ export default function RoutineEditScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() =>
+              hasChanges ? setShowDiscardModal(true) : router.back()
+            }
             style={styles.backBtn}
           >
             <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Editar Rutina</Text>
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={saving || !name || selectedExercises.length === 0}
-          >
+          <TouchableOpacity onPress={handleSave} disabled={saving}>
             {saving ? (
               <ActivityIndicator size="small" color={theme.accent} />
             ) : (
@@ -540,6 +602,36 @@ export default function RoutineEditScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Discard Changes Confirmation Modal */}
+      <Modal visible={showDiscardModal} transparent animationType="fade">
+        <View style={styles.discardOverlay}>
+          <View style={styles.discardContainer}>
+            <View style={styles.discardIconBox}>
+              <Ionicons name="warning-outline" size={32} color={theme.error} />
+            </View>
+            <Text style={styles.discardTitle}>¿Descartar Cambios?</Text>
+            <Text style={styles.discardSub}>
+              Perderás los cambios que hiciste en esta rutina si sales ahora.
+            </Text>
+
+            <View style={styles.discardFooter}>
+              <TouchableOpacity
+                style={styles.discardCancelBtn}
+                onPress={() => setShowDiscardModal(false)}
+              >
+                <Text style={styles.discardCancelText}>SEGUIR EDITANDO</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.discardConfirmBtn}
+                onPress={discardAndLeave}
+              >
+                <Text style={styles.discardConfirmText}>DESCARTAR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -829,5 +921,76 @@ const createStyles = (theme: AppTheme) =>
     },
     selectChipTextActive: {
       color: theme.accent,
+    },
+    discardOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.85)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    },
+    discardContainer: {
+      width: "100%",
+      backgroundColor: theme.bgCard,
+      borderRadius: 30,
+      padding: 24,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    discardIconBox: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: theme.accentDim,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    discardTitle: {
+      fontSize: 22,
+      fontWeight: "900",
+      color: theme.textPrimary,
+      marginBottom: 8,
+    },
+    discardSub: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      textAlign: "center",
+      lineHeight: 20,
+      marginBottom: 24,
+    },
+    discardFooter: {
+      flexDirection: "row",
+      gap: 12,
+      width: "100%",
+    },
+    discardCancelBtn: {
+      flex: 1,
+      height: 54,
+      borderRadius: 16,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    discardCancelText: {
+      fontSize: 14,
+      fontWeight: "800",
+      color: theme.textSecondary,
+    },
+    discardConfirmBtn: {
+      flex: 2,
+      height: 54,
+      borderRadius: 16,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.error,
+    },
+    discardConfirmText: {
+      fontSize: 14,
+      fontWeight: "900",
+      color: "#fff",
     },
   });

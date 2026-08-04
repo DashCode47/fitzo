@@ -2,10 +2,12 @@ import { AuthAPI } from "@/api/auth";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -75,12 +77,57 @@ const FIELDS: Field[] = [
 
 export default function RegisterScreen() {
   const { goBack } = useAppNavigation();
+  const navigation = useNavigation();
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const pendingLeaveAction = useRef<any>(null);
+  const leaving = useRef(false);
+
+  const hasChanges =
+    !saved && Object.values(formData).some((v) => v !== "");
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (hasChanges) {
+        setShowDiscardModal(true);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
+  }, [hasChanges]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e: any) => {
+      if (!hasChanges || leaving.current) return;
+      e.preventDefault();
+      pendingLeaveAction.current = e.data.action;
+      setShowDiscardModal(true);
+    });
+    return unsubscribe;
+  }, [navigation, hasChanges]);
+
+  const discardAndLeave = () => {
+    setShowDiscardModal(false);
+    leaving.current = true;
+    const action = pendingLeaveAction.current;
+    pendingLeaveAction.current = null;
+    if (action) navigation.dispatch(action);
+    else goBack();
+  };
+
+  const attemptGoBack = () => {
+    if (hasChanges) setShowDiscardModal(true);
+    else goBack();
+  };
 
   const handleChange = (key: keyof typeof INITIAL_FORM, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -107,6 +154,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await AuthAPI.registerUser({ ...formData, password: nationalId });
+      setSaved(true);
       setSuccessMessage(
         "¡Registro exitoso! Revisa tu correo para activar tu cuenta.",
       );
@@ -142,6 +190,16 @@ export default function RegisterScreen() {
           goBack();
         }}
       />
+      <CustomModal
+        visible={showDiscardModal}
+        title="¿Descartar Registro?"
+        message="Perderás los datos que has ingresado si sales ahora."
+        type="confirm"
+        buttonText="DESCARTAR"
+        cancelText="SEGUIR EDITANDO"
+        onClose={() => setShowDiscardModal(false)}
+        onConfirm={discardAndLeave}
+      />
 
       <LinearGradient
         colors={theme.gradients.bg}
@@ -171,7 +229,7 @@ export default function RegisterScreen() {
 
           {/* ── Header ── */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backBtn} onPress={goBack}>
+            <TouchableOpacity style={styles.backBtn} onPress={attemptGoBack}>
               <Ionicons name="arrow-back" size={20} color={TEXT_SECONDARY} />
             </TouchableOpacity>
           </View>
@@ -338,7 +396,7 @@ export default function RegisterScreen() {
           </View>
 
           {/* Footer */}
-          <TouchableOpacity style={styles.loginLink} onPress={goBack}>
+          <TouchableOpacity style={styles.loginLink} onPress={attemptGoBack}>
             <Text style={styles.loginLinkText}>
               ¿Ya tienes cuenta?{" "}
               <Text style={styles.accentText}>Inicia sesión</Text>

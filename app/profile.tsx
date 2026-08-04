@@ -166,10 +166,21 @@ export default function ProfileScreen() {
   };
 
   const handleUpdateAvatar = async () => {
-    const url = await uploadAvatar();
-    if (url && profile) {
-      setAvatarTimestamp(Date.now());
-      setProfile({ ...profile, photo_url: url });
+    try {
+      const url = await uploadAvatar();
+      if (url && profile) {
+        setAvatarTimestamp(Date.now());
+        setProfile({ ...profile, photo_url: url });
+      }
+    } catch (e) {
+      console.error("[ProfileScreen] Avatar upload failed:", e);
+      setModalConfig({
+        title: "Error",
+        message: "No pudimos subir tu foto de perfil. Revisa tu conexión e intenta de nuevo.",
+        type: "error",
+        onConfirm: () => {},
+      });
+      setModalVisible(true);
     }
   };
 

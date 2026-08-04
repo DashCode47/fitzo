@@ -1,3 +1,4 @@
+import { ActiveWorkoutBar } from "@/components/active-workout-bar";
 import { HapticTab } from "@/components/haptic-tab";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
 export default function TabLayout() {
   const theme = useAppTheme();
   return (
+    <>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -102,5 +104,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    <ActiveWorkoutBar />
+    </>
   );
 }

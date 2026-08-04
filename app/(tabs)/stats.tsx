@@ -138,6 +138,7 @@ export default function StatsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [aggregates, setAggregates] = useState<Aggregates>({
     totalWorkouts: 0,
     totalVolume: 0,
@@ -172,11 +173,18 @@ export default function StatsScreen() {
   const loadData = useCallback(async () => {
     if (!profile?.id) return;
     try {
-      const [logs, maxWeights, catalog] = await Promise.all([
-        WorkoutsAPI.getWorkoutLogs(profile.id, RECENT_LIMIT, 0).catch(() => []),
-        RanksAPI.getUserMaxWeights(profile.id).catch(() => []),
-        RoutinesAPI.getExercises().catch(() => []),
+      setLoadError(false);
+      const results = await Promise.allSettled([
+        WorkoutsAPI.getWorkoutLogs(profile.id, RECENT_LIMIT, 0),
+        RanksAPI.getUserMaxWeights(profile.id),
+        RoutinesAPI.getExercises(),
       ]);
+      const [logsResult, maxWeightsResult, catalogResult] = results;
+      const logs = logsResult.status === "fulfilled" ? logsResult.value : [];
+      const maxWeights = maxWeightsResult.status === "fulfilled" ? maxWeightsResult.value : [];
+      const catalog = catalogResult.status === "fulfilled" ? catalogResult.value : [];
+      setLoadError(results.some((r) => r.status === "rejected"));
+
       setAggregates(computeAggregates(logs));
       setWeeklyCounts(computeWeeklyCounts(logs));
 
@@ -197,6 +205,7 @@ export default function StatsScreen() {
       setExercisePRs(prs);
     } catch (e) {
       console.error("[StatsScreen] Failed to load stats:", e);
+      setLoadError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -249,6 +258,17 @@ export default function StatsScreen() {
               <Text style={styles.headerSubtitle}>Tu progreso de entrenamiento</Text>
             </View>
           </View>
+
+          {/* ── Load Error Banner ── */}
+          {loadError && (
+            <TouchableOpacity style={styles.errorBanner} onPress={loadData}>
+              <Ionicons name="cloud-offline-outline" size={18} color={theme.error} />
+              <Text style={styles.errorBannerText}>
+                No pudimos cargar todas tus estadísticas. Toca para reintentar.
+              </Text>
+              <Ionicons name="refresh" size={16} color={theme.error} />
+            </TouchableOpacity>
+          )}
 
           {/* ── Stat grid ── */}
           <View style={styles.statGrid}>
@@ -555,6 +575,26 @@ const createStyles = (theme: AppTheme) =>
       letterSpacing: -0.5,
     },
     headerSubtitle: { fontSize: 13, color: theme.textMuted, marginTop: 2 },
+
+    // ── Load error banner ──
+    errorBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: theme.error + "15",
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.error + "40",
+      gap: 10,
+    },
+    errorBannerText: {
+      flex: 1,
+      color: theme.error,
+      fontSize: 12,
+      fontWeight: "600",
+    },
 
     // ── Stat grid ──
     statGrid: {

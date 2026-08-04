@@ -8,7 +8,6 @@ export const ROUTES = {
   PROFILE: '/profile',
   SCANNER: '/scanner',
   RANKINGS: '/rankings',
-  LOCATION_PERMISSION: '/location-permission',
   ROUTINES: '/(tabs)/routines',
   ROUTINE_DETAIL: '/routine-detail',
   ROUTINE_CREATE: '/routine-create',

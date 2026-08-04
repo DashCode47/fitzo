@@ -18,6 +18,7 @@ import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useStartWorkout } from "@/hooks/useStartWorkout";
 // import { useGymOccupancy } from '@/hooks/useGymOccupancy';
 // import { RadarService } from '@/lib/radar';
 import { RanksAPI, calculateAllRanks } from "@/api/ranks";
@@ -93,14 +94,16 @@ export default function HomeScreen() {
     setLeaderboard,
     userSchedule,
     setUserSchedule,
-    setActiveWorkout,
     isHydrated,
     lastStreak,
     setLastStreak,
   } = useAppStore();
+  const { startWorkout, replaceModalProps } = useStartWorkout();
 
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [errorAlert, setErrorAlert] = useState<string | null>(null);
   // const { count: gymCount, maxCapacity } = useGymOccupancy();
   const [streakData, setStreakData] = useState<StreakData>({
     streak: 0,
@@ -147,6 +150,7 @@ export default function HomeScreen() {
 
   const loadData = async () => {
     try {
+      setLoadError(false);
       const {
         data: { session },
       } = (await withTimeout(
@@ -220,6 +224,7 @@ export default function HomeScreen() {
       }
     } catch (e) {
       console.error("[HomeScreen] Refresh failed:", e);
+      setLoadError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -240,9 +245,12 @@ export default function HomeScreen() {
       if (result.success) {
         const updated = await AttendanceAPI.getStreakData(userId);
         setStreakData(updated);
+      } else if (!result.alreadyMax) {
+        setErrorAlert("No pudimos registrar tu asistencia. Revisa tu conexión e intenta de nuevo.");
       }
     } catch (e) {
       console.error("[HomeScreen] Check-in failed:", e);
+      setErrorAlert("No pudimos registrar tu asistencia. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setCheckingIn(false);
     }
@@ -275,28 +283,10 @@ export default function HomeScreen() {
       setLoading(true);
       const routine = await RoutinesAPI.getRoutineDetail(todayRoutine.id);
       if (!routine) return;
-
-      const activeWorkout = {
-        routineId: routine.id,
-        routineName: routine.name,
-        startTime: new Date().toISOString(),
-        exercises:
-          routine.exercises?.map((re) => ({
-            exerciseId: re.exercise_id,
-            name: re.exercise?.name || "Ejercicio",
-            sets: Array.from({ length: re.sets }).map((_, i) => ({
-              set: i + 1,
-              reps: parseInt(re.reps) || 10,
-              weight: 0,
-              completed: false,
-            })),
-          })) || [],
-      };
-
-      setActiveWorkout(activeWorkout);
-      router.push("/workout-session");
+      startWorkout(routine);
     } catch (e) {
       console.error("[HomeScreen] Failed to start workout:", e);
+      setErrorAlert("No pudimos cargar tu rutina de hoy. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -342,6 +332,17 @@ export default function HomeScreen() {
             onScannerPress={goToScanner}
             onProfilePress={goToProfile}
           />
+
+          {/* ── Load Error Banner ── */}
+          {loadError && (
+            <TouchableOpacity style={styles.errorBanner} onPress={loadData}>
+              <Ionicons name="cloud-offline-outline" size={18} color={theme.error} />
+              <Text style={styles.errorBannerText}>
+                No pudimos actualizar tu información. Toca para reintentar.
+              </Text>
+              <Ionicons name="refresh" size={16} color={theme.error} />
+            </TouchableOpacity>
+          )}
 
           {/* ── Attendance Check-in ── */}
           <View style={styles.attendanceCard}>
@@ -470,6 +471,16 @@ export default function HomeScreen() {
         buttonText="Aceptar el reto"
         onClose={() => setShowStreakLost(false)}
       />
+
+      <CustomModal
+        visible={!!errorAlert}
+        type="error"
+        title="Algo salió mal"
+        message={errorAlert || ""}
+        onClose={() => setErrorAlert(null)}
+      />
+
+      <CustomModal {...replaceModalProps} />
     </View>
   );
 }
@@ -492,6 +503,27 @@ const createStyles = (theme: AppTheme) =>
     },
 
     // Header removed to HomeHeader.tsx
+
+    // ── Load error banner ───────────────────────────────────────────────────────
+    errorBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginHorizontal: 20,
+      marginBottom: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: theme.error + "15",
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.error + "40",
+      gap: 10,
+    },
+    errorBannerText: {
+      flex: 1,
+      color: theme.error,
+      fontSize: 12,
+      fontWeight: "600",
+    },
 
     // ── Attendance card ──────────────────────────────────────────────────────────
     attendanceCard: {

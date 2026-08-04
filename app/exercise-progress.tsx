@@ -34,6 +34,7 @@ export default function ExerciseProgressScreen() {
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (id && profile?.id) loadData();
@@ -44,6 +45,7 @@ export default function ExerciseProgressScreen() {
     try {
       if (!profile?.id) return;
       const userId = profile.id;
+      setLoadError(false);
 
       // Find exercise in catalog (could be cached in store, but fetching for freshness)
       const catalog = await RoutinesAPI.getExercises();
@@ -55,6 +57,7 @@ export default function ExerciseProgressScreen() {
       setHistory(data);
     } catch (e) {
       console.error("[ExerciseProgress] Loading failed:", e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -169,6 +172,21 @@ export default function ExerciseProgressScreen() {
                   );
                 })}
               </Svg>
+            ) : loadError ? (
+              <View style={styles.emptyChart}>
+                <Ionicons
+                  name="cloud-offline-outline"
+                  size={40}
+                  color={theme.textMuted}
+                />
+                <Text style={styles.emptyText}>
+                  No pudimos cargar tu progreso. Revisa tu conexión.
+                </Text>
+                <TouchableOpacity style={styles.retryBtn} onPress={loadData}>
+                  <Ionicons name="refresh" size={14} color={theme.accent} />
+                  <Text style={styles.retryBtnText}>Reintentar</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={styles.emptyChart}>
                 <Ionicons
@@ -318,6 +336,23 @@ const createStyles = (theme: AppTheme) =>
       textAlign: "center",
       marginTop: 12,
       lineHeight: 18,
+    },
+    retryBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    retryBtnText: {
+      color: theme.accent,
+      fontSize: 13,
+      fontWeight: "800",
     },
     logItem: {
       flexDirection: "row",

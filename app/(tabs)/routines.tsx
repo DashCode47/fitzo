@@ -2,6 +2,7 @@ import { RoutinesAPI } from "@/api/routines";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useStartWorkout } from "@/hooks/useStartWorkout";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,9 +32,9 @@ export default function RoutinesScreen() {
     setRoutines,
     userSchedule,
     setUserSchedule,
-    setActiveWorkout,
     isHydrated,
   } = useAppStore();
+  const { startWorkout, replaceModalProps } = useStartWorkout();
 
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
@@ -120,28 +121,13 @@ export default function RoutinesScreen() {
       setLoading(true);
       const routine = await RoutinesAPI.getRoutineDetail(todayRoutine.id);
       if (!routine) return;
-
-      const activeWorkout = {
-        routineId: routine.id,
-        routineName: routine.name,
-        startTime: new Date().toISOString(),
-        exercises:
-          routine.exercises?.map((re) => ({
-            exerciseId: re.exercise_id,
-            name: re.exercise?.name || "Ejercicio",
-            sets: Array.from({ length: re.sets }).map((_, i) => ({
-              set: i + 1,
-              reps: parseInt(re.reps) || 10,
-              weight: 0,
-              completed: false,
-            })),
-          })) || [],
-      };
-
-      setActiveWorkout(activeWorkout);
-      router.push("/workout-session");
+      startWorkout(routine);
     } catch (e) {
       console.error("[RoutinesScreen] Failed to start workout:", e);
+      setModalTitle("Error");
+      setModalMessage("No pudimos cargar tu rutina de hoy. Revisa tu conexión e intenta de nuevo.");
+      setModalType("error");
+      setModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -382,6 +368,8 @@ export default function RoutinesScreen() {
         onConfirm={onConfirmAction}
         buttonText={modalType === "confirm" ? "Eliminar" : "Entendido"}
       />
+
+      <CustomModal {...replaceModalProps} />
     </View>
   );
 }

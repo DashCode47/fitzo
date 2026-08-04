@@ -6,10 +6,11 @@ import { getErrorMessage } from "@/utils/errors";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  BackHandler,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,6 +33,7 @@ export default function ScheduleEditScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const router = useRouter();
+  const navigation = useNavigation();
   const { day } = useLocalSearchParams();
   const { profile, routines, userSchedule, setUserSchedule } = useAppStore();
 
@@ -41,12 +43,53 @@ export default function ScheduleEditScreen() {
   );
   const [loading, setLoading] = useState(false);
   const [errorModal, setErrorModal] = useState({ visible: false, message: "" });
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const pendingLeaveAction = useRef<any>(null);
+  const leaving = useRef(false);
+
+  const originalRoutineId =
+    userSchedule?.find((s) => s.day_of_week === selectedDay)?.routine_id ??
+    null;
+  const hasChanges = !saved && selectedRoutineId !== originalRoutineId;
 
   useEffect(() => {
     const current = userSchedule?.find((s) => s.day_of_week === selectedDay);
     if (current) setSelectedRoutineId(current.routine_id);
     else setSelectedRoutineId(null);
   }, [selectedDay, userSchedule]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (hasChanges) {
+        setShowDiscardModal(true);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => sub.remove();
+  }, [hasChanges]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e: any) => {
+      if (!hasChanges || leaving.current) return;
+      e.preventDefault();
+      pendingLeaveAction.current = e.data.action;
+      setShowDiscardModal(true);
+    });
+    return unsubscribe;
+  }, [navigation, hasChanges]);
+
+  const discardAndLeave = () => {
+    setShowDiscardModal(false);
+    leaving.current = true;
+    const action = pendingLeaveAction.current;
+    pendingLeaveAction.current = null;
+    if (action) navigation.dispatch(action);
+    else router.back();
+  };
 
   const handleSave = async () => {
     if (!profile?.id) return;
@@ -65,6 +108,7 @@ export default function ScheduleEditScreen() {
       const refreshed = await RoutinesAPI.getUserSchedule(profile.id);
       setUserSchedule(refreshed);
 
+      setSaved(true);
       router.back();
     } catch (e) {
       console.error("[ScheduleEdit] Failed to save:", e);
@@ -93,10 +137,21 @@ export default function ScheduleEditScreen() {
         onClose={() => setErrorModal({ visible: false, message: "" })}
       />
 
+      <CustomModal
+        visible={showDiscardModal}
+        title="¿Descartar Cambios?"
+        message="Perderás la selección que hiciste para este día si sales ahora."
+        type="confirm"
+        buttonText="DESCARTAR"
+        cancelText="SEGUIR EDITANDO"
+        onClose={() => setShowDiscardModal(false)}
+        onConfirm={discardAndLeave}
+      />
+
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => (hasChanges ? setShowDiscardModal(true) : router.back())}
             style={styles.backBtn}
           >
             <Ionicons name="close" size={24} color="#fff" />
