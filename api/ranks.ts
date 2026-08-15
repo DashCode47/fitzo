@@ -149,4 +149,21 @@ export const RanksAPI = {
       console.error('[RanksAPI] syncRankToProfile failed:', e);
     }
   },
+
+  // Recomputes a user's rank and writes it to profiles.rank_index/rank_tier —
+  // the same steps RanksView.fetchRanks runs when the user visits "Mis Rangos".
+  // Without this, profiles.rank_index (what the leaderboard sorts and displays
+  // by) only updates when that screen happens to be visited, so it can go
+  // stale for anyone who trains without checking their ranks. Call this
+  // wherever a workout is saved so the leaderboard reflects recent performance.
+  syncUserRank: async (userId: string, bodyWeight: number, gender: Gender, streak = 0) => {
+    if (!bodyWeight) return;
+    try {
+      const maxWeights = await RanksAPI.getUserMaxWeights(userId);
+      const ranks = calculateAllRanks(maxWeights, bodyWeight, gender, streak);
+      await RanksAPI.syncRankToProfile(userId, ranks.avgIndex, ranks.generalTier);
+    } catch (e) {
+      console.error('[RanksAPI] syncUserRank failed:', e);
+    }
+  },
 };

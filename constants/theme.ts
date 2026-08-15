@@ -161,17 +161,17 @@ export const lightTheme: AppTheme = {
 } as const;
 
 export const cyanTheme: AppTheme = {
-  ...darkTheme,
+  ...lightTheme,
   accent:        palette.vibrant700,
   accentLight:   palette.vibrant400,
-  accentDim:     'rgba(76,214,200,0.15)' as const, // Based on #4cd6c8
-  accentBorder:  'rgba(76,214,200,0.45)' as const,
-  accentGlow:    'rgba(76,214,200,0.08)' as const,
+  accentDim:     'rgba(76,214,200,0.10)' as const, // Based on #4cd6c8
+  accentBorder:  'rgba(76,214,200,0.35)' as const,
+  accentGlow:    'rgba(76,214,200,0.05)' as const,
 
   gradients: {
-    ...darkTheme.gradients,
+    ...lightTheme.gradients,
     accent:  [palette.vibrant500, palette.vibrant600] as [string, string],
-    topGlow: ['rgba(76,214,200,0.14)', 'rgba(76,214,200,0)'] as [string, string],
+    topGlow: ['rgba(76,214,200,0.08)', 'rgba(76,214,200,0)'] as [string, string],
   },
 } as const;
 

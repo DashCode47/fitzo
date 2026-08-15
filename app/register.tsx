@@ -1,5 +1,6 @@
 import { AuthAPI } from "@/api/auth";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "expo-router";
@@ -19,17 +20,7 @@ import {
 } from "react-native";
 
 import { CustomModal } from "@/components/ui/CustomModal";
-import { theme } from "@/constants/theme";
-
-const {
-  accent: ACCENT,
-  bgDeep: BG_DEEP,
-  bgCard: BG_CARD,
-  surface: SURFACE,
-  textPrimary: TEXT_PRIMARY,
-  textSecondary: TEXT_SECONDARY,
-  textMuted: TEXT_MUTED,
-} = theme;
+import { AppTheme } from "@/constants/theme";
 
 type Field = {
   key: keyof typeof INITIAL_FORM;
@@ -78,6 +69,9 @@ const FIELDS: Field[] = [
 export default function RegisterScreen() {
   const { goBack } = useAppNavigation();
   const navigation = useNavigation();
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  const fieldStyles = createFieldStyles(theme);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
@@ -171,7 +165,7 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
 
       <CustomModal
         visible={errorVisible}
@@ -230,7 +224,7 @@ export default function RegisterScreen() {
           {/* ── Header ── */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backBtn} onPress={attemptGoBack}>
-              <Ionicons name="arrow-back" size={20} color={TEXT_SECONDARY} />
+              <Ionicons name="arrow-back" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -260,12 +254,14 @@ export default function RegisterScreen() {
                 field={FIELDS[1]}
                 value={formData.firstName}
                 onChange={handleChange}
+                theme={theme}
                 style={{ flex: 1, marginRight: 8 }}
               />
               <InputField
                 field={FIELDS[2]}
                 value={formData.lastName}
                 onChange={handleChange}
+                theme={theme}
                 style={{ flex: 1 }}
               />
             </View>
@@ -277,6 +273,7 @@ export default function RegisterScreen() {
                 field={field}
                 value={formData[field.key]}
                 onChange={handleChange}
+                theme={theme}
               />
             ))}
 
@@ -293,7 +290,7 @@ export default function RegisterScreen() {
                 <Ionicons
                   name="male"
                   size={18}
-                  color={formData.gender === "male" ? "#fff" : TEXT_SECONDARY}
+                  color={formData.gender === "male" ? "#fff" : theme.textSecondary}
                 />
                 <Text
                   style={[
@@ -315,7 +312,7 @@ export default function RegisterScreen() {
                 <Ionicons
                   name="female"
                   size={18}
-                  color={formData.gender === "female" ? "#fff" : TEXT_SECONDARY}
+                  color={formData.gender === "female" ? "#fff" : theme.textSecondary}
                 />
                 <Text
                   style={[
@@ -339,6 +336,7 @@ export default function RegisterScreen() {
               }}
               value={formData.weight}
               onChange={handleChange as any}
+              theme={theme}
             />
 
             {/* Info hint */}
@@ -346,7 +344,7 @@ export default function RegisterScreen() {
               <Ionicons
                 name="information-circle-outline"
                 size={14}
-                color={TEXT_MUTED}
+                color={theme.textMuted}
               />
               <Text style={styles.hintText}>
                 Tu peso se usa para calcular tu ranking de fuerza relativo.
@@ -358,7 +356,7 @@ export default function RegisterScreen() {
               <Ionicons
                 name="lock-closed-outline"
                 size={14}
-                color={TEXT_MUTED}
+                color={theme.textMuted}
               />
               <Text style={styles.hintText}>
                 Tu cédula se usará como contraseña temporal.
@@ -413,25 +411,28 @@ function InputField({
   field,
   value,
   onChange,
+  theme,
   style,
 }: {
   field: Field;
   value: string;
   onChange: (key: keyof typeof INITIAL_FORM, value: string) => void;
+  theme: AppTheme;
   style?: object;
 }) {
+  const fieldStyles = createFieldStyles(theme);
   return (
     <View style={[fieldStyles.wrapper, style]}>
       <Ionicons
         name={field.icon}
         size={16}
-        color={TEXT_SECONDARY}
+        color={theme.textSecondary}
         style={fieldStyles.icon}
       />
       <TextInput
         style={fieldStyles.input}
         placeholder={field.label}
-        placeholderTextColor={TEXT_MUTED}
+        placeholderTextColor={theme.textMuted}
         value={value}
         onChangeText={(text) => onChange(field.key, text)}
         keyboardType={field.keyboard ?? "default"}
@@ -442,195 +443,197 @@ function InputField({
   );
 }
 
-const fieldStyles = StyleSheet.create({
-  wrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: SURFACE,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: theme.borderMuted,
-    paddingHorizontal: 14,
-    height: 52,
-    marginBottom: 12,
-  },
-  icon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    color: TEXT_PRIMARY,
-    fontSize: 15,
-  },
-});
+const createFieldStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    wrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.borderMuted,
+      paddingHorizontal: 14,
+      height: 52,
+      marginBottom: 12,
+    },
+    icon: {
+      marginRight: 10,
+    },
+    input: {
+      flex: 1,
+      color: theme.textPrimary,
+      fontSize: 15,
+    },
+  });
 // ─────────────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BG_DEEP,
-  },
-  topGlow: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 260,
-  },
-  scroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 80,
-  },
+const createStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: theme.bgDeep,
+    },
+    topGlow: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 260,
+    },
+    scroll: {
+      paddingHorizontal: 24,
+      paddingBottom: 80,
+    },
 
-  // ── Header ────────────────────────────────────────────────────────────────
-  header: {
-    paddingTop: 8,
-    marginBottom: 8,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+    // ── Header ────────────────────────────────────────────────────────────────
+    header: {
+      paddingTop: 8,
+      marginBottom: 8,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      justifyContent: "center",
+      alignItems: "center",
+    },
 
-  // ── Hero ──────────────────────────────────────────────────────────────────
-  hero: {
-    alignItems: "center",
-    paddingVertical: 24,
-    gap: 8,
-  },
-  iconWrap: {
-    shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 12,
-    marginBottom: 4,
-  },
-  iconGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: TEXT_PRIMARY,
-    letterSpacing: -0.5,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: TEXT_SECONDARY,
-  },
+    // ── Hero ──────────────────────────────────────────────────────────────────
+    hero: {
+      alignItems: "center",
+      paddingVertical: 24,
+      gap: 8,
+    },
+    iconWrap: {
+      shadowColor: theme.accent,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.5,
+      shadowRadius: 16,
+      elevation: 12,
+      marginBottom: 4,
+    },
+    iconGradient: {
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    heroTitle: {
+      fontSize: 26,
+      fontWeight: "800",
+      color: theme.textPrimary,
+      letterSpacing: -0.5,
+    },
+    heroSubtitle: {
+      fontSize: 14,
+      color: theme.textSecondary,
+    },
 
-  // ── Card ──────────────────────────────────────────────────────────────────
-  card: {
-    backgroundColor: BG_CARD,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 16,
-    gap: 0,
-  },
-  row: {
-    flexDirection: "row",
-  },
-  hint: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 16,
-    marginTop: 4,
-  },
-  hintText: {
-    color: TEXT_MUTED,
-    fontSize: 12,
-    flex: 1,
-  },
-  sectionLabel: {
-    color: TEXT_SECONDARY,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  genderRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 16,
-  },
-  genderBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: theme.borderMuted,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  genderBtnActive: {
-    backgroundColor: ACCENT,
-    borderColor: ACCENT,
-  },
-  genderBtnText: {
-    color: TEXT_SECONDARY,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  genderBtnTextActive: {
-    color: "#fff",
-    fontWeight: "700",
-  },
+    // ── Card ──────────────────────────────────────────────────────────────────
+    card: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 24,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: 0.4,
+      shadowRadius: 24,
+      elevation: 16,
+      gap: 0,
+    },
+    row: {
+      flexDirection: "row",
+    },
+    hint: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 16,
+      marginTop: 4,
+    },
+    hintText: {
+      color: theme.textMuted,
+      fontSize: 12,
+      flex: 1,
+    },
+    sectionLabel: {
+      color: theme.textSecondary,
+      fontSize: 13,
+      fontWeight: "600",
+      marginBottom: 8,
+      marginLeft: 4,
+    },
+    genderRow: {
+      flexDirection: "row",
+      gap: 10,
+      marginBottom: 16,
+    },
+    genderBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderMuted,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+    genderBtnActive: {
+      backgroundColor: theme.accent,
+      borderColor: theme.accent,
+    },
+    genderBtnText: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      fontWeight: "500",
+    },
+    genderBtnTextActive: {
+      color: "#fff",
+      fontWeight: "700",
+    },
 
-  // ── Button ────────────────────────────────────────────────────────────────
-  primaryBtn: {
-    borderRadius: 14,
-    overflow: "hidden",
-    shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  primaryBtnGradient: {
-    height: 52,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  primaryBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
+    // ── Button ────────────────────────────────────────────────────────────────
+    primaryBtn: {
+      borderRadius: 14,
+      overflow: "hidden",
+      shadowColor: theme.accent,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.45,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+    primaryBtnGradient: {
+      height: 52,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    primaryBtnText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "700",
+      letterSpacing: 0.3,
+    },
 
-  // ── Footer ────────────────────────────────────────────────────────────────
-  loginLink: {
-    marginTop: 24,
-    alignItems: "center",
-  },
-  loginLinkText: {
-    color: TEXT_SECONDARY,
-    fontSize: 14,
-  },
-  accentText: {
-    color: ACCENT,
-    fontWeight: "600",
-  },
-});
+    // ── Footer ────────────────────────────────────────────────────────────────
+    loginLink: {
+      marginTop: 24,
+      alignItems: "center",
+    },
+    loginLinkText: {
+      color: theme.textSecondary,
+      fontSize: 14,
+    },
+    accentText: {
+      color: theme.accent,
+      fontWeight: "600",
+    },
+  });

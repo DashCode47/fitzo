@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -21,6 +21,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const DAYS = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+const DAY_CARD_WIDTH = 70;
+const DAY_CARD_GAP = 10;
 
 export default function RoutinesScreen() {
   const router = useRouter();
@@ -38,6 +40,8 @@ export default function RoutinesScreen() {
 
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
+  const scheduleScrollRef = useRef<ScrollView>(null);
+  const [scheduleRowWidth, setScheduleRowWidth] = useState(0);
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -71,6 +75,13 @@ export default function RoutinesScreen() {
       setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    if (!scheduleRowWidth) return;
+    const todayIdx = new Date().getDay();
+    const x = todayIdx * (DAY_CARD_WIDTH + DAY_CARD_GAP);
+    scheduleScrollRef.current?.scrollTo({ x, animated: true });
+  }, [scheduleRowWidth]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -193,9 +204,14 @@ export default function RoutinesScreen() {
           {/* Weekly Schedule */}
           <Text style={styles.sectionTitle}>Plan Semanal</Text>
           <ScrollView
+            ref={scheduleScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.scheduleRow}
+            contentContainerStyle={{
+              paddingHorizontal: Math.max(0, scheduleRowWidth / 2 - DAY_CARD_WIDTH / 2),
+            }}
+            onLayout={(e) => setScheduleRowWidth(e.nativeEvent.layout.width)}
           >
             {DAYS.map((day, idx) => {
               const routine = getRoutineForDay(idx);
@@ -211,18 +227,12 @@ export default function RoutinesScreen() {
                   >
                     {day}
                   </Text>
-                  <View
-                    style={[
-                      styles.dayStatus,
-                      routine ? styles.dayStatusActive : styles.dayStatusEmpty,
-                    ]}
-                  >
-                    <Ionicons
-                      name={routine ? "barbell" : "remove"}
-                      size={14}
-                      color={routine ? theme.accent : theme.textMuted}
-                    />
-                  </View>
+                  <Ionicons
+                    name={routine ? "barbell" : "remove"}
+                    size={18}
+                    color={routine ? theme.accent : theme.textMuted}
+                    style={styles.dayIcon}
+                  />
                   {routine && (
                     <Text style={styles.dayRoutineName} numberOfLines={1}>
                       {routine.name}
@@ -452,8 +462,14 @@ const createStyles = (theme: AppTheme) =>
       borderColor: theme.borderSubtle,
     },
     dayCardToday: {
-      borderColor: theme.accentBorder,
-      backgroundColor: theme.bgSubtle,
+      borderColor: theme.accent,
+      borderWidth: 2,
+      backgroundColor: theme.accentDim,
+      shadowColor: theme.accent,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+      elevation: 3,
     },
     dayName: {
       fontSize: 12,
@@ -465,19 +481,8 @@ const createStyles = (theme: AppTheme) =>
       color: theme.accent,
       fontWeight: "800",
     },
-    dayStatus: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 6,
-    },
-    dayStatusEmpty: {
-      backgroundColor: theme.surface,
-    },
-    dayStatusActive: {
-      backgroundColor: theme.accentDim,
+    dayIcon: {
+      marginBottom: 8,
     },
     dayRoutineName: {
       fontSize: 10,

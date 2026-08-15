@@ -1,7 +1,7 @@
 import { AuthAPI } from "@/api/auth";
 import { NutritionAPI } from "@/api/nutrition";
+import { calculateAllRanks, RanksAPI } from "@/api/ranks";
 import { UserAPI } from "@/api/user";
-import { WorkoutsAPI } from "@/api/workouts";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
@@ -14,7 +14,6 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -36,12 +35,8 @@ export default function ProfileScreen() {
     setProfile,
     clearAll,
     isHydrated,
-    workoutLogs,
-    hasMoreLogs,
-    logsOffset,
-    appendWorkoutLogs,
-    resetWorkoutLogs,
     muscleRanks,
+    setMuscleRanks,
     userStats,
     setUserStats,
     themeMode,
@@ -50,12 +45,6 @@ export default function ProfileScreen() {
 
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const detailsModalStyles = createDetailsModalStyles(theme);
-
-  const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
-  const [workoutExercises, setWorkoutExercises] = useState<any[]>([]);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
 
   const [loading, setLoading] = useState(!profile);
   const { uploadAvatar, uploading } = useProfileImage();
@@ -69,17 +58,42 @@ export default function ProfileScreen() {
     onConfirm: () => {},
   });
 
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const LIMIT = 3;
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (isHydrated && profile?.id) {
       loadProfile();
-      loadHistory(true);
       if (!userStats) loadUserStats();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated, profile?.id]);
+
+  // Ranks are calculated client-side from raw max-weight data and only
+  // written to the store as a side effect — RanksView (the "Mis Rangos" tab)
+  // is the only other place that does this. Without loading them here too,
+  // this screen's "Mis Rangos" preview silently stays empty for anyone who
+  // hasn't visited that tab yet, even though they have real data to show.
+  useEffect(() => {
+    if (isHydrated && profile?.id && userStats?.weight && !muscleRanks) {
+      loadMuscleRanks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated, profile?.id, userStats?.weight]);
+
+  const loadMuscleRanks = async () => {
+    if (!profile?.id || !userStats?.weight) return;
+    try {
+      const maxWeights = await RanksAPI.getUserMaxWeights(profile.id);
+      const ranks = calculateAllRanks(
+        maxWeights,
+        userStats.weight,
+        (userStats.gender as any) || "M",
+      );
+      setMuscleRanks(ranks);
+    } catch (e) {
+      console.error("[ProfileScreen] Failed to load muscle ranks:", e);
+    }
+  };
 
   const loadUserStats = async () => {
     if (!profile?.id) return;
@@ -91,56 +105,15 @@ export default function ProfileScreen() {
     }
   };
 
-  const loadHistory = async (reset = false) => {
-    if (!profile?.id || loadingHistory) return;
-    try {
-      setLoadingHistory(true);
-      const currentOffset = reset ? 0 : logsOffset;
-      if (reset) resetWorkoutLogs();
-
-      const data = await WorkoutsAPI.getWorkoutLogs(
-        profile.id,
-        LIMIT,
-        currentOffset,
-      );
-
-      appendWorkoutLogs(data, data.length === LIMIT);
-    } catch (e) {
-      console.error("[ProfileScreen] Failed to load history:", e);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  const loadWorkoutDetails = async (log: any) => {
-    try {
-      setSelectedWorkout(log);
-      setDetailsModalVisible(true);
-      setLoadingDetails(true);
-      const data = await WorkoutsAPI.getWorkoutDetails(log.id);
-      setWorkoutExercises(data);
-    } catch (e) {
-      console.error("[ProfileScreen] Failed to load details:", e);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  const handleExercisePress = (exerciseId: number) => {
-    setDetailsModalVisible(false);
-    router.push({
-      pathname: "/exercise-progress",
-      params: { id: exerciseId },
-    });
-  };
-
   const loadProfile = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const data = await UserAPI.getProfile();
       if (data) setProfile(data);
     } catch (e: any) {
       console.error("[ProfileScreen] Profile load failed:", e.message);
+      if (!profile) setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -176,7 +149,8 @@ export default function ProfileScreen() {
       console.error("[ProfileScreen] Avatar upload failed:", e);
       setModalConfig({
         title: "Error",
-        message: "No pudimos subir tu foto de perfil. Revisa tu conexión e intenta de nuevo.",
+        message:
+          "No pudimos subir tu foto de perfil. Revisa tu conexión e intenta de nuevo.",
         type: "error",
         onConfirm: () => {},
       });
@@ -196,6 +170,30 @@ export default function ProfileScreen() {
     );
   }
 
+  if (loadError && !profile) {
+    return (
+      <View style={styles.loadingRoot}>
+        <LinearGradient
+          colors={theme.gradients.bg}
+          style={StyleSheet.absoluteFill}
+        />
+        <Ionicons
+          name="cloud-offline-outline"
+          size={48}
+          color={theme.textMuted}
+        />
+        <Text style={styles.errorTitle}>No pudimos cargar tu perfil</Text>
+        <Text style={styles.errorText}>
+          Revisa tu conexión e intenta de nuevo.
+        </Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={loadProfile}>
+          <Ionicons name="refresh" size={14} color={theme.accent} />
+          <Text style={styles.retryBtnText}>Reintentar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const username = profile?.username || "Atleta";
   const email = profile?.email || "–";
   const phone = profile?.phone || "No registrado";
@@ -207,7 +205,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
       <LinearGradient
         colors={theme.gradients.bg}
         style={StyleSheet.absoluteFill}
@@ -274,7 +272,7 @@ export default function ProfileScreen() {
             </View>
 
             {/* Points badge */}
-            <View style={styles.pointsBadge}>
+            {/* <View style={styles.pointsBadge}>
               <LinearGradient
                 colors={theme.gradients.accent}
                 start={{ x: 0, y: 0 }}
@@ -285,7 +283,7 @@ export default function ProfileScreen() {
               <Text style={styles.pointsText}>
                 {points.toLocaleString()} pts
               </Text>
-            </View>
+            </View> */}
           </View>
 
           {/* ── Weight warning banner ── */}
@@ -439,76 +437,28 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* ── Workout History ── */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Historial de Entrenamiento</Text>
+          {/* ── Workout History link ── */}
+          <TouchableOpacity
+            style={styles.historyLinkRow}
+            onPress={() => router.push("/history")}
+            activeOpacity={0.85}
+          >
+            <View style={styles.historyIcon}>
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={theme.accent}
+              />
+            </View>
+            <Text style={styles.historyLinkText}>
+              Historial de Entrenamiento
+            </Text>
             <Ionicons
-              name="calendar-outline"
-              size={16}
+              name="chevron-forward"
+              size={18}
               color={theme.textMuted}
             />
-          </View>
-
-          {(!workoutLogs || workoutLogs.length === 0) && !loadingHistory ? (
-            <View style={styles.emptyCard}>
-              <Ionicons
-                name="barbell-outline"
-                size={32}
-                color={theme.textMuted}
-              />
-              <Text style={styles.emptyText}>
-                Aún no has registrado entrenamientos.
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.historyList}>
-              {(workoutLogs || []).map((log) => (
-                <TouchableOpacity
-                  key={log.id}
-                  style={styles.historyItem}
-                  onPress={() => loadWorkoutDetails(log)}
-                >
-                  <View style={styles.historyIcon}>
-                    <Ionicons name="barbell" size={18} color={theme.accent} />
-                  </View>
-                  <View style={styles.historyContent}>
-                    <Text style={styles.historyName}>
-                      {log.routine?.name || "Rutina Personalizada"}
-                    </Text>
-                    <Text style={styles.historyDate}>
-                      {new Date(log.started_at).toLocaleDateString("es-ES", {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                  </View>
-                  <View style={styles.historyMetrics}>
-                    <Text style={styles.metricVal}>
-                      {Math.round(log.duration_seconds / 60)}m
-                    </Text>
-                    <Text style={styles.metricVal}>{log.total_volume}kg</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-
-              {hasMoreLogs && (
-                <TouchableOpacity
-                  style={styles.loadMoreBtn}
-                  onPress={() => router.push("/history")}
-                >
-                  <Text style={styles.loadMoreText}>VER TODO MI HISTORIAL</Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={14}
-                    color={theme.textMuted}
-                    style={{ marginLeft: 6 }}
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          </TouchableOpacity>
 
           {/* ── Logout ── */}
           <TouchableOpacity
@@ -520,101 +470,6 @@ export default function ProfileScreen() {
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </ScrollView>
-        {/* ── Workout Details Modal ── */}
-        <Modal
-          visible={detailsModalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setDetailsModalVisible(false)}
-        >
-          <View style={detailsModalStyles.overlay}>
-            <View style={detailsModalStyles.content}>
-              <View style={detailsModalStyles.header}>
-                <View>
-                  <Text style={detailsModalStyles.title}>
-                    {selectedWorkout?.routine?.name || "Rutina Personalizada"}
-                  </Text>
-                  <Text style={detailsModalStyles.subtitle}>
-                    {selectedWorkout &&
-                      new Date(selectedWorkout.started_at).toLocaleDateString(
-                        "es-ES",
-                        { day: "numeric", month: "long" },
-                      )}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setDetailsModalVisible(false)}
-                  style={detailsModalStyles.closeBtn}
-                >
-                  <Ionicons name="close" size={24} color={theme.textPrimary} />
-                </TouchableOpacity>
-              </View>
-
-              {loadingDetails ? (
-                <View style={detailsModalStyles.loading}>
-                  <ActivityIndicator color={theme.accent} size="large" />
-                </View>
-              ) : (
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  <View style={detailsModalStyles.statsRow}>
-                    <View style={detailsModalStyles.stat}>
-                      <Text style={detailsModalStyles.statVal}>
-                        {Math.round(
-                          (selectedWorkout?.duration_seconds || 0) / 60,
-                        )}
-                        m
-                      </Text>
-                      <Text style={detailsModalStyles.statLabel}>TIEMPO</Text>
-                    </View>
-                    <View style={detailsModalStyles.stat}>
-                      <Text style={detailsModalStyles.statVal}>
-                        {selectedWorkout?.total_volume}kg
-                      </Text>
-                      <Text style={detailsModalStyles.statLabel}>VOLUMEN</Text>
-                    </View>
-                  </View>
-
-                  <Text style={detailsModalStyles.sectionTitle}>
-                    EJERCICIOS
-                  </Text>
-                  {workoutExercises.map((exLog, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      style={detailsModalStyles.exItem}
-                      onPress={() => handleExercisePress(exLog.exercise_id)}
-                    >
-                      <View style={detailsModalStyles.exHeader}>
-                        <Text style={detailsModalStyles.exName}>
-                          {exLog.exercise?.name}
-                        </Text>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={16}
-                          color={theme.textMuted}
-                        />
-                      </View>
-                      <View style={detailsModalStyles.setsRow}>
-                        {(exLog.sets_completed || []).map(
-                          (s: any, sIdx: number) => (
-                            <View
-                              key={sIdx}
-                              style={detailsModalStyles.setBadge}
-                            >
-                              <Text style={detailsModalStyles.setText}>
-                                {s.weight}kg x {s.reps}
-                              </Text>
-                            </View>
-                          ),
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                  <View style={{ height: 40 }} />
-                </ScrollView>
-              )}
-            </View>
-          </View>
-        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -727,6 +582,36 @@ const createStyles = (theme: AppTheme) =>
       backgroundColor: theme.bgDeep,
       justifyContent: "center",
       alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 40,
+    },
+    errorTitle: {
+      fontSize: 17,
+      fontWeight: "700",
+      color: theme.textPrimary,
+      marginTop: 4,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      textAlign: "center",
+    },
+    retryBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    retryBtnText: {
+      color: theme.accent,
+      fontSize: 13,
+      fontWeight: "800",
     },
     topGlow: {
       position: "absolute",
@@ -967,29 +852,12 @@ const createStyles = (theme: AppTheme) =>
       textTransform: "uppercase",
       letterSpacing: 1,
     },
-    emptyCard: {
-      backgroundColor: theme.bgCard,
-      borderRadius: 18,
-      padding: 32,
-      alignItems: "center",
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-      gap: 12,
-    },
-    emptyText: {
-      fontSize: 14,
-      color: theme.textMuted,
-      textAlign: "center",
-    },
-    historyList: {
-      gap: 12,
-    },
-    historyItem: {
+    historyLinkRow: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: theme.bgCard,
       borderRadius: 16,
-      padding: 12,
+      padding: 14,
       borderWidth: 1,
       borderColor: theme.borderSubtle,
       gap: 12,
@@ -1002,39 +870,11 @@ const createStyles = (theme: AppTheme) =>
       justifyContent: "center",
       alignItems: "center",
     },
-    historyContent: {
+    historyLinkText: {
       flex: 1,
-      gap: 2,
-    },
-    historyName: {
       fontSize: 15,
       fontWeight: "700",
       color: theme.textPrimary,
-    },
-    historyDate: {
-      fontSize: 11,
-      color: theme.textMuted,
-    },
-    historyMetrics: {
-      alignItems: "flex-end",
-      gap: 2,
-    },
-    metricVal: {
-      fontSize: 12,
-      fontWeight: "800",
-      color: theme.accent,
-    },
-    loadMoreBtn: {
-      paddingVertical: 14,
-      alignItems: "center",
-      justifyContent: "center",
-      flexDirection: "row",
-    },
-    loadMoreText: {
-      fontSize: 12,
-      fontWeight: "800",
-      color: theme.textMuted,
-      letterSpacing: 1,
     },
     weightWarning: {
       flexDirection: "row" as const,
@@ -1088,118 +928,5 @@ const createStyles = (theme: AppTheme) =>
       fontSize: 9,
       fontWeight: "800",
       textTransform: "uppercase",
-    },
-  });
-
-const createDetailsModalStyles = (theme: AppTheme) =>
-  StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.85)",
-      justifyContent: "flex-end",
-    },
-    content: {
-      backgroundColor: theme.bgBase,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      padding: 24,
-      height: "80%",
-    },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: 24,
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: "900",
-      color: theme.textPrimary,
-      textTransform: "uppercase",
-    },
-    subtitle: {
-      fontSize: 13,
-      color: theme.textMuted,
-      marginTop: 2,
-    },
-    closeBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.surface,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    loading: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    statsRow: {
-      flexDirection: "row",
-      backgroundColor: theme.surface,
-      borderRadius: 20,
-      padding: 16,
-      marginBottom: 24,
-      gap: 12,
-    },
-    stat: {
-      flex: 1,
-      alignItems: "center",
-    },
-    statVal: {
-      fontSize: 18,
-      fontWeight: "900",
-      color: theme.accent,
-    },
-    statLabel: {
-      fontSize: 9,
-      fontWeight: "800",
-      color: theme.textMuted,
-      marginTop: 4,
-    },
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: "800",
-      color: theme.textMuted,
-      letterSpacing: 2,
-      marginBottom: 16,
-    },
-    exItem: {
-      backgroundColor: theme.bgCard,
-      borderRadius: 18,
-      padding: 16,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-    },
-    exHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 12,
-    },
-    exName: {
-      fontSize: 15,
-      fontWeight: "800",
-      color: theme.textPrimary,
-    },
-    setsRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-    },
-    setBadge: {
-      backgroundColor: theme.surface,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-    },
-    setText: {
-      fontSize: 11,
-      color: theme.textSecondary,
-      fontWeight: "700",
     },
   });

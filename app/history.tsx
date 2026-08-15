@@ -14,6 +14,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -39,6 +40,18 @@ export default function WorkoutsHistoryScreen() {
   const [workoutExercises, setWorkoutExercises] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+
+  // Set editor state
+  const [editingSet, setEditingSet] = useState<{
+    exLogId: number;
+    exIdx: number;
+    setIdx: number;
+    weight: string;
+    reps: string;
+  } | null>(null);
+  const [savingSet, setSavingSet] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
 
   useEffect(() => {
     if (profile?.id) loadInitial();
@@ -100,6 +113,102 @@ export default function WorkoutsHistoryScreen() {
       pathname: "/exercise-progress",
       params: { id: exerciseId },
     });
+  };
+
+  const openSetEditor = (exIdx: number, setIdx: number) => {
+    const exLog = workoutExercises[exIdx];
+    const set = exLog.sets_completed[setIdx];
+    setEditError(null);
+    setEditingSet({
+      exLogId: exLog.id,
+      exIdx,
+      setIdx,
+      weight: set.weight?.toString() || "",
+      reps: set.reps?.toString() || "",
+    });
+  };
+
+  const applyVolumeUpdate = (updatedExercises: any[]) => {
+    const totalVolume = updatedExercises.reduce((sum, ex) => {
+      const exVolume = (ex.sets_completed || []).reduce(
+        (acc: number, s: any) => acc + (s.weight || 0) * (s.reps || 0),
+        0,
+      );
+      return sum + exVolume;
+    }, 0);
+    setSelectedWorkout((prev: any) => (prev ? { ...prev, total_volume: totalVolume } : prev));
+    setLogs((prev) =>
+      prev.map((log) => (log.id === selectedWorkout.id ? { ...log, total_volume: totalVolume } : log)),
+    );
+  };
+
+  const saveEditedSet = async () => {
+    if (!editingSet || !selectedWorkout || !profile?.id) return;
+    const w = parseFloat(editingSet.weight) || 0;
+    const r = parseInt(editingSet.reps, 10) || 0;
+    if (w < 0 || w > 1000 || r < 0 || r > 999) {
+      setEditError("Revisa los valores: parecen fuera de rango.");
+      return;
+    }
+    setEditError(null);
+    setSavingSet(true);
+    try {
+      await WorkoutsAPI.updateSet(
+        editingSet.exLogId,
+        selectedWorkout.id,
+        editingSet.setIdx,
+        {
+          weight: parseFloat(editingSet.weight) || 0,
+          reps: parseInt(editingSet.reps, 10) || 0,
+        },
+        profile.id,
+      );
+      setWorkoutExercises((prev) => {
+        const next = [...prev];
+        const sets = [...next[editingSet.exIdx].sets_completed];
+        sets[editingSet.setIdx] = {
+          ...sets[editingSet.setIdx],
+          weight: parseFloat(editingSet.weight) || 0,
+          reps: parseInt(editingSet.reps, 10) || 0,
+        };
+        next[editingSet.exIdx] = { ...next[editingSet.exIdx], sets_completed: sets };
+        applyVolumeUpdate(next);
+        return next;
+      });
+      setEditingSet(null);
+    } catch (e) {
+      console.error("[HistoryScreen] Failed to update set:", e);
+    } finally {
+      setSavingSet(false);
+    }
+  };
+
+  const confirmDeleteEditedSet = async () => {
+    if (!editingSet || !selectedWorkout || !profile?.id) return;
+    setConfirmDeleteVisible(false);
+    setSavingSet(true);
+    try {
+      await WorkoutsAPI.updateSet(
+        editingSet.exLogId,
+        selectedWorkout.id,
+        editingSet.setIdx,
+        null,
+        profile.id,
+      );
+      setWorkoutExercises((prev) => {
+        const next = [...prev];
+        const sets = [...next[editingSet.exIdx].sets_completed];
+        sets.splice(editingSet.setIdx, 1);
+        next[editingSet.exIdx] = { ...next[editingSet.exIdx], sets_completed: sets };
+        applyVolumeUpdate(next);
+        return next;
+      });
+      setEditingSet(null);
+    } catch (e) {
+      console.error("[HistoryScreen] Failed to delete set:", e);
+    } finally {
+      setSavingSet(false);
+    }
   };
 
   const renderItem = ({ item }: { item: any }) => (
@@ -277,11 +386,17 @@ export default function WorkoutsHistoryScreen() {
                     <View style={styles.detailsSetsRow}>
                       {(exLog.sets_completed || []).map(
                         (s: any, sIdx: number) => (
-                          <View key={sIdx} style={styles.detailsSetBadge}>
+                          <TouchableOpacity
+                            key={sIdx}
+                            style={styles.detailsSetBadge}
+                            onPress={() => openSetEditor(idx, sIdx)}
+                            hitSlop={4}
+                          >
                             <Text style={styles.detailsSetText}>
                               {s.weight}kg x {s.reps}
                             </Text>
-                          </View>
+                            <Ionicons name="create-outline" size={12} color={theme.accent} />
+                          </TouchableOpacity>
                         ),
                       )}
                     </View>
@@ -290,6 +405,118 @@ export default function WorkoutsHistoryScreen() {
                 <View style={{ height: 40 }} />
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!editingSet}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingSet(null)}
+      >
+        <View style={styles.editOverlay}>
+          <View style={styles.editCard}>
+            <Text style={styles.editTitle}>Editar Serie</Text>
+            <Text style={styles.editHint}>
+              Cambiar el peso puede actualizar tu récord personal y tu posición en el ranking.
+            </Text>
+
+            <View style={styles.editRow}>
+              <View style={styles.editField}>
+                <Text style={styles.editLabel}>PESO (KG)</Text>
+                <TextInput
+                  style={styles.editInput}
+                  keyboardType="numeric"
+                  value={editingSet?.weight ?? ""}
+                  onChangeText={(val) => {
+                    setEditError(null);
+                    setEditingSet((prev) => (prev ? { ...prev, weight: val } : prev));
+                  }}
+                />
+              </View>
+              <View style={styles.editField}>
+                <Text style={styles.editLabel}>REPS</Text>
+                <TextInput
+                  style={styles.editInput}
+                  keyboardType="numeric"
+                  value={editingSet?.reps ?? ""}
+                  onChangeText={(val) => {
+                    setEditError(null);
+                    setEditingSet((prev) => (prev ? { ...prev, reps: val } : prev));
+                  }}
+                />
+              </View>
+            </View>
+
+            {editError && <Text style={styles.editErrorText}>{editError}</Text>}
+
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={styles.editDeleteBtn}
+                onPress={() => setConfirmDeleteVisible(true)}
+                disabled={savingSet}
+              >
+                <Text style={styles.editDeleteText}>Eliminar serie</Text>
+              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  style={styles.editCancelBtn}
+                  onPress={() => setEditingSet(null)}
+                  disabled={savingSet}
+                >
+                  <Text style={styles.editCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.editSaveBtn}
+                  onPress={saveEditedSet}
+                  disabled={savingSet}
+                >
+                  {savingSet ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.editSaveText}>Guardar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={confirmDeleteVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmDeleteVisible(false)}
+      >
+        <View style={styles.editOverlay}>
+          <View style={styles.editCard}>
+            <Text style={styles.editTitle}>¿Eliminar esta serie?</Text>
+            <Text style={styles.editHint}>
+              Esta acción no se puede deshacer. El volumen total y tu récord
+              personal para este ejercicio se recalcularán.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
+              <TouchableOpacity
+                style={[styles.editCancelBtn, { flex: 1 }]}
+                onPress={() => setConfirmDeleteVisible(false)}
+                disabled={savingSet}
+              >
+                <Text style={styles.editCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editDeleteConfirmBtn, { flex: 1 }]}
+                onPress={confirmDeleteEditedSet}
+                disabled={savingSet}
+              >
+                {savingSet ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.editSaveText}>Eliminar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -507,6 +734,9 @@ const createStyles = (theme: AppTheme) =>
       gap: 8,
     },
     detailsSetBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
       backgroundColor: theme.surface,
       paddingHorizontal: 10,
       paddingVertical: 5,
@@ -518,5 +748,79 @@ const createStyles = (theme: AppTheme) =>
       fontSize: 11,
       color: theme.textSecondary,
       fontWeight: "700",
+    },
+
+    // ── Set editor modal ──
+    editOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.8)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    },
+    editCard: {
+      width: "100%",
+      backgroundColor: theme.bgBase,
+      borderRadius: 20,
+      padding: 20,
+      gap: 16,
+    },
+    editTitle: { fontSize: 17, fontWeight: "800", color: theme.textPrimary },
+    editHint: {
+      fontSize: 12,
+      color: theme.textMuted,
+      lineHeight: 17,
+      marginTop: -8,
+    },
+    editErrorText: {
+      fontSize: 12,
+      color: theme.error,
+      fontWeight: "600",
+      marginTop: -8,
+    },
+    editRow: { flexDirection: "row", gap: 12 },
+    editField: { flex: 1, gap: 6 },
+    editLabel: { fontSize: 10, fontWeight: "800", color: theme.textMuted, letterSpacing: 0.5 },
+    editInput: {
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderMuted,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      fontWeight: "700",
+      color: theme.textPrimary,
+    },
+    editActions: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 4,
+    },
+    editDeleteBtn: { paddingVertical: 8, paddingHorizontal: 4 },
+    editDeleteText: { fontSize: 13, fontWeight: "700", color: theme.error },
+    editCancelBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      backgroundColor: theme.surface,
+    },
+    editCancelText: { fontSize: 13, fontWeight: "700", color: theme.textSecondary },
+    editSaveBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      backgroundColor: theme.accent,
+      minWidth: 80,
+      alignItems: "center",
+    },
+    editSaveText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+    editDeleteConfirmBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      backgroundColor: theme.error,
+      alignItems: "center",
     },
   });

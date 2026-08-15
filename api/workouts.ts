@@ -28,6 +28,20 @@ export interface WorkoutExerciseLog {
   order_index: number;
 }
 
+// user_personal_records is a cached snapshot the get_user_max_weights RPC reads from —
+// it doesn't recompute live, so callers that touch a user's sets must resync it here.
+// The MAX() and upsert/delete both happen server-side in sync_personal_record (SQL),
+// so this never pulls a user's full set history over the network just to fold it in JS.
+async function syncPersonalRecord(userId: string, exerciseId: number) {
+  const { error } = (await withTimeout(
+    supabase.rpc("sync_personal_record", {
+      p_user_id: userId,
+      p_exercise_id: exerciseId,
+    }) as any,
+  )) as any;
+  if (error) throw error;
+}
+
 export const WorkoutsAPI = {
   getWorkoutLogs: async (
     userId: string,
@@ -80,12 +94,44 @@ export const WorkoutsAPI = {
     }
   },
 
+  // Updates one set's weight/reps within a workout_exercises row, or removes it,
+  // then recomputes the parent workout_log's cached total_volume from all its
+  // exercises. All of this (edit/delete the set, recompute volume, update both
+  // tables, resync the PR) happens server-side in one round-trip via the
+  // update_workout_set RPC — see supabase/update_workout_set.sql.
+  updateSet: async (
+    workoutExerciseId: number,
+    workoutLogId: number,
+    setIndex: number,
+    update: { weight: number; reps: number } | null,
+    userId: string,
+  ): Promise<void> => {
+    try {
+      const { error } = (await withTimeout(
+        supabase.rpc("update_workout_set", {
+          p_user_id: userId,
+          p_workout_exercise_id: workoutExerciseId,
+          p_workout_log_id: workoutLogId,
+          p_set_index: setIndex,
+          p_new_set: update,
+        }) as any,
+      )) as any;
+      if (error) throw error;
+    } catch (e) {
+      console.error("[WorkoutsAPI] updateSet failed:", e);
+      throw e;
+    }
+  },
+
   getExerciseProgress: async (
     userId: string,
     exerciseId: number,
+    limit = 50,
   ): Promise<any[]> => {
     try {
-      // Fetch historical performance for a specific exercise to build PR graphs
+      // Fetch historical performance for a specific exercise to build PR graphs.
+      // Ordered newest-first so `.limit()` keeps the most recent sessions, then
+      // reversed back to ascending for the chart, which reads left-to-right in time.
       const { data, error } = (await withTimeout(
         supabase
           .from("workout_exercises")
@@ -94,20 +140,23 @@ export const WorkoutsAPI = {
             id,
             workout_log_id,
             sets_completed,
-            workout_log:workout_logs (
-              created_at
+            workout_log:workout_logs!inner (
+              created_at,
+              user_id
             )
           `,
           )
           .eq("exercise_id", exerciseId)
-          .order("workout_log_id", { ascending: true }) as any,
+          .eq("workout_log.user_id", userId)
+          .order("workout_log_id", { ascending: false })
+          .limit(limit) as any,
       )) as any;
 
       if (error) throw error;
 
       // Extract max weight or volume per session
       return (
-        data.map((log: any) => {
+        [...data].reverse().map((log: any) => {
           const sets = log.sets_completed || [];
           const weights = sets.map((s: any) => s.weight || 0);
           const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
@@ -150,6 +199,16 @@ export const WorkoutsAPI = {
           supabase.from("workout_exercises").insert(exerciseData) as any,
         )) as any;
         if (exError) throw exError;
+
+        // PR sync failure shouldn't fail the whole save — the workout is already recorded.
+        try {
+          const exerciseIds = [...new Set(exercises.map((ex) => ex.exercise_id).filter(Boolean))] as number[];
+          await Promise.all(
+            exerciseIds.map((id) => syncPersonalRecord(log.user_id!, id)),
+          );
+        } catch (prSyncErr) {
+          console.warn("[WorkoutsAPI] Failed to sync personal records:", prSyncErr);
+        }
       }
 
       // 3. Register points in gamification (WORKOUT_COMPLETED = 30 pts)

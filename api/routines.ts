@@ -59,21 +59,39 @@ export const ROUTINE_GOALS: Record<string, string> = {
   'endurance': 'Resistencia'
 };
 
+// The exercise catalog changes rarely (an admin adding one occasionally), but
+// every screen that needs it (routine create/edit, workout session, stats,
+// exercise progress) called getExercises() independently with no cache,
+// re-fetching the full table on every mount. This in-memory cache makes all
+// of those calls share one in-flight request and one result per app session.
+let exercisesCache: Exercise[] | null = null;
+let exercisesInFlight: Promise<Exercise[]> | null = null;
+
 export const RoutinesAPI = {
   translateDifficulty: (val: string) => ROUTINE_DIFFICULTIES[val.toLowerCase()] || val,
   translateGoal: (val: string) => ROUTINE_GOALS[val.toLowerCase()] || val,
 
   getExercises: async (): Promise<Exercise[]> => {
-    try {
-      const { data, error } = await withTimeout(
-        supabase.from('exercises').select('*').order('name', { ascending: true }) as any
-      ) as any;
-      if (error) throw error;
-      return data || [];
-    } catch (e) {
-      console.error('[RoutinesAPI] getExercises failed:', e);
-      throw e;
-    }
+    if (exercisesCache) return exercisesCache;
+    if (exercisesInFlight) return exercisesInFlight;
+
+    exercisesInFlight = (async () => {
+      try {
+        const { data, error } = await withTimeout(
+          supabase.from('exercises').select('*').order('name', { ascending: true }) as any
+        ) as any;
+        if (error) throw error;
+        const result: Exercise[] = data || [];
+        exercisesCache = result;
+        return result;
+      } catch (e) {
+        console.error('[RoutinesAPI] getExercises failed:', e);
+        throw e;
+      } finally {
+        exercisesInFlight = null;
+      }
+    })();
+    return exercisesInFlight;
   },
 
   getUserRoutines: async (userId: string): Promise<Routine[]> => {

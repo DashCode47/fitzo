@@ -1,6 +1,18 @@
 -- ─── Ranks System Setup ──────────────────────────────────────────────────────
 -- 1. Add new muscle groups to exercises catalog
--- 2. Create RPC function to get user max weights per exercise
+--
+-- The get_user_max_weights RPC function that used to live in this file has
+-- been REMOVED. The real, deployed definition lives in
+-- user_personal_records.sql — it reads from the cached user_personal_records
+-- table instead of computing MAX() live. Having two CREATE OR REPLACE
+-- definitions of the same function in two files caused a multi-hour
+-- debugging session in Aug 2026 when this file was re-run and silently
+-- reverted production to the live-computing version, desyncing it from
+-- api/workouts.ts's syncPersonalRecord (which writes to user_personal_records
+-- expecting the RPC to read from it).
+--
+-- If you need to touch get_user_max_weights, edit it ONLY in
+-- user_personal_records.sql.
 
 -- ── Update exercise catalog ──────────────────────────────────────────────────
 
@@ -18,30 +30,6 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.exercises (name, muscle_group, equipment, description)
 VALUES ('Curl de Muñeca (Wrist Curl)', 'forearms', 'dumbbell', 'Aislamiento de antebrazo')
 ON CONFLICT DO NOTHING;
-
--- ── RPC: Get user max weights per exercise ───────────────────────────────────
--- Returns the maximum weight lifted for each exercise by a given user.
--- Used client-side to compute muscle group ranks.
-
-CREATE OR REPLACE FUNCTION public.get_user_max_weights(p_user_id UUID)
-RETURNS TABLE(exercise_name TEXT, muscle_group TEXT, max_weight NUMERIC)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT
-    e.name::TEXT       AS exercise_name,
-    e.muscle_group::TEXT AS muscle_group,
-    MAX((s->>'weight')::numeric) AS max_weight
-  FROM workout_exercises we
-  JOIN workout_logs wl ON wl.id = we.workout_log_id
-  JOIN exercises e ON e.id = we.exercise_id
-  CROSS JOIN LATERAL jsonb_array_elements(we.sets_completed) AS s
-  WHERE wl.user_id = p_user_id
-    AND (s->>'weight')::numeric > 0
-  GROUP BY e.name, e.muscle_group;
-$$;
 
 -- ── Performance index ────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_workout_exercises_exercise_id

@@ -1,9 +1,10 @@
-import { LeaderboardAPI, LeaderboardItem } from "@/api/leaderboard";
+import { LeaderboardAPI, LeaderboardItem, RankPosition } from "@/api/leaderboard";
 import { RankingsSkeleton } from "@/components/rankings/RankingsSkeleton";
 import { RanksView } from "@/components/rankings/RanksView";
 import { RANK_TIERS } from "@/constants/ranks";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { useAppStore } from "@/store/useAppStore";
 import { withTimeout } from "@/utils/async";
 import { Ionicons } from "@expo/vector-icons";
@@ -100,6 +101,24 @@ const createStyles = (theme: AppTheme) =>
       overflow: "hidden",
       borderWidth: 1,
       borderColor: theme.accentBorder,
+    },
+    notRankedCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginHorizontal: 20,
+      marginBottom: 16,
+      padding: 14,
+      borderRadius: 14,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    notRankedText: {
+      flex: 1,
+      fontSize: 12,
+      color: theme.textSecondary,
+      lineHeight: 17,
     },
     myCardGradient: {
       flexDirection: "row",
@@ -267,19 +286,22 @@ function PodiumView({
   const first = top3.find((i) => i.position === 1);
   const second = top3.find((i) => i.position === 2);
   const third = top3.find((i) => i.position === 3);
+  const reduceMotion = useReduceMotion();
 
   // Crown float animation for #1
   const crownFloat = useRef(new Animated.Value(0)).current;
 
-  // Slide-up animations for each slot
-  const anim1 = useRef(new Animated.Value(50)).current;
-  const fade1 = useRef(new Animated.Value(0)).current;
-  const anim2 = useRef(new Animated.Value(50)).current;
-  const fade2 = useRef(new Animated.Value(0)).current;
-  const anim3 = useRef(new Animated.Value(50)).current;
-  const fade3 = useRef(new Animated.Value(0)).current;
+  // Slide-up animations for each slot — start already at rest when reduce
+  // motion is on, so entries render in place instead of sliding/fading in.
+  const anim1 = useRef(new Animated.Value(reduceMotion ? 0 : 50)).current;
+  const fade1 = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const anim2 = useRef(new Animated.Value(reduceMotion ? 0 : 50)).current;
+  const fade2 = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const anim3 = useRef(new Animated.Value(reduceMotion ? 0 : 50)).current;
+  const fade3 = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
 
   useEffect(() => {
+    if (reduceMotion) return;
     Animated.loop(
       Animated.sequence([
         Animated.timing(crownFloat, {
@@ -295,9 +317,10 @@ function PodiumView({
       ]),
     ).start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reduceMotion]);
 
   useEffect(() => {
+    if (reduceMotion) return;
     const makeParallel = (
       anim: Animated.Value,
       fade: Animated.Value,
@@ -325,7 +348,7 @@ function PodiumView({
       makeParallel(anim3, fade3, 160),
     ]).start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reduceMotion]);
 
   if (!first) return null;
 
@@ -505,11 +528,13 @@ function LeaderboardRow({
   const rankColor = isTop3 ? RANK_COLORS[item.position - 1] : null;
   const tierInfo =
     RANK_TIERS.find((t) => t.name === item.rankTier) || RANK_TIERS[0];
+  const reduceMotion = useReduceMotion();
 
-  // Todos — slide desde la derecha + fade en secuencia
-  const slideAnim = useRef(new Animated.Value(60)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  // Todos — slide desde la derecha + fade en secuencia (ya en reposo si reduce motion)
+  const slideAnim = useRef(new Animated.Value(reduceMotion ? 0 : 60)).current;
+  const fadeAnim = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   useEffect(() => {
+    if (reduceMotion) return;
     const delay = index * 55;
     Animated.parallel([
       Animated.timing(slideAnim, {
@@ -527,12 +552,12 @@ function LeaderboardRow({
       }),
     ]).start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reduceMotion]);
 
   // #1 — pulso lento (scale 1.0 → 1.015) encima del slide
   const pulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (!isFirst) return;
+    if (!isFirst || reduceMotion) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -550,12 +575,12 @@ function LeaderboardRow({
     loop.start();
     return () => loop.stop();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFirst]);
+  }, [isFirst, reduceMotion]);
 
   // #2 — shimmer horizontal deslizante
   const shimmerAnim = useRef(new Animated.Value(-200)).current;
   useEffect(() => {
-    if (!isSecond) return;
+    if (!isSecond || reduceMotion) return;
     const loop = Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 200,
@@ -566,12 +591,12 @@ function LeaderboardRow({
     loop.start();
     return () => loop.stop();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSecond]);
+  }, [isSecond, reduceMotion]);
 
   // #3 — bronze glow pulsing border opacity
   const bronzeAnim = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
-    if (!isThird) return;
+    if (!isThird || reduceMotion) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(bronzeAnim, {
@@ -589,7 +614,7 @@ function LeaderboardRow({
     loop.start();
     return () => loop.stop();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isThird]);
+  }, [isThird, reduceMotion]);
 
   const innerRow = (
     <>
@@ -759,6 +784,7 @@ export default function RankingsScreen() {
   const { profile } = useAppStore();
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
+  const [myPosition, setMyPosition] = useState<RankPosition | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorStatus, setErrorStatus] = useState(false);
   const [viewMode, setViewMode] = useState<"tabla" | "misrangos">("tabla");
@@ -767,6 +793,7 @@ export default function RankingsScreen() {
   useFocusEffect(
     React.useCallback(() => {
       loadLeaderboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
 
@@ -780,6 +807,21 @@ export default function RankingsScreen() {
         "Error cargando ranking",
       );
       setLeaderboard(data);
+
+      // The top-10 list may not include the current user — fetch their real
+      // position separately in that case, instead of silently hiding "Mi posición".
+      const inTop10 = profile?.id && data.some((item) => item.id === profile.id);
+      if (profile?.id && !inTop10) {
+        try {
+          const pos = await LeaderboardAPI.getRankPosition(profile.id);
+          setMyPosition(pos);
+        } catch (e) {
+          console.warn("[RankingsScreen] getRankPosition failed:", e);
+          setMyPosition(null);
+        }
+      } else {
+        setMyPosition(null);
+      }
     } catch (e) {
       console.error("[RankingsScreen]", e);
       setErrorStatus(true);
@@ -924,6 +966,48 @@ export default function RankingsScreen() {
                   </View>
                 </LinearGradient>
               </View>
+            )}
+
+            {/* Fallback: user isn't in the top 10, show just their real position */}
+            {!myEntry && myPosition && (
+              <View style={styles.myCard}>
+                <View style={[styles.myCardGradient, { backgroundColor: theme.surface }]}>
+                  <View style={styles.myCardAvatar}>
+                    {profile?.photo_url ? (
+                      <Image
+                        source={{ uri: profile.photo_url }}
+                        style={styles.myCardAvatarImg}
+                      />
+                    ) : (
+                      <Ionicons name="person" size={22} color={theme.textMuted} />
+                    )}
+                  </View>
+                  <View style={styles.myCardInfo}>
+                    <Text style={styles.myCardName}>
+                      {profile?.username || "Tú"}
+                    </Text>
+                    <Text style={styles.myCardPos}>
+                      Posición #{myPosition.position} de {myPosition.total}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Never ranked: no rank_index synced yet (e.g. no weight configured) */}
+            {!loading && !myEntry && !myPosition && (
+              <TouchableOpacity
+                style={styles.notRankedCard}
+                onPress={() => setViewMode("misrangos")}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="alert-circle-outline" size={18} color={theme.textMuted} />
+                <Text style={styles.notRankedText}>
+                  Aún no tienes una posición en el ranking. Ve a "Mis Rangos" para
+                  calcular tu nivel.
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+              </TouchableOpacity>
             )}
 
             {/* List */}

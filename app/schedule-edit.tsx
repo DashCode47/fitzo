@@ -123,7 +123,7 @@ export default function ScheduleEditScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
       <LinearGradient
         colors={theme.gradients.bg}
         style={StyleSheet.absoluteFill}

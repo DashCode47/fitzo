@@ -2,6 +2,7 @@
 import { UserAPI } from '@/api/user';
 import { CustomModal } from '@/components/ui/CustomModal';
 import { theme } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Scanner() {
   const router = useRouter();
+  const appTheme = useAppTheme();
   const { setProfile } = useAppStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -101,7 +103,7 @@ export default function Scanner() {
   // ── Scanner view ──────────────────────────────────────────────────────────
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={appTheme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
 
       <CameraView
         style={StyleSheet.absoluteFillObject}

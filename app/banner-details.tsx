@@ -59,7 +59,7 @@ export default function DetailsScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
 
       <ScrollView
         style={styles.scrollView}

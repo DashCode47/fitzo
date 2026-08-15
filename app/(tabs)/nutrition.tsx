@@ -1,4 +1,5 @@
-import { NutritionAPI, UserStats } from "@/api/nutrition";
+import { NutritionAPI, UserStats, WeightLog } from "@/api/nutrition";
+import { WorkoutsAPI } from "@/api/workouts";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -12,6 +13,8 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Circle, Polyline, Svg } from "react-native-svg";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 type Goal = "cut" | "bulk" | "maintain";
@@ -44,6 +48,50 @@ const MACRO_ICONS: Record<
   Carb: "leaf-outline",
   Fat: "water-outline",
 };
+
+// Rough weekly-workout ranges each declared activity level implies. Used only
+// to flag an obvious mismatch (e.g. "sedentary" but training 5x/week) — not
+// meant to be a precise fitness classification, just a nudge to revisit the
+// setting since it directly feeds the calorie calculation.
+const ACTIVITY_WEEKLY_RANGE: Record<Activity, [number, number]> = {
+  sedentary: [0, 1],
+  moderate: [1, 4],
+  active: [4, Infinity],
+};
+
+// Recent logs are expected newest-first (as returned by WorkoutsAPI.getWorkoutLogs).
+// Looks at the last `weeks` calendar weeks of logs (excluding the current, possibly
+// partial, week) and suggests a different activity level if the observed weekly
+// average clearly falls outside the range the declared level implies.
+export function suggestActivityLevel(
+  recentLogs: { started_at: string }[],
+  declaredLevel: Activity,
+  weeks = 2,
+): Activity | null {
+  if (recentLogs.length === 0) return null;
+
+  const now = new Date();
+  const dow = now.getDay();
+  const startOfThisWeek = new Date(now);
+  startOfThisWeek.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  startOfThisWeek.setHours(0, 0, 0, 0);
+
+  const windowStart = new Date(startOfThisWeek);
+  windowStart.setDate(windowStart.getDate() - weeks * 7);
+
+  const countInWindow = recentLogs.filter((log) => {
+    const started = new Date(log.started_at);
+    return started >= windowStart && started < startOfThisWeek;
+  }).length;
+
+  const weeklyAvg = countInWindow / weeks;
+  const [min, max] = ACTIVITY_WEEKLY_RANGE[declaredLevel];
+  if (weeklyAvg >= min && weeklyAvg <= max) return null;
+
+  const suggested = (Object.entries(ACTIVITY_WEEKLY_RANGE) as [Activity, [number, number]][])
+    .find(([, [lo, hi]]) => weeklyAvg >= lo && weeklyAvg <= hi);
+  return suggested && suggested[0] !== declaredLevel ? suggested[0] : null;
+}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const createStyles = (theme: AppTheme) =>
@@ -290,6 +338,21 @@ const createStyles = (theme: AppTheme) =>
       lineHeight: 18,
       fontWeight: "500",
     },
+    suggestionActions: {
+      flexDirection: "row",
+      gap: 16,
+      marginTop: 8,
+    },
+    suggestionDismissText: {
+      color: theme.textMuted,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    suggestionApplyText: {
+      color: theme.accent,
+      fontSize: 12,
+      fontWeight: "800",
+    },
     sectionTitle: {
       fontSize: 16,
       fontWeight: "700",
@@ -297,6 +360,112 @@ const createStyles = (theme: AppTheme) =>
       letterSpacing: -0.2,
       marginBottom: 10,
       marginTop: 4,
+    },
+    sectionHeader: {
+      marginTop: 4,
+    },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    logWeightBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 16,
+      marginBottom: 10,
+    },
+    logWeightBtnText: {
+      color: theme.accent,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    weightEmptyCard: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      borderStyle: "dashed",
+      padding: 20,
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    logWeightOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.8)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    },
+    logWeightCard: {
+      width: "100%",
+      backgroundColor: theme.bgBase,
+      borderRadius: 20,
+      padding: 20,
+      gap: 16,
+    },
+    logWeightTitle: {
+      fontSize: 17,
+      fontWeight: "800",
+      color: theme.textPrimary,
+    },
+    logWeightInputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderMuted,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+    },
+    logWeightInput: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 22,
+      fontWeight: "800",
+      color: theme.textPrimary,
+    },
+    logWeightUnit: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.textMuted,
+    },
+    logWeightActions: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    logWeightCancelBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.surface,
+    },
+    logWeightCancelText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.textSecondary,
+    },
+    logWeightSaveBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme.accent,
+    },
+    logWeightSaveText: {
+      fontSize: 14,
+      fontWeight: "800",
+      color: "#fff",
     },
     dietName: {
       fontSize: 14,
@@ -469,6 +638,76 @@ const createStyles = (theme: AppTheme) =>
       textAlign: "center",
       lineHeight: 18,
     },
+    errorState: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 40,
+    },
+    retryBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    retryBtnText: {
+      color: theme.accent,
+      fontSize: 13,
+      fontWeight: "800",
+    },
+    weightChartCard: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      padding: 16,
+      marginBottom: 12,
+    },
+    weightChartHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 8,
+    },
+    weightChartValue: {
+      fontSize: 24,
+      fontWeight: "900",
+      color: theme.textPrimary,
+    },
+    weightChartSub: {
+      fontSize: 11,
+      color: theme.textMuted,
+      marginTop: 2,
+    },
+    weightDeltaBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 10,
+    },
+    weightDeltaText: {
+      fontSize: 12,
+      fontWeight: "800",
+    },
+    weightChartFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 4,
+    },
+    weightChartFooterText: {
+      fontSize: 10,
+      color: theme.textMuted,
+      fontWeight: "600",
+    },
   });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -486,6 +725,12 @@ export default function NutritionScreen() {
 
   const [loading, setLoading] = useState(!isHydrated || (!stats && !diet));
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [weightHistory, setWeightHistory] = useState<WeightLog[]>([]);
+  const [activitySuggestion, setActivitySuggestion] = useState<Activity | null>(null);
+  const [logWeightModalVisible, setLogWeightModalVisible] = useState(false);
+  const [logWeightValue, setLogWeightValue] = useState("");
+  const [loggingWeight, setLoggingWeight] = useState(false);
 
   const [weight, setWeight] = useState(stats?.weight?.toString() || "");
   const [height, setHeight] = useState(stats?.height?.toString() || "");
@@ -514,24 +759,23 @@ export default function NutritionScreen() {
   const loadData = async () => {
     try {
       if (!isHydrated) setLoading(true);
-      let userId = profile?.id;
-      try {
-        const {
-          data: { session },
-        } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
-        if (session?.user) userId = session.user.id;
-      } catch (err) {
-        console.warn("[NutritionScreen] Session fetch error", err);
-      }
+      setLoadError(false);
+      const userId = profile?.id;
       if (!userId) {
         setLoading(false);
         return;
       }
 
-      const [newStats, newDiet] = await Promise.all([
+      const [newStats, newDiet, newWeightHistory, recentWorkouts] = await Promise.all([
         NutritionAPI.getUserStats(userId).catch(() => stats),
         NutritionAPI.getActiveDiet(userId).catch(() => diet),
+        NutritionAPI.getWeightHistory(userId).catch(() => []),
+        WorkoutsAPI.getWorkoutLogs(userId, 30, 0).catch(() => []),
       ]);
+      setWeightHistory(newWeightHistory);
+      if (newStats) {
+        setActivitySuggestion(suggestActivityLevel(recentWorkouts, newStats.activity_level));
+      }
 
       let finalDiet = newDiet;
       if (newStats && !newDiet) {
@@ -561,16 +805,29 @@ export default function NutritionScreen() {
       if (finalDiet) setDiet(finalDiet);
     } catch (error) {
       console.error("[NutritionScreen]", error);
+      if (!stats && !diet) setLoadError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveStats = async () => {
+  const handleSaveStats = async (overrideActivityLevel?: Activity) => {
     if (!weight || !height || !age) {
       setModalConfig({
         title: "Campos incompletos",
         message: "Por favor completa todos los campos para calcular tu plan.",
+        type: "error",
+      });
+      setModalVisible(true);
+      return;
+    }
+    const w = parseFloat(weight);
+    const h = parseFloat(height);
+    const a = parseInt(age, 10);
+    if (w < 20 || w > 400 || h < 50 || h > 250 || a < 10 || a > 120) {
+      setModalConfig({
+        title: "Revisa tus datos",
+        message: "Alguno de los valores ingresados parece fuera de rango. Verifica tu peso, altura y edad.",
         type: "error",
       });
       setModalVisible(true);
@@ -583,12 +840,13 @@ export default function NutritionScreen() {
       } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
       if (!session?.user) return;
 
+      const effectiveActivityLevel = overrideActivityLevel || activityLevel;
       const calc = calculateCalories(
         parseFloat(weight),
         parseFloat(height),
         parseInt(age),
         gender,
-        activityLevel,
+        effectiveActivityLevel,
         goal,
       );
       const newStats: UserStats = {
@@ -597,12 +855,29 @@ export default function NutritionScreen() {
         height: parseFloat(height),
         age: parseInt(age),
         gender,
-        activity_level: activityLevel,
+        activity_level: effectiveActivityLevel,
         goal: calc.finalGoal,
-        allergies: [],
+        allergies: stats?.allergies || [],
       };
       const saved = await withTimeout(NutritionAPI.saveUserStats(newStats));
       setStats(saved);
+      setActivityLevel(effectiveActivityLevel);
+      setActivitySuggestion(null);
+
+      // Only log a new weight entry when it actually changed — saving the
+      // form without touching weight (e.g. just updating activity level)
+      // shouldn't create a duplicate point on the history chart.
+      const lastLoggedWeight = weightHistory[weightHistory.length - 1]?.weight;
+      if (lastLoggedWeight !== newStats.weight) {
+        try {
+          await NutritionAPI.logWeight(session.user.id, newStats.weight);
+          const updatedHistory = await NutritionAPI.getWeightHistory(session.user.id);
+          setWeightHistory(updatedHistory);
+        } catch (e) {
+          console.warn("[NutritionScreen] Failed to log weight history:", e);
+        }
+      }
+
       await withTimeout(
         NutritionAPI.assignBestDietPlan(session.user.id, calc.calories),
       );
@@ -629,6 +904,51 @@ export default function NutritionScreen() {
       setModalVisible(true);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Quick check-in: updates just the weight, without walking through the full
+  // stats form. Keeps user_stats.weight (used everywhere else in the app,
+  // e.g. the calories card) in sync with the new entry in weight_logs.
+  const handleLogWeightCheckIn = async () => {
+    const w = parseFloat(logWeightValue);
+    if (!logWeightValue || isNaN(w) || w < 20 || w > 400) {
+      setModalConfig({
+        title: "Revisa el valor",
+        message: "Ingresa un peso válido en kg.",
+        type: "error",
+      });
+      setModalVisible(true);
+      return;
+    }
+    if (!stats) return;
+    try {
+      setLoggingWeight(true);
+      const {
+        data: { session },
+      } = (await withTimeout(supabase.auth.getSession(), 15000)) as any;
+      if (!session?.user) return;
+
+      const updatedStats: UserStats = { ...stats, weight: w };
+      const saved = await withTimeout(NutritionAPI.saveUserStats(updatedStats));
+      setStats(saved);
+      setWeight(w.toString());
+
+      await NutritionAPI.logWeight(session.user.id, w);
+      const updatedHistory = await NutritionAPI.getWeightHistory(session.user.id);
+      setWeightHistory(updatedHistory);
+
+      setLogWeightModalVisible(false);
+      setLogWeightValue("");
+    } catch (error: any) {
+      setModalConfig({
+        title: "Error al guardar",
+        message: error.message || "No pudimos registrar tu peso. Inténtalo de nuevo.",
+        type: "error",
+      });
+      setModalVisible(true);
+    } finally {
+      setLoggingWeight(false);
     }
   };
 
@@ -664,7 +984,58 @@ export default function NutritionScreen() {
           type={modalConfig.type}
           onClose={() => setModalVisible(false)}
         />
-        {!stats ? (
+
+        <Modal visible={logWeightModalVisible} transparent animationType="fade">
+          <View style={styles.logWeightOverlay}>
+            <View style={styles.logWeightCard}>
+              <Text style={styles.logWeightTitle}>Actualizar peso</Text>
+              <View style={styles.logWeightInputRow}>
+                <TextInput
+                  style={styles.logWeightInput}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={theme.textMuted}
+                  value={logWeightValue}
+                  onChangeText={setLogWeightValue}
+                  autoFocus
+                />
+                <Text style={styles.logWeightUnit}>kg</Text>
+              </View>
+              <View style={styles.logWeightActions}>
+                <TouchableOpacity
+                  style={styles.logWeightCancelBtn}
+                  onPress={() => setLogWeightModalVisible(false)}
+                  disabled={loggingWeight}
+                >
+                  <Text style={styles.logWeightCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.logWeightSaveBtn}
+                  onPress={handleLogWeightCheckIn}
+                  disabled={loggingWeight}
+                >
+                  {loggingWeight ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.logWeightSaveText}>Guardar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {loadError && !stats ? (
+          <View style={styles.errorState}>
+            <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
+            <Text style={styles.emptyTitle}>No pudimos cargar tu información</Text>
+            <Text style={styles.emptyText}>Revisa tu conexión e intenta de nuevo.</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadData}>
+              <Ionicons name="refresh" size={14} color={theme.accent} />
+              <Text style={styles.retryBtnText}>Reintentar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : !stats ? (
           <Onboarding
             weight={weight}
             setWeight={setWeight}
@@ -685,6 +1056,16 @@ export default function NutritionScreen() {
           <Dashboard
             stats={stats}
             diet={diet}
+            weightHistory={weightHistory}
+            activitySuggestion={activitySuggestion}
+            onApplyActivitySuggestion={() =>
+              activitySuggestion && handleSaveStats(activitySuggestion)
+            }
+            onDismissActivitySuggestion={() => setActivitySuggestion(null)}
+            onLogWeight={() => {
+              setLogWeightValue(stats?.weight?.toString() || "");
+              setLogWeightModalVisible(true);
+            }}
             onEdit={() => setStats(null)}
             selectedOptions={selectedOptions}
             setSelectedOptions={setSelectedOptions}
@@ -850,12 +1231,18 @@ function Onboarding({
 function Dashboard({
   stats,
   diet,
+  weightHistory,
+  activitySuggestion,
+  onApplyActivitySuggestion,
+  onDismissActivitySuggestion,
+  onLogWeight,
   onEdit,
   selectedOptions,
   setSelectedOptions,
 }: any) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
+  const [warningDismissed, setWarningDismissed] = useState(false);
   const calc = calculateCalories(
     stats.weight,
     stats.height,
@@ -910,7 +1297,7 @@ function Dashboard({
       </View>
 
       {/* Override warning */}
-      {calc.isOverridden && (
+      {calc.isOverridden && !warningDismissed && (
         <View style={styles.warningCard}>
           <Ionicons
             name="information-circle-outline"
@@ -920,6 +1307,51 @@ function Dashboard({
           <Text style={styles.warningText}>
             Hemos ajustado tu objetivo a pérdida de grasa para priorizar tu
             salud según tu IMC.
+          </Text>
+          <TouchableOpacity onPress={() => setWarningDismissed(true)} hitSlop={8}>
+            <Ionicons name="close" size={16} color={theme.warning} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Activity level mismatch suggestion */}
+      {activitySuggestion && (
+        <View style={styles.warningCard}>
+          <Ionicons name="pulse-outline" size={20} color={theme.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.warningText}>
+              Tu ritmo de entrenamiento reciente sugiere un nivel de actividad "
+              {ACTIVITY_LABELS[activitySuggestion as Activity]}", distinto al que tienes
+              configurado. Actualízalo para un cálculo de calorías más preciso.
+            </Text>
+            <View style={styles.suggestionActions}>
+              <TouchableOpacity onPress={onDismissActivitySuggestion}>
+                <Text style={styles.suggestionDismissText}>Ignorar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onApplyActivitySuggestion}>
+                <Text style={styles.suggestionApplyText}>
+                  Usar "{ACTIVITY_LABELS[activitySuggestion as Activity]}"
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Weight history */}
+      <View style={[styles.sectionHeader, styles.sectionHeaderRow]}>
+        <Text style={styles.sectionTitle}>Evolución de peso</Text>
+        <TouchableOpacity style={styles.logWeightBtn} onPress={onLogWeight}>
+          <Ionicons name="add-circle-outline" size={16} color={theme.accent} />
+          <Text style={styles.logWeightBtnText}>Actualizar</Text>
+        </TouchableOpacity>
+      </View>
+      {weightHistory.length > 1 ? (
+        <WeightChart history={weightHistory} theme={theme} styles={styles} />
+      ) : (
+        <View style={styles.weightEmptyCard}>
+          <Text style={styles.emptyText}>
+            Registra tu peso periódicamente para ver tu evolución aquí.
           </Text>
         </View>
       )}
@@ -1065,6 +1497,90 @@ function Dashboard({
 
       <View style={{ height: 100 }} />
     </ScrollView>
+  );
+}
+
+// ─── Weight history chart ──────────────────────────────────────────────────────
+const WEIGHT_CHART_WIDTH = Dimensions.get("window").width - 20 * 2 - 32; // screen - scroll padding - card padding
+const WEIGHT_CHART_HEIGHT = 140;
+
+function WeightChart({
+  history,
+  theme,
+  styles,
+}: {
+  history: WeightLog[];
+  theme: AppTheme;
+  styles: any;
+}) {
+  const weights = history.map((h) => h.weight);
+  const minW = Math.min(...weights);
+  const maxW = Math.max(...weights);
+  const range = maxW - minW || 1;
+
+  const points = history
+    .map((h, i) => {
+      const x = (i / (history.length - 1)) * WEIGHT_CHART_WIDTH;
+      const y = WEIGHT_CHART_HEIGHT - 20 - ((h.weight - minW) / range) * (WEIGHT_CHART_HEIGHT - 40);
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const first = history[0];
+  const last = history[history.length - 1];
+  const delta = Math.round((last.weight - first.weight) * 10) / 10;
+
+  return (
+    <View style={styles.weightChartCard}>
+      <View style={styles.weightChartHeader}>
+        <View>
+          <Text style={styles.weightChartValue}>{last.weight} kg</Text>
+          <Text style={styles.weightChartSub}>
+            {new Date(last.logged_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+          </Text>
+        </View>
+        {delta !== 0 && (
+          <View
+            style={[
+              styles.weightDeltaBadge,
+              { backgroundColor: delta < 0 ? theme.success + "20" : theme.warning + "20" },
+            ]}
+          >
+            <Ionicons
+              name={delta < 0 ? "arrow-down" : "arrow-up"}
+              size={12}
+              color={delta < 0 ? theme.success : theme.warning}
+            />
+            <Text
+              style={[
+                styles.weightDeltaText,
+                { color: delta < 0 ? theme.success : theme.warning },
+              ]}
+            >
+              {Math.abs(delta)} kg
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <Svg width={WEIGHT_CHART_WIDTH} height={WEIGHT_CHART_HEIGHT}>
+        <Polyline points={points} fill="none" stroke={theme.accent} strokeWidth="2.5" />
+        {history.map((h, i) => {
+          const x = (i / (history.length - 1)) * WEIGHT_CHART_WIDTH;
+          const y = WEIGHT_CHART_HEIGHT - 20 - ((h.weight - minW) / range) * (WEIGHT_CHART_HEIGHT - 40);
+          return <Circle key={i} cx={x} cy={y} r="3" fill={theme.accentLight} />;
+        })}
+      </Svg>
+
+      <View style={styles.weightChartFooter}>
+        <Text style={styles.weightChartFooterText}>
+          {new Date(first.logged_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+        </Text>
+        <Text style={styles.weightChartFooterText}>
+          {new Date(last.logged_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+        </Text>
+      </View>
+    </View>
   );
 }
 

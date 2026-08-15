@@ -1,5 +1,6 @@
 
 import { CustomModal } from '@/components/ui/CustomModal';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ const REWARD_TYPES = [
 
 export default function AdminGenerateQR() {
   const router = useRouter();
+  const theme = useAppTheme();
   const { profile } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [selectedReward, setSelectedReward] = useState<any>(null);
@@ -57,7 +59,7 @@ export default function AdminGenerateQR() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>

@@ -1,8 +1,9 @@
 import { Exercise, RoutinesAPI } from "@/api/routines";
 import { WorkoutsAPI } from "@/api/workouts";
+import { RanksAPI } from "@/api/ranks";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { useAppStore } from "@/store/useAppStore";
+import { useAppStore, ActiveWorkout } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -22,7 +23,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import DraggableFlatList, {
+  RenderItemParams,
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+type WorkoutExercise = ActiveWorkout["exercises"][number];
 
 const MUSCLE_MAP: Record<string, string> = {
   chest: "Pecho",
@@ -214,7 +222,9 @@ export default function WorkoutSessionScreen() {
     updateWorkoutSet,
     addWorkoutSet,
     removeWorkoutSet,
+    reorderWorkoutExercises,
     setActiveWorkout,
+    userStats,
   } = useAppStore();
 
   const [, forceTick] = useState(0);
@@ -222,6 +232,38 @@ export default function WorkoutSessionScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [infoAlert, setInfoAlert] = useState<{ title: string; message: string; isError?: boolean } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Exercise cards can be collapsed individually and reordered via drag & drop.
+  const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
+  const [personalRecords, setPersonalRecords] = useState<Record<string, number>>({});
+  const [muscleGroups, setMuscleGroups] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    RanksAPI.getUserMaxWeights(profile.id)
+      .then((rows) => {
+        const map: Record<string, number> = {};
+        rows.forEach((r: any) => {
+          const exerciseName = r.name || r.exercise_name;
+          if (exerciseName) map[exerciseName] = r.max_weight;
+        });
+        setPersonalRecords(map);
+      })
+      .catch((e) => console.error("[WorkoutSession] Failed to fetch PRs:", e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
+
+  useEffect(() => {
+    RoutinesAPI.getExercises()
+      .then((data) => {
+        const map: Record<number, string> = {};
+        data.forEach((e) => {
+          map[e.id] = e.muscle_group;
+        });
+        setMuscleGroups(map);
+      })
+      .catch((e) => console.error("[WorkoutSession] Failed to fetch muscle groups:", e));
+  }, []);
 
   // Info Modal states
   const [selectedExDetails, setSelectedExDetails] = useState<Exercise | null>(
@@ -326,6 +368,14 @@ export default function WorkoutSessionScreen() {
       }));
 
       await WorkoutsAPI.saveWorkoutSession(logData, exerciseLogs);
+
+      // Keep the leaderboard fresh right after a session, instead of only
+      // syncing when the user happens to visit "Mis Rangos". Fire-and-forget:
+      // the workout is already saved, this shouldn't block finishing the flow.
+      if (profile.id && userStats?.weight) {
+        RanksAPI.syncUserRank(profile.id, userStats.weight, (userStats.gender as any) || "M");
+      }
+
       setShowSuccessModal(true);
     } catch (e) {
       console.error("[WorkoutSession] Failed to save:", e);
@@ -365,7 +415,202 @@ export default function WorkoutSessionScreen() {
     }
   }
 
+  const sortByMuscleGroup = () => {
+    const sorted = [...activeWorkout.exercises].sort((a, b) => {
+      const groupA = muscleGroups[a.exerciseId] || "";
+      const groupB = muscleGroups[b.exerciseId] || "";
+      return groupA.localeCompare(groupB) || a.name.localeCompare(b.name);
+    });
+    reorderWorkoutExercises(sorted);
+  };
+
+  const toggleCollapsed = (exerciseId: number) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(exerciseId)) next.delete(exerciseId);
+      else next.add(exerciseId);
+      return next;
+    });
+  };
+
+  const renderExerciseCard = (ex: WorkoutExercise, exIdx: number, dragHandle?: () => void) => {
+    const isCollapsed = collapsedIds.has(ex.exerciseId);
+    const completedCount = ex.sets.filter((s) => s.completed).length;
+    const pr = personalRecords[ex.name];
+    const muscleGroup = muscleGroups[ex.exerciseId];
+
+    return (
+      <View style={styles.exerciseBlock}>
+        <View style={styles.exerciseHeader}>
+          <TouchableOpacity
+            onLongPress={dragHandle}
+            delayLongPress={150}
+            style={styles.dragHandle}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="reorder-three" size={26} color={theme.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => toggleCollapsed(ex.exerciseId)}
+          >
+            <Text style={styles.exerciseName}>{ex.name}</Text>
+            <View style={styles.exerciseMetaRow}>
+              {muscleGroup && (
+                <View style={styles.muscleBadge}>
+                  <Text style={styles.muscleBadgeText}>
+                    {translateMuscle(muscleGroup)}
+                  </Text>
+                </View>
+              )}
+              {pr != null && (
+                <Text style={styles.exercisePr}>PR: {pr} KG</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.exerciseSummary}>
+            {completedCount}/{ex.sets.length} series
+          </Text>
+          <TouchableOpacity onPress={() => showInfo(ex.exerciseId)}>
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              color={theme.textMuted}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => toggleCollapsed(ex.exerciseId)}>
+            <Ionicons
+              name={isCollapsed ? "chevron-down" : "chevron-up"}
+              size={18}
+              color={theme.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {!isCollapsed && (
+          <>
+            {/* Sets List */}
+            <View style={styles.setsTable}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableLabel, { width: 40 }]}>SET</Text>
+                <Text style={[styles.tableLabel, { flex: 1 }]}>
+                  PESO (KG)
+                </Text>
+                <Text style={[styles.tableLabel, { flex: 1 }]}>REPS</Text>
+                <View style={{ width: 40 }} />
+              </View>
+
+              {ex.sets.map((set, setIdx) => {
+                const prevSet = ex.sets[setIdx - 1];
+                return (
+                <View
+                  key={setIdx}
+                  style={[
+                    styles.setRow,
+                    set.completed && styles.setRowCompleted,
+                  ]}
+                >
+                  <Text style={styles.setNumber}>{set.set}</Text>
+
+                  <GlowInputWrap
+                    isEmpty={set.weight === 0}
+                    accentColor="#FBBF24"
+                    style={styles.inputWrap}
+                  >
+                    <TextInput
+                      style={styles.setInput}
+                      keyboardType="numeric"
+                      placeholder={prevSet?.weight ? prevSet.weight.toString() : "0"}
+                      placeholderTextColor={theme.textMuted}
+                      value={set.weight > 0 ? set.weight.toString() : ""}
+                      onFocus={() => {
+                        if (set.weight === 0 && prevSet?.weight) {
+                          updateWorkoutSet(exIdx, setIdx, { weight: prevSet.weight });
+                        }
+                      }}
+                      onChangeText={(val) =>
+                        updateWorkoutSet(exIdx, setIdx, {
+                          weight: parseFloat(val) || 0,
+                        })
+                      }
+                    />
+                  </GlowInputWrap>
+
+                  <GlowInputWrap
+                    isEmpty={set.reps === 0}
+                    accentColor="#FBBF24"
+                    style={styles.inputWrap}
+                  >
+                    <TextInput
+                      style={styles.setInput}
+                      keyboardType="numeric"
+                      placeholder={prevSet?.reps ? prevSet.reps.toString() : "0"}
+                      placeholderTextColor={theme.textMuted}
+                      value={set.reps > 0 ? set.reps.toString() : ""}
+                      onFocus={() => {
+                        if (set.reps === 0 && prevSet?.reps) {
+                          updateWorkoutSet(exIdx, setIdx, { reps: prevSet.reps });
+                        }
+                      }}
+                      onChangeText={(val) =>
+                        updateWorkoutSet(exIdx, setIdx, {
+                          reps: parseInt(val) || 0,
+                        })
+                      }
+                    />
+                  </GlowInputWrap>
+
+                  <GlowCheckBtn
+                    completed={set.completed}
+                    isActive={
+                      exIdx === activeGlowEx &&
+                      setIdx === activeGlowSet &&
+                      set.weight > 0
+                    }
+                    onPress={() =>
+                      updateWorkoutSet(exIdx, setIdx, {
+                        completed: !set.completed,
+                      })
+                    }
+                    accentColor={theme.accent}
+                    successColor={theme.success}
+                    mutedColor={theme.textMuted}
+                    surfaceColor={theme.surface}
+                    borderColor={theme.borderMuted}
+                  />
+
+                  {ex.sets.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.removeSetBtn}
+                      onPress={() => removeWorkoutSet(exIdx, setIdx)}
+                    >
+                      <Ionicons
+                        name="close"
+                        size={14}
+                        color={theme.error}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={styles.addSetBtn}
+              onPress={() => addWorkoutSet(exIdx)}
+            >
+              <Ionicons name="add" size={14} color={theme.accent} />
+              <Text style={styles.addSetText}>AÑADIR SERIE</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+    );
+  };
+
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
@@ -386,149 +631,55 @@ export default function WorkoutSessionScreen() {
           {/* Header Dashboard */}
           <View style={styles.sessionHeader}>
             <View style={styles.headerTop}>
-              <TouchableOpacity onPress={() => setShowCancelModal(true)}>
-                <Ionicons name="close" size={24} color={theme.textMuted} />
+              <TouchableOpacity
+                onPress={() => router.back()}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="chevron-down" size={24} color={theme.textMuted} />
               </TouchableOpacity>
               <View style={styles.timerBox}>
                 <Ionicons name="time" size={16} color={theme.accent} />
                 <Text style={styles.timerText}>{formatTime(elapsed)}</Text>
               </View>
-              <TouchableOpacity onPress={() => router.back()}>
-                <Ionicons name="chevron-down" size={24} color={theme.textMuted} />
+              <TouchableOpacity
+                onPress={() => setShowCancelModal(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={22} color={theme.error} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.finishBtn} onPress={handleFinish}>
                 <Text style={styles.finishBtnText}>FINALIZAR</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.routineTitle}>{activeWorkout.routineName}</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.routineTitle}>{activeWorkout.routineName}</Text>
+              <TouchableOpacity style={styles.sortBtn} onPress={sortByMuscleGroup}>
+                <Ionicons name="body-outline" size={14} color={theme.accent} />
+                <Text style={styles.sortBtnText}>POR MÚSCULO</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <ScrollView
+          <DraggableFlatList
+            data={activeWorkout.exercises}
+            keyExtractor={(ex, idx) => `${ex.exerciseId}-${idx}`}
             contentContainerStyle={styles.scroll}
             showsVerticalScrollIndicator={false}
-          >
-            {activeWorkout.exercises.map((ex, exIdx) => (
-              <View
-                key={`${ex.exerciseId}-${exIdx}`}
-                style={styles.exerciseBlock}
-              >
-                <View style={styles.exerciseHeader}>
-                  <TouchableOpacity
-                    style={{ flex: 1 }}
-                    onPress={() => showInfo(ex.exerciseId)}
-                  >
-                    <Text style={styles.exerciseName}>{ex.name}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => showInfo(ex.exerciseId)}>
-                    <Ionicons
-                      name="information-circle-outline"
-                      size={18}
-                      color={theme.textMuted}
-                    />
-                  </TouchableOpacity>
+            onDragEnd={({ data }) => reorderWorkoutExercises(data)}
+            renderItem={({
+              item,
+              getIndex,
+              drag,
+              isActive,
+            }: RenderItemParams<WorkoutExercise>) => (
+              <ScaleDecorator>
+                <View style={isActive && styles.exerciseBlockDragging}>
+                  {renderExerciseCard(item, getIndex() ?? 0, drag)}
                 </View>
-
-                {/* Sets List */}
-                <View style={styles.setsTable}>
-                  <View style={styles.tableHeader}>
-                    <Text style={[styles.tableLabel, { width: 40 }]}>SET</Text>
-                    <Text style={[styles.tableLabel, { flex: 1 }]}>
-                      PESO (KG)
-                    </Text>
-                    <Text style={[styles.tableLabel, { flex: 1 }]}>REPS</Text>
-                    <View style={{ width: 40 }} />
-                  </View>
-
-                  {ex.sets.map((set, setIdx) => (
-                    <View
-                      key={setIdx}
-                      style={[
-                        styles.setRow,
-                        set.completed && styles.setRowCompleted,
-                      ]}
-                    >
-                      <Text style={styles.setNumber}>{set.set}</Text>
-
-                      <GlowInputWrap
-                        isEmpty={set.weight === 0}
-                        accentColor="#FBBF24"
-                        style={styles.inputWrap}
-                      >
-                        <TextInput
-                          style={styles.setInput}
-                          keyboardType="numeric"
-                          placeholder="0"
-                          placeholderTextColor={theme.textMuted}
-                          value={set.weight > 0 ? set.weight.toString() : ""}
-                          onChangeText={(val) =>
-                            updateWorkoutSet(exIdx, setIdx, {
-                              weight: parseFloat(val) || 0,
-                            })
-                          }
-                        />
-                      </GlowInputWrap>
-
-                      <View style={styles.inputWrap}>
-                        <TextInput
-                          style={styles.setInput}
-                          keyboardType="numeric"
-                          placeholder="0"
-                          placeholderTextColor={theme.textMuted}
-                          value={set.reps > 0 ? set.reps.toString() : ""}
-                          onChangeText={(val) =>
-                            updateWorkoutSet(exIdx, setIdx, {
-                              reps: parseInt(val) || 0,
-                            })
-                          }
-                        />
-                      </View>
-
-                      <GlowCheckBtn
-                        completed={set.completed}
-                        isActive={
-                          exIdx === activeGlowEx &&
-                          setIdx === activeGlowSet &&
-                          set.weight > 0
-                        }
-                        onPress={() =>
-                          updateWorkoutSet(exIdx, setIdx, {
-                            completed: !set.completed,
-                          })
-                        }
-                        accentColor={theme.accent}
-                        successColor={theme.success}
-                        mutedColor={theme.textMuted}
-                        surfaceColor={theme.surface}
-                        borderColor={theme.borderMuted}
-                      />
-
-                      {ex.sets.length > 1 && (
-                        <TouchableOpacity
-                          style={styles.removeSetBtn}
-                          onPress={() => removeWorkoutSet(exIdx, setIdx)}
-                        >
-                          <Ionicons
-                            name="close"
-                            size={14}
-                            color={theme.error}
-                          />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  ))}
-                </View>
-
-                <TouchableOpacity
-                  style={styles.addSetBtn}
-                  onPress={() => addWorkoutSet(exIdx)}
-                >
-                  <Ionicons name="add" size={14} color={theme.accent} />
-                  <Text style={styles.addSetText}>AÑADIR SERIE</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-            <View style={{ height: 100 }} />
-          </ScrollView>
+              </ScaleDecorator>
+            )}
+            ListFooterComponent={<View style={{ height: 100 }} />}
+          />
 
           {/* Info / Error Modal */}
           <Modal visible={!!infoAlert} transparent animationType="fade">
@@ -762,6 +913,7 @@ export default function WorkoutSessionScreen() {
         </SafeAreaView>
       </View>
     </KeyboardAvoidingView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -826,6 +978,28 @@ const createStyles = (theme: AppTheme) =>
       marginTop: 8,
       textTransform: "uppercase",
     },
+    titleRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    sortBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: theme.accentDim,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    sortBtnText: {
+      fontSize: 10,
+      fontWeight: "800",
+      color: theme.accent,
+      letterSpacing: 0.3,
+    },
     scroll: {
       padding: 20,
     },
@@ -837,17 +1011,62 @@ const createStyles = (theme: AppTheme) =>
       borderWidth: 1,
       borderColor: theme.borderSubtle,
     },
+    exerciseBlockDragging: {
+      opacity: 0.85,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+    },
     exerciseHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: 16,
+      gap: 10,
+    },
+    dragHandle: {
+      paddingHorizontal: 6,
+      paddingVertical: 6,
+      marginRight: 2,
+      borderRadius: 8,
+      backgroundColor: theme.surface,
     },
     exerciseName: {
       fontSize: 16,
       fontWeight: "800",
       color: theme.accent,
       textTransform: "uppercase",
+    },
+    exerciseMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 4,
+    },
+    muscleBadge: {
+      backgroundColor: theme.accentDim,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    muscleBadgeText: {
+      fontSize: 10,
+      fontWeight: "700",
+      color: theme.accent,
+      textTransform: "capitalize",
+    },
+    exercisePr: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: theme.textMuted,
+    },
+    exerciseSummary: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: theme.textMuted,
     },
     setsTable: {
       gap: 4,
@@ -858,7 +1077,7 @@ const createStyles = (theme: AppTheme) =>
       paddingHorizontal: 4,
     },
     tableLabel: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: "800",
       color: theme.textMuted,
       textAlign: "center",
@@ -993,7 +1212,7 @@ const createStyles = (theme: AppTheme) =>
       color: theme.accent,
     },
     summaryLabel: {
-      fontSize: 9,
+      fontSize: 11,
       fontWeight: "800",
       color: theme.textMuted,
       marginTop: 4,

@@ -14,6 +14,13 @@ export interface UserStats {
   updated_at?: string;
 }
 
+export interface WeightLog {
+  id: number;
+  user_id: string;
+  weight: number;
+  logged_at: string;
+}
+
 export interface DietPlan {
   id: number;
   name: string;
@@ -73,6 +80,43 @@ export const NutritionAPI = {
       throw error;
     }
     return data;
+  },
+
+  // Appends one entry to the weight history. Called alongside saveUserStats
+  // whenever the user updates their weight, so the history builds up from
+  // normal use of the stats form instead of needing a separate check-in action.
+  logWeight: async (userId: string, weight: number) => {
+    const { error } = (await withTimeout(
+      supabase.from('weight_logs').insert({ user_id: userId, weight }) as any,
+      10000,
+      "Error registrando peso"
+    )) as any;
+
+    if (error) {
+      console.error('[NutritionAPI] Error logging weight:', error);
+      throw error;
+    }
+  },
+
+  getWeightHistory: async (userId: string, limit = 30): Promise<WeightLog[]> => {
+    try {
+      const { data, error } = (await withTimeout(
+        supabase
+          .from('weight_logs')
+          .select('*')
+          .eq('user_id', userId)
+          .order('logged_at', { ascending: false })
+          .limit(limit) as any,
+        10000,
+        "Error obteniendo historial de peso"
+      )) as any;
+
+      if (error) throw error;
+      return [...(data || [])].reverse();
+    } catch (e) {
+      console.error('[NutritionAPI] getWeightHistory failed:', e);
+      throw e;
+    }
   },
 
   getActiveDiet: async (userId: string): Promise<DietPlan | null> => {

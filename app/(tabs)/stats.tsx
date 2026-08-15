@@ -12,6 +12,8 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -46,9 +48,12 @@ interface ExercisePR {
   name: string;
   muscleGroup: string;
   maxWeight: number;
+  equipment?: string;
+  description?: string;
+  imageUrl?: string;
 }
 
-interface Aggregates {
+export interface Aggregates {
   totalWorkouts: number;
   totalVolume: number;
   avgDurationMin: number;
@@ -58,7 +63,7 @@ interface Aggregates {
   lastWorkoutAt: string | null;
 }
 
-function computeAggregates(logs: any[]): Aggregates {
+export function computeAggregates(logs: any[]): Aggregates {
   const now = new Date();
   const startOfWeek = new Date(now);
   const dow = now.getDay();
@@ -96,38 +101,57 @@ function computeAggregates(logs: any[]): Aggregates {
   };
 }
 
-const WEEKS_SHOWN = 6;
+const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-interface WeekBucket {
+export interface DayBucket {
   label: string;
   count: number;
+  minutes: number;
+  volume: number;
 }
 
-function computeWeeklyCounts(logs: any[]): WeekBucket[] {
-  const now = new Date();
-  const startOfThisWeek = new Date(now);
-  const dow = now.getDay();
-  startOfThisWeek.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
-  startOfThisWeek.setHours(0, 0, 0, 0);
+type ChartMetric = "minutes" | "volume";
 
-  const buckets: WeekBucket[] = Array.from({ length: WEEKS_SHOWN }, (_, i) => {
-    const weekStart = new Date(startOfThisWeek);
-    weekStart.setDate(startOfThisWeek.getDate() - (WEEKS_SHOWN - 1 - i) * 7);
-    return { label: weekStart.toLocaleDateString("es-ES", { day: "numeric", month: "short" }), count: 0 };
-  });
+export function startOfWeek(date: Date): Date {
+  const start = new Date(date);
+  const dow = date.getDay();
+  start.setDate(date.getDate() - (dow === 0 ? 6 : dow - 1));
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
 
-  const oldestBucketStart = new Date(startOfThisWeek);
-  oldestBucketStart.setDate(startOfThisWeek.getDate() - (WEEKS_SHOWN - 1) * 7);
+// weekOffset: 0 = current week, -1 = previous week, etc.
+export function computeDailyCounts(logs: any[], weekOffset: number): DayBucket[] {
+  const weekStart = startOfWeek(new Date());
+  weekStart.setDate(weekStart.getDate() + weekOffset * 7);
 
+  const buckets: DayBucket[] = DAY_LABELS.map((label) => ({ label, count: 0, minutes: 0, volume: 0 }));
+
+  const msPerDay = 24 * 60 * 60 * 1000;
   for (const log of logs) {
     const started = new Date(log.started_at);
-    if (started < oldestBucketStart) continue;
-    const weeksAgo = Math.floor((startOfThisWeek.getTime() - started.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    const idx = WEEKS_SHOWN - 1 - weeksAgo;
-    if (idx >= 0 && idx < WEEKS_SHOWN) buckets[idx].count++;
+    const startedDay = new Date(started.getFullYear(), started.getMonth(), started.getDate());
+    const dayIndex = Math.round((startedDay.getTime() - weekStart.getTime()) / msPerDay);
+    if (dayIndex >= 0 && dayIndex < 7) {
+      buckets[dayIndex].count++;
+      buckets[dayIndex].minutes += Math.round((log.duration_seconds || 0) / 60);
+      buckets[dayIndex].volume += log.total_volume || 0;
+    }
   }
 
   return buckets;
+}
+
+export function weekRangeLabel(weekOffset: number): string {
+  const weekStart = startOfWeek(new Date());
+  weekStart.setDate(weekStart.getDate() + weekOffset * 7);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const startDay = weekStart.toLocaleDateString("es-ES", { day: "numeric" });
+  const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+  const endLabel = weekEnd.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+  return sameMonth ? `${startDay} – ${endLabel}` : `${weekStart.toLocaleDateString("es-ES", { day: "numeric", month: "long" })} – ${endLabel}`;
 }
 
 export default function StatsScreen() {
@@ -148,11 +172,30 @@ export default function StatsScreen() {
     prevWeekVolume: 0,
     lastWorkoutAt: null,
   });
-  const [weeklyCounts, setWeeklyCounts] = useState<WeekBucket[]>([]);
+  const [workoutLogs, setWorkoutLogs] = useState<any[]>([]);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [chartMetric, setChartMetric] = useState<ChartMetric>("minutes");
   const [exercisePRs, setExercisePRs] = useState<ExercisePR[]>([]);
   const [search, setSearch] = useState("");
   const [showAllPRs, setShowAllPRs] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [previewExercise, setPreviewExercise] = useState<ExercisePR | null>(null);
+
+  const dailyCounts = useMemo(() => computeDailyCounts(workoutLogs, weekOffset), [workoutLogs, weekOffset]);
+  const canGoNextWeek = weekOffset < 0;
+  // workoutLogs is capped at RECENT_LIMIT — if we hit that cap, there may be
+  // older sessions we never fetched, so we can't know the true oldest week.
+  // Only use it to bound "back" navigation when we know we have the full history.
+  const hitRecentLimit = workoutLogs.length === RECENT_LIMIT;
+  const oldestLogWeekOffset = useMemo(() => {
+    if (workoutLogs.length === 0) return 0;
+    const oldest = new Date(workoutLogs[workoutLogs.length - 1].started_at);
+    const weeks = Math.floor(
+      (startOfWeek(oldest).getTime() - startOfWeek(new Date()).getTime()) / (7 * 24 * 60 * 60 * 1000),
+    );
+    return weeks;
+  }, [workoutLogs]);
+  const canGoPrevWeek = hitRecentLimit || weekOffset > oldestLogWeekOffset;
 
   const muscleGroups = useMemo(
     () => Array.from(new Set(exercisePRs.map((pr) => pr.muscleGroup).filter(Boolean))),
@@ -168,7 +211,8 @@ export default function StatsScreen() {
     });
   }, [exercisePRs, search, selectedGroup]);
 
-  const visiblePRs = showAllPRs || search ? filteredPRs : filteredPRs.slice(0, PR_PREVIEW_COUNT);
+  const visiblePRs =
+    showAllPRs || search || selectedGroup ? filteredPRs : filteredPRs.slice(0, PR_PREVIEW_COUNT);
 
   const loadData = useCallback(async () => {
     if (!profile?.id) return;
@@ -186,7 +230,8 @@ export default function StatsScreen() {
       setLoadError(results.some((r) => r.status === "rejected"));
 
       setAggregates(computeAggregates(logs));
-      setWeeklyCounts(computeWeeklyCounts(logs));
+      setWorkoutLogs(logs);
+      setWeekOffset(0);
 
       const prs = maxWeights
         .map((row: any) => {
@@ -198,6 +243,9 @@ export default function StatsScreen() {
             name: exerciseName,
             muscleGroup: row.muscle_group,
             maxWeight: row.max_weight,
+            equipment: exercise.equipment,
+            description: exercise.description,
+            imageUrl: exercise.image_url,
           } as ExercisePR;
         })
         .filter((pr): pr is ExercisePR => pr !== null)
@@ -275,7 +323,7 @@ export default function StatsScreen() {
             <StatTile
               icon="barbell-outline"
               value={aggregates.totalWorkouts.toString()}
-              label={`ÚLTIMOS ${RECENT_LIMIT} ENTRENOS`}
+              label={hitRecentLimit ? `ÚLTIMOS ${RECENT_LIMIT} ENTRENOS` : "ENTRENOS TOTALES"}
               theme={theme}
               styles={styles}
             />
@@ -304,16 +352,89 @@ export default function StatsScreen() {
           </View>
 
           {/* ── Weekly frequency chart ── */}
-          {weeklyCounts.some((w) => w.count > 0) && (
+          {workoutLogs.length > 0 && (
             <>
-              <View style={styles.sectionHeader}>
+              <View style={[styles.sectionHeader, styles.sectionHeaderWrap]}>
                 <Text style={styles.sectionTitle}>Entrenamientos por Semana</Text>
+                <View style={styles.metricSegmented}>
+                  <TouchableOpacity
+                    style={[styles.metricSegment, chartMetric === "minutes" && styles.metricSegmentActive]}
+                    onPress={() => setChartMetric("minutes")}
+                  >
+                    <Text
+                      style={[
+                        styles.metricSegmentText,
+                        chartMetric === "minutes" && styles.metricSegmentTextActive,
+                      ]}
+                    >
+                      Tiempo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.metricSegment, chartMetric === "volume" && styles.metricSegmentActive]}
+                    onPress={() => setChartMetric("volume")}
+                  >
+                    <Text
+                      style={[
+                        styles.metricSegmentText,
+                        chartMetric === "volume" && styles.metricSegmentTextActive,
+                      ]}
+                    >
+                      Volumen
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <WeeklyBarChart data={weeklyCounts} theme={theme} styles={styles} />
+              <View style={styles.weekNav}>
+                <TouchableOpacity
+                  onPress={() => canGoPrevWeek && setWeekOffset((w) => w - 1)}
+                  disabled={!canGoPrevWeek}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={20}
+                    color={canGoPrevWeek ? theme.textPrimary : theme.textMuted}
+                  />
+                </TouchableOpacity>
+                <Text style={styles.weekNavLabel}>{weekRangeLabel(weekOffset)}</Text>
+                <TouchableOpacity
+                  onPress={() => canGoNextWeek && setWeekOffset((w) => w + 1)}
+                  disabled={!canGoNextWeek}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={canGoNextWeek ? theme.textPrimary : theme.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+              <WeeklyBarChart
+                data={dailyCounts}
+                metric={chartMetric}
+                todayIndex={weekOffset === 0 ? (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) : -1}
+                theme={theme}
+                styles={styles}
+              />
             </>
           )}
 
           {/* ── PRs by exercise ── */}
+          {exercisePRs.length === 0 && workoutLogs.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Peso Máximo por Ejercicio</Text>
+              </View>
+              <View style={styles.emptyCard}>
+                <Ionicons name="trending-up-outline" size={28} color={theme.textMuted} />
+                <Text style={styles.emptyCardText}>
+                  Registra el peso en tus series para ver aquí tus récords por ejercicio.
+                </Text>
+              </View>
+            </>
+          )}
+
           {exercisePRs.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
@@ -374,6 +495,13 @@ export default function StatsScreen() {
                     activeOpacity={0.85}
                     onPress={() => router.push({ pathname: "/exercise-progress", params: { id: pr.exerciseId } })}
                   >
+                    <TouchableOpacity
+                      onPress={() => setPreviewExercise(pr)}
+                      hitSlop={{ top: 14, bottom: 14, left: 14, right: 4 }}
+                      style={styles.prPreviewBtn}
+                    >
+                      <Ionicons name="eye-outline" size={18} color={theme.accent} />
+                    </TouchableOpacity>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.prName} numberOfLines={1}>{pr.name}</Text>
                       <Text style={styles.prMuscle}>{translateMuscle(pr.muscleGroup)}</Text>
@@ -440,6 +568,71 @@ export default function StatsScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
+
+      <Modal visible={!!previewExercise} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalles</Text>
+              <TouchableOpacity onPress={() => setPreviewExercise(null)} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {previewExercise && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.modalImageContainer}>
+                  {previewExercise.imageUrl ? (
+                    <Image
+                      source={{ uri: previewExercise.imageUrl }}
+                      style={styles.modalImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.modalIconPlaceholder}>
+                      <Ionicons name="barbell" size={60} color={theme.accentDim} />
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.modalInfo}>
+                  <Text style={styles.exerciseTitle}>{previewExercise.name}</Text>
+                  <View style={styles.modalBadges}>
+                    <View style={styles.modalBadge}>
+                      <Text style={styles.modalBadgeText}>
+                        {translateMuscle(previewExercise.muscleGroup)}
+                      </Text>
+                    </View>
+                    {previewExercise.equipment && (
+                      <View style={styles.modalBadge}>
+                        <Text style={styles.modalBadgeText}>{previewExercise.equipment}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={styles.descLabel}>DESCRIPCIÓN</Text>
+                  <Text style={styles.modalDesc}>
+                    {previewExercise.description ||
+                      "No hay una descripción detallada para este ejercicio aún. Consulta a tu entrenador para la técnica correcta."}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.viewProgressBtn}
+                    onPress={() => {
+                      const exerciseId = previewExercise.exerciseId;
+                      setPreviewExercise(null);
+                      router.push({ pathname: "/exercise-progress", params: { id: exerciseId } });
+                    }}
+                  >
+                    <Ionicons name="stats-chart" size={16} color={theme.accent} />
+                    <Text style={styles.viewProgressText}>Ver progresión histórica</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -489,7 +682,7 @@ function StatTile({
   );
 }
 
-function volumeTrend(current: number, previous: number): { direction: "up" | "down"; pct: number } | null {
+export function volumeTrend(current: number, previous: number): { direction: "up" | "down"; pct: number } | null {
   if (!previous) return null;
   const pct = Math.round(((current - previous) / previous) * 100);
   if (pct === 0) return null;
@@ -499,37 +692,54 @@ function volumeTrend(current: number, previous: number): { direction: "up" | "do
 const CHART_HEIGHT = 90;
 const BAR_WIDTH = 24;
 const BAR_GAP = 14;
+const LABEL_MARGIN = 16;
 
-function WeeklyBarChart({ data, theme, styles }: { data: WeekBucket[]; theme: AppTheme; styles: any }) {
-  const maxCount = Math.max(1, ...data.map((w) => w.count));
+function WeeklyBarChart({
+  data,
+  metric,
+  todayIndex,
+  theme,
+  styles,
+}: {
+  data: DayBucket[];
+  metric: ChartMetric;
+  todayIndex: number;
+  theme: AppTheme;
+  styles: any;
+}) {
   const chartWidth = data.length * (BAR_WIDTH + BAR_GAP);
+  const values = data.map((d) => (metric === "minutes" ? d.minutes : d.volume));
+  const maxValue = Math.max(1, ...values);
 
   return (
     <View style={styles.chartCard}>
       <Svg width={chartWidth} height={CHART_HEIGHT + 34} style={{ alignSelf: "center" }}>
-        {data.map((week, i) => {
-          const barHeight = Math.max(4, (week.count / maxCount) * CHART_HEIGHT);
+        {data.map((day, i) => {
+          const value = values[i];
+          const barHeight = value > 0 ? Math.max(6, (value / maxValue) * (CHART_HEIGHT - LABEL_MARGIN)) : 4;
           const x = i * (BAR_WIDTH + BAR_GAP);
-          const isCurrentWeek = i === data.length - 1;
+          const isToday = i === todayIndex;
           return (
             <React.Fragment key={i}>
-              <SvgText
-                x={x + BAR_WIDTH / 2}
-                y={CHART_HEIGHT - barHeight - 6}
-                fontSize={11}
-                fontWeight="800"
-                fill={theme.textPrimary}
-                textAnchor="middle"
-              >
-                {week.count > 0 ? week.count : ""}
-              </SvgText>
+              {value > 0 && (
+                <SvgText
+                  x={x + BAR_WIDTH / 2}
+                  y={CHART_HEIGHT - barHeight - 6}
+                  fontSize={11}
+                  fontWeight="800"
+                  fill={theme.textPrimary}
+                  textAnchor="middle"
+                >
+                  {metric === "minutes" ? `${value}m` : `${value}kg`}
+                </SvgText>
+              )}
               <Rect
                 x={x}
                 y={CHART_HEIGHT - barHeight}
                 width={BAR_WIDTH}
                 height={barHeight}
                 rx={6}
-                fill={isCurrentWeek ? theme.accent : theme.accentDim}
+                fill={isToday ? theme.accent : theme.accentDim}
               />
               <SvgText
                 x={x + BAR_WIDTH / 2}
@@ -539,7 +749,7 @@ function WeeklyBarChart({ data, theme, styles }: { data: WeekBucket[]; theme: Ap
                 fill={theme.textMuted}
                 textAnchor="middle"
               >
-                {week.label}
+                {day.label}
               </SvgText>
             </React.Fragment>
           );
@@ -609,6 +819,21 @@ const createStyles = (theme: AppTheme) =>
       alignItems: "center",
       borderWidth: 1,
       borderColor: theme.borderSubtle,
+    },
+    weekNav: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 16,
+      marginTop: 2,
+    },
+    weekNavLabel: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.textPrimary,
+      textTransform: "capitalize",
+      minWidth: 160,
+      textAlign: "center",
     },
     statTile: {
       width: "47%",
@@ -715,6 +940,14 @@ const createStyles = (theme: AppTheme) =>
       borderWidth: 1,
       borderColor: theme.borderSubtle,
     },
+    prPreviewBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: theme.accentDim,
+      justifyContent: "center",
+      alignItems: "center",
+    },
     prName: { fontSize: 13, fontWeight: "700", color: theme.textPrimary },
     prMuscle: {
       fontSize: 11,
@@ -726,6 +959,43 @@ const createStyles = (theme: AppTheme) =>
 
     // ── Section / action rows ──
     sectionHeader: { marginTop: 4 },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    sectionHeaderWrap: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    metricSegmented: {
+      flexDirection: "row",
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.borderMuted,
+      borderRadius: 20,
+      padding: 3,
+      gap: 2,
+    },
+    metricSegment: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    metricSegmentActive: {
+      backgroundColor: theme.accentDim,
+    },
+    metricSegmentText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: theme.textSecondary,
+    },
+    metricSegmentTextActive: {
+      color: theme.accent,
+    },
     sectionTitle: {
       fontSize: 14,
       fontWeight: "800",
@@ -757,4 +1027,97 @@ const createStyles = (theme: AppTheme) =>
     // ── Empty ──
     empty: { alignItems: "center", paddingTop: 40, gap: 12 },
     emptyText: { color: theme.textMuted, fontSize: 14, textAlign: "center" },
+    emptyCard: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      padding: 24,
+      alignItems: "center",
+      gap: 10,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    emptyCardText: {
+      color: theme.textMuted,
+      fontSize: 13,
+      textAlign: "center",
+      lineHeight: 19,
+    },
+
+    // ── Exercise preview modal ──
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.8)",
+      justifyContent: "flex-end",
+    },
+    modalContent: {
+      backgroundColor: theme.bgBase,
+      height: "80%",
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      padding: 24,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    modalTitle: { fontSize: 20, fontWeight: "800", color: theme.textPrimary },
+    closeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.surface,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modalImageContainer: {
+      width: "100%",
+      height: 250,
+      borderRadius: 20,
+      overflow: "hidden",
+      marginBottom: 20,
+    },
+    modalImage: { width: "100%", height: "100%" },
+    modalIconPlaceholder: {
+      flex: 1,
+      backgroundColor: theme.surface,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modalInfo: { gap: 16 },
+    exerciseTitle: {
+      fontSize: 24,
+      fontWeight: "900",
+      color: theme.textPrimary,
+      textTransform: "uppercase",
+    },
+    modalBadges: { flexDirection: "row", gap: 8 },
+    modalBadge: {
+      backgroundColor: theme.accentDim,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    modalBadgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: theme.accent,
+      textTransform: "capitalize",
+    },
+    descLabel: { fontSize: 11, fontWeight: "800", color: theme.textMuted, letterSpacing: 1 },
+    modalDesc: { fontSize: 15, color: theme.textSecondary, lineHeight: 22 },
+    viewProgressBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 24,
+      paddingVertical: 14,
+      borderRadius: 16,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    viewProgressText: { fontSize: 14, fontWeight: "800", color: theme.accent },
   });

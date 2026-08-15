@@ -88,6 +88,7 @@ interface AppState {
   updateWorkoutSet: (exerciseIndex: number, setIndex: number, data: Partial<{ reps: number, weight: number, completed: boolean }>) => void;
   addWorkoutSet: (exerciseIndex: number) => void;
   removeWorkoutSet: (exerciseIndex: number, setIndex: number) => void;
+  reorderWorkoutExercises: (exercises: ActiveWorkout['exercises']) => void;
   clearAll: () => void;
 }
 
@@ -170,7 +171,12 @@ export const useAppStore = create<AppState>()(
           return { activeWorkout: newWorkout };
       }),
 
-      clearAll: () => set({ 
+      reorderWorkoutExercises: (exercises) => set((state) => {
+          if (!state.activeWorkout) return state;
+          return { activeWorkout: { ...state.activeWorkout, exercises } };
+      }),
+
+      clearAll: () => set({
         profile: null, 
         activeDiet: null, 
         userStats: null, 

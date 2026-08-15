@@ -53,7 +53,6 @@ export default function ExerciseProgressScreen() {
       if (ex) setExercise(ex);
 
       const data = await WorkoutsAPI.getExerciseProgress(userId, Number(id));
-      console.log("data", data);
       setHistory(data);
     } catch (e) {
       console.error("[ExerciseProgress] Loading failed:", e);
@@ -94,7 +93,7 @@ export default function ExerciseProgressScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={theme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
       <LinearGradient
         colors={theme.gradients.bg}
         style={StyleSheet.absoluteFill}
