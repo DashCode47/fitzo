@@ -67,7 +67,8 @@ export const AttendanceAPI = {
       .gte('date', toDateStr(ninetyDaysAgo))
       .order('date', { ascending: false });
 
-    if (error || !data) return { streak: 0, weekDays: 0, todayCount: 0 };
+    if (error) throw error;
+    if (!data) return { streak: 0, weekDays: 0, todayCount: 0 };
 
     const today = localToday();
     const todayCount = data.filter(r => r.date === today).length;

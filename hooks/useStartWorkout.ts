@@ -8,8 +8,13 @@ function buildActiveWorkout(routine: Routine) {
     routineId: routine.id,
     routineName: routine.name,
     startTime: new Date().toISOString(),
+    // Group by muscle by default; stable sort keeps the routine's order within each group.
     exercises:
-      routine.exercises?.map((re) => ({
+      [...(routine.exercises ?? [])]
+        .sort((a, b) =>
+          (a.exercise?.muscle_group || "").localeCompare(b.exercise?.muscle_group || ""),
+        )
+        .map((re) => ({
         exerciseId: re.exercise_id,
         name: re.exercise?.name || "Ejercicio",
         sets: Array.from({ length: re.sets }).map((_, i) => ({

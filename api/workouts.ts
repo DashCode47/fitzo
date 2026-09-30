@@ -127,11 +127,17 @@ export const WorkoutsAPI = {
     userId: string,
     exerciseId: number,
     limit = 50,
-  ): Promise<any[]> => {
+  ): Promise<{ items: any[]; truncated: boolean }> => {
     try {
       // Fetch historical performance for a specific exercise to build PR graphs.
       // Ordered newest-first so `.limit()` keeps the most recent sessions, then
       // reversed back to ascending for the chart, which reads left-to-right in time.
+      // Uses started_at (not created_at) so the date shown here always matches
+      // the date shown in the workout history list for the same session — see
+      // workout_logs schema: started_at is when the user began the workout,
+      // created_at is when the row was inserted, which can drift on slow/retried saves.
+      // Requests one extra row over `limit` purely to detect truncation (older
+      // sessions exist beyond what's shown) without a separate count query.
       const { data, error } = (await withTimeout(
         supabase
           .from("workout_exercises")
@@ -141,7 +147,7 @@ export const WorkoutsAPI = {
             workout_log_id,
             sets_completed,
             workout_log:workout_logs!inner (
-              created_at,
+              started_at,
               user_id
             )
           `,
@@ -149,29 +155,37 @@ export const WorkoutsAPI = {
           .eq("exercise_id", exerciseId)
           .eq("workout_log.user_id", userId)
           .order("workout_log_id", { ascending: false })
-          .limit(limit) as any,
+          .limit(limit + 1) as any,
       )) as any;
 
       if (error) throw error;
 
-      // Extract max weight or volume per session
-      return (
-        [...data].reverse().map((log: any) => {
-          const sets = log.sets_completed || [];
-          const weights = sets.map((s: any) => s.weight || 0);
-          const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
-          const totalVol = sets.reduce(
-            (acc: number, s: any) => acc + (s.weight || 0) * (s.reps || 0),
-            0,
-          );
+      const rows: any[] = data || [];
+      const truncated = rows.length > limit;
+      const page = truncated ? rows.slice(0, limit) : rows;
 
-          return {
-            date: log.workout_log?.created_at,
-            maxWeight,
-            totalVol,
-          };
-        }) || []
-      );
+      // Extract max weight or volume per session. hasData distinguishes a
+      // session with no logged sets for this exercise from a real 0kg set,
+      // so the UI can tell "no data" apart from "recorded as zero".
+      const items = [...page].reverse().map((log: any) => {
+        const sets = log.sets_completed || [];
+        const weights = sets.map((s: any) => s.weight || 0);
+        const hasData = weights.length > 0;
+        const maxWeight = hasData ? Math.max(...weights) : 0;
+        const totalVol = sets.reduce(
+          (acc: number, s: any) => acc + (s.weight || 0) * (s.reps || 0),
+          0,
+        );
+
+        return {
+          date: log.workout_log?.started_at,
+          maxWeight,
+          totalVol,
+          hasData,
+        };
+      });
+
+      return { items, truncated };
     } catch (e) {
       console.error("[WorkoutsAPI] getExerciseProgress failed:", e);
       throw e;
@@ -195,10 +209,18 @@ export const WorkoutsAPI = {
           ...ex,
           workout_log_id: logData.id,
         }));
-        const { error: exError } = (await withTimeout(
-          supabase.from("workout_exercises").insert(exerciseData) as any,
-        )) as any;
-        if (exError) throw exError;
+        try {
+          const { error: exError } = (await withTimeout(
+            supabase.from("workout_exercises").insert(exerciseData) as any,
+          )) as any;
+          if (exError) throw exError;
+        } catch (exError) {
+          // Roll back the parent log so a network blip here doesn't leave a
+          // "ghost" session with volume but no exercises (invisible to
+          // getExerciseProgress, empty in getWorkoutDetails).
+          await supabase.from("workout_logs").delete().eq("id", logData.id);
+          throw exError;
+        }
 
         // PR sync failure shouldn't fail the whole save — the workout is already recorded.
         try {

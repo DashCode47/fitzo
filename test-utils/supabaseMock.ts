@@ -10,7 +10,7 @@ export interface MockQueryResult {
   reject?: any; // if set, the query rejects with this instead of resolving
 }
 
-const CHAIN_METHODS = ["select", "eq", "order", "range", "in", "update", "insert", "upsert", "delete"];
+const CHAIN_METHODS = ["select", "eq", "order", "range", "in", "update", "insert", "upsert", "delete", "limit"];
 
 function makeChainableBuilder(config: MockQueryResult) {
   const settle = () =>

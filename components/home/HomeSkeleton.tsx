@@ -1,65 +1,13 @@
+import { Bone } from "@/components/ui/Bone";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef } from "react";
-import { Animated, Dimensions, StyleSheet, View } from "react-native";
+import React from "react";
+import { Dimensions, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 const CARD_W = width - 48;
-
-// ─── Shimmer bone ─────────────────────────────────────────────────────────────
-function Bone({
-  w,
-  h,
-  radius = 8,
-  style,
-}: {
-  w: number | string;
-  h: number;
-  radius?: number;
-  style?: any;
-}) {
-  const theme = useAppTheme();
-  const shimmer = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmer, {
-          toValue: 0,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, [shimmer]);
-
-  const opacity = shimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.35, 0.7],
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width: w as any,
-          height: h,
-          borderRadius: radius,
-          backgroundColor: theme.surface,
-          opacity,
-        },
-        style,
-      ]}
-    />
-  );
-}
 
 // ─── HomeSkeleton ─────────────────────────────────────────────────────────────
 export function HomeSkeleton() {

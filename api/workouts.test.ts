@@ -53,6 +53,113 @@ describe("updateSet", () => {
   });
 });
 
+describe("getWorkoutLogs", () => {
+  it("orders by started_at so it matches the date shown per session", async () => {
+    const builders = queueSupabaseFromResponses(mockSupabase, [
+      { data: [{ id: 1, started_at: "2026-09-04T23:50:00.000Z" }] },
+    ]);
+
+    const result = await WorkoutsAPI.getWorkoutLogs("user-1", 10, 0);
+
+    expect(builders[0].order).toHaveBeenCalledWith("started_at", { ascending: false });
+    expect(result).toEqual([{ id: 1, started_at: "2026-09-04T23:50:00.000Z" }]);
+  });
+
+  it("propagates the error instead of silently returning an empty list", async () => {
+    queueSupabaseFromResponses(mockSupabase, [{ reject: new Error("network down") }]);
+
+    await expect(WorkoutsAPI.getWorkoutLogs("user-1", 10, 0)).rejects.toThrow(/network down/);
+  });
+});
+
+describe("getWorkoutDetails", () => {
+  it("propagates the error instead of returning an empty list", async () => {
+    queueSupabaseFromResponses(mockSupabase, [{ reject: new Error("network down") }]);
+
+    await expect(WorkoutsAPI.getWorkoutDetails(55)).rejects.toThrow(/network down/);
+  });
+});
+
+describe("getExerciseProgress", () => {
+  it("uses workout_logs.started_at, not created_at, so dates match the history list", async () => {
+    const builders = queueSupabaseFromResponses(mockSupabase, [
+      {
+        data: [
+          {
+            id: 1,
+            workout_log_id: 10,
+            sets_completed: [{ set: 1, reps: 5, weight: 100 }],
+            workout_log: { started_at: "2026-09-04T23:50:00.000Z" },
+          },
+        ],
+      },
+    ]);
+
+    const result = await WorkoutsAPI.getExerciseProgress("user-1", 5);
+
+    expect(builders[0].select).toHaveBeenCalledWith(
+      expect.stringContaining("started_at"),
+    );
+    expect(builders[0].select).not.toHaveBeenCalledWith(
+      expect.stringContaining("created_at"),
+    );
+    expect(result).toEqual({
+      items: [
+        { date: "2026-09-04T23:50:00.000Z", maxWeight: 100, totalVol: 500, hasData: true },
+      ],
+      truncated: false,
+    });
+  });
+
+  it("flags sessions with no logged sets via hasData instead of a bare 0", async () => {
+    queueSupabaseFromResponses(mockSupabase, [
+      {
+        data: [
+          {
+            id: 1,
+            workout_log_id: 10,
+            sets_completed: [],
+            workout_log: { started_at: "2026-09-04T10:00:00.000Z" },
+          },
+        ],
+      },
+    ]);
+
+    const result = await WorkoutsAPI.getExerciseProgress("user-1", 5);
+
+    expect(result).toEqual({
+      items: [
+        { date: "2026-09-04T10:00:00.000Z", maxWeight: 0, totalVol: 0, hasData: false },
+      ],
+      truncated: false,
+    });
+  });
+
+  it("requests one row beyond the limit to detect truncation, and trims it off the result", async () => {
+    const builders = queueSupabaseFromResponses(mockSupabase, [
+      {
+        data: [
+          { id: 2, workout_log_id: 11, sets_completed: [{ set: 1, reps: 5, weight: 90 }], workout_log: { started_at: "2026-09-05T00:00:00.000Z" } },
+          { id: 1, workout_log_id: 10, sets_completed: [{ set: 1, reps: 5, weight: 80 }], workout_log: { started_at: "2026-09-04T00:00:00.000Z" } },
+        ],
+      },
+    ]);
+
+    const result = await WorkoutsAPI.getExerciseProgress("user-1", 5, 1);
+
+    expect(builders[0].limit).toHaveBeenCalledWith(2);
+    expect(result.truncated).toBe(true);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].date).toBe("2026-09-05T00:00:00.000Z");
+  });
+
+  it("propagates the error instead of silently returning an empty list", async () => {
+    queueSupabaseFromResponses(mockSupabase, [{ reject: new Error("network down") }]);
+
+    await expect(WorkoutsAPI.getExerciseProgress("user-1", 5)).rejects.toThrow(/network down/);
+  });
+});
+
 describe("saveWorkoutSession", () => {
   const log = { user_id: "user-3", routine_id: 1, started_at: "2026-08-08T00:00:00.000Z" };
   const exercises = [
@@ -103,5 +210,18 @@ describe("saveWorkoutSession", () => {
     ]);
 
     await expect(WorkoutsAPI.saveWorkoutSession(log, exercises)).resolves.toEqual(savedLog);
+  });
+
+  it("rolls back the parent workout_log if saving its exercises fails, instead of leaving a ghost session", async () => {
+    const builders = queueSupabaseFromResponses(mockSupabase, [
+      { data: savedLog }, // 1. insert workout_logs
+      { reject: new Error("network down") }, // 2. insert workout_exercises fails
+      { data: null }, // 3. delete workout_logs (rollback)
+    ]);
+
+    await expect(WorkoutsAPI.saveWorkoutSession(log, exercises)).rejects.toThrow(/network down/);
+
+    expect(builders[2].delete).toHaveBeenCalled();
+    expect(builders[2].eq).toHaveBeenCalledWith("id", savedLog.id);
   });
 });

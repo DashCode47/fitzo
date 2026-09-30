@@ -1,6 +1,7 @@
 import { WorkoutsAPI } from "@/api/workouts";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { DumbbellLoader } from "@/components/ui/DumbbellLoader";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,6 +40,7 @@ export default function WorkoutsHistoryScreen() {
   const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
   const [workoutExercises, setWorkoutExercises] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
 
   // Set editor state
@@ -96,15 +98,22 @@ export default function WorkoutsHistoryScreen() {
   const handleWorkoutPress = async (log: any) => {
     setSelectedWorkout(log);
     setDetailsModalVisible(true);
+    setWorkoutExercises([]);
+    setDetailsError(false);
     setLoadingDetails(true);
     try {
       const data = await WorkoutsAPI.getWorkoutDetails(log.id);
       setWorkoutExercises(data);
     } catch (e) {
       console.error("[HistoryScreen] Error loading details:", e);
+      setDetailsError(true);
     } finally {
       setLoadingDetails(false);
     }
+  };
+
+  const retryWorkoutDetails = () => {
+    if (selectedWorkout) handleWorkoutPress(selectedWorkout);
   };
 
   const handleExercisePress = (exerciseId: number) => {
@@ -342,7 +351,25 @@ export default function WorkoutsHistoryScreen() {
 
             {loadingDetails ? (
               <View style={styles.detailsLoading}>
-                <ActivityIndicator color={theme.accent} size="large" />
+                <DumbbellLoader />
+              </View>
+            ) : detailsError ? (
+              <View style={styles.empty}>
+                <Ionicons
+                  name="cloud-offline-outline"
+                  size={48}
+                  color={theme.textMuted}
+                />
+                <Text style={styles.emptyText}>
+                  No pudimos cargar el detalle de esta sesión.
+                </Text>
+                <TouchableOpacity
+                  style={styles.retryBtn}
+                  onPress={retryWorkoutDetails}
+                >
+                  <Ionicons name="refresh" size={14} color={theme.accent} />
+                  <Text style={styles.retryBtnText}>Reintentar</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false}>

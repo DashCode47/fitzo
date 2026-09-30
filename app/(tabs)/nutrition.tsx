@@ -3,6 +3,7 @@ import { WorkoutsAPI } from "@/api/workouts";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { Bone } from "@/components/ui/Bone";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/store/useAppStore";
 import { withTimeout } from "@/utils/async";
@@ -85,7 +86,11 @@ export function suggestActivityLevel(
   }).length;
 
   const weeklyAvg = countInWindow / weeks;
-  const [min, max] = ACTIVITY_WEEKLY_RANGE[declaredLevel];
+  // activity_level is free text in the DB: an unknown/null value must not
+  // throw here and take down the whole screen load.
+  const range = ACTIVITY_WEEKLY_RANGE[declaredLevel];
+  if (!range) return null;
+  const [min, max] = range;
   if (weeklyAvg >= min && weeklyAvg <= max) return null;
 
   const suggested = (Object.entries(ACTIVITY_WEEKLY_RANGE) as [Activity, [number, number]][])
@@ -708,6 +713,56 @@ const createStyles = (theme: AppTheme) =>
       color: theme.textMuted,
       fontWeight: "600",
     },
+    weightLogList: {
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+      marginTop: 10,
+      marginBottom: 12,
+      overflow: "hidden",
+    },
+    weightLogRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+    weightLogDate: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      fontWeight: "600",
+      textTransform: "capitalize",
+    },
+    weightLogRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    weightLogWeight: {
+      fontSize: 14,
+      color: theme.textPrimary,
+      fontWeight: "800",
+    },
+    weightLogDeltaText: {
+      fontSize: 11,
+      fontWeight: "700",
+    },
+    weightLogToggle: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      paddingVertical: 10,
+    },
+    weightLogToggleText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: theme.accent,
+    },
   });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -766,11 +821,18 @@ export default function NutritionScreen() {
         return;
       }
 
+      // Each .catch() here falls back to a benign default deliberately: this
+      // screen's data (diet/weight) matters far more than the activity-level
+      // suggestion below, so one failing fetch (e.g. a network blip on
+      // workout logs) must not blank out the rest of the nutrition screen.
       const [newStats, newDiet, newWeightHistory, recentWorkouts] = await Promise.all([
         NutritionAPI.getUserStats(userId).catch(() => stats),
         NutritionAPI.getActiveDiet(userId).catch(() => diet),
         NutritionAPI.getWeightHistory(userId).catch(() => []),
-        WorkoutsAPI.getWorkoutLogs(userId, 30, 0).catch(() => []),
+        WorkoutsAPI.getWorkoutLogs(userId, 30, 0).catch((e) => {
+          console.error("[Nutrition] Failed to load recent workouts:", e);
+          return [];
+        }),
       ]);
       setWeightHistory(newWeightHistory);
       if (newStats) {
@@ -959,7 +1021,23 @@ export default function NutritionScreen() {
           colors={theme.gradients.bg}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color={theme.accent} />
+        <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+          <View style={styles.scroll}>
+            <View style={styles.dashHeader}>
+              <View style={{ gap: 6 }}>
+                <Bone w={110} h={26} radius={6} />
+                <Bone w={180} h={12} radius={4} />
+              </View>
+              <Bone w={84} h={30} radius={20} />
+            </View>
+            <Bone w="100%" h={160} radius={20} style={{ marginBottom: 12 }} />
+            <Bone w={150} h={16} radius={5} style={{ marginTop: 4, marginBottom: 10 }} />
+            <Bone w="100%" h={180} radius={18} style={{ marginBottom: 12 }} />
+            <Bone w={140} h={16} radius={5} style={{ marginTop: 4, marginBottom: 10 }} />
+            <Bone w="100%" h={90} radius={18} style={{ marginBottom: 12 }} />
+            <Bone w="100%" h={120} radius={18} />
+          </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -1320,8 +1398,8 @@ function Dashboard({
           <Ionicons name="pulse-outline" size={20} color={theme.accent} />
           <View style={{ flex: 1 }}>
             <Text style={styles.warningText}>
-              Tu ritmo de entrenamiento reciente sugiere un nivel de actividad "
-              {ACTIVITY_LABELS[activitySuggestion as Activity]}", distinto al que tienes
+              Tu ritmo de entrenamiento reciente sugiere un nivel de actividad “
+              {ACTIVITY_LABELS[activitySuggestion as Activity]}”, distinto al que tienes
               configurado. Actualízalo para un cálculo de calorías más preciso.
             </Text>
             <View style={styles.suggestionActions}>
@@ -1330,7 +1408,7 @@ function Dashboard({
               </TouchableOpacity>
               <TouchableOpacity onPress={onApplyActivitySuggestion}>
                 <Text style={styles.suggestionApplyText}>
-                  Usar "{ACTIVITY_LABELS[activitySuggestion as Activity]}"
+                  Usar “{ACTIVITY_LABELS[activitySuggestion as Activity]}”
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1347,7 +1425,23 @@ function Dashboard({
         </TouchableOpacity>
       </View>
       {weightHistory.length > 1 ? (
-        <WeightChart history={weightHistory} theme={theme} styles={styles} />
+        <>
+          <WeightChart history={weightHistory} theme={theme} styles={styles} />
+          <WeightLogList history={weightHistory} theme={theme} styles={styles} />
+        </>
+      ) : weightHistory.length === 1 ? (
+        <View style={styles.weightLogList}>
+          <View style={[styles.weightLogRow, { borderBottomWidth: 0 }]}>
+            <Text style={styles.weightLogDate}>
+              {new Date(weightHistory[0].logged_at).toLocaleDateString("es-ES", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </Text>
+            <Text style={styles.weightLogWeight}>{weightHistory[0].weight} kg</Text>
+          </View>
+        </View>
       ) : (
         <View style={styles.weightEmptyCard}>
           <Text style={styles.emptyText}>
@@ -1580,6 +1674,79 @@ function WeightChart({
           {new Date(last.logged_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
         </Text>
       </View>
+    </View>
+  );
+}
+
+const WEIGHT_LOG_COLLAPSED_COUNT = 5;
+
+// Shows the exact number behind each point on the chart above — the chart
+// alone only communicates the trend and the single latest value.
+function WeightLogList({
+  history,
+  theme,
+  styles,
+}: {
+  history: WeightLog[];
+  theme: AppTheme;
+  styles: any;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const descending = [...history].reverse();
+  const visible = expanded ? descending : descending.slice(0, WEIGHT_LOG_COLLAPSED_COUNT);
+
+  return (
+    <View style={styles.weightLogList}>
+      {visible.map((log, idx) => {
+        const olderLog = descending[idx + 1];
+        const delta = olderLog ? Math.round((log.weight - olderLog.weight) * 10) / 10 : 0;
+        return (
+          <View
+            key={log.id}
+            style={[
+              styles.weightLogRow,
+              idx === visible.length - 1 && { borderBottomWidth: 0 },
+            ]}
+          >
+            <Text style={styles.weightLogDate}>
+              {new Date(log.logged_at).toLocaleDateString("es-ES", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </Text>
+            <View style={styles.weightLogRight}>
+              {delta !== 0 && (
+                <Text
+                  style={[
+                    styles.weightLogDeltaText,
+                    { color: delta < 0 ? theme.success : theme.warning },
+                  ]}
+                >
+                  {delta > 0 ? "+" : ""}
+                  {delta} kg
+                </Text>
+              )}
+              <Text style={styles.weightLogWeight}>{log.weight} kg</Text>
+            </View>
+          </View>
+        );
+      })}
+      {descending.length > WEIGHT_LOG_COLLAPSED_COUNT && (
+        <TouchableOpacity
+          style={styles.weightLogToggle}
+          onPress={() => setExpanded((prev) => !prev)}
+        >
+          <Text style={styles.weightLogToggleText}>
+            {expanded ? "Ver menos" : `Ver los ${descending.length} registros`}
+          </Text>
+          <Ionicons
+            name={expanded ? "chevron-up" : "chevron-down"}
+            size={14}
+            color={theme.accent}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

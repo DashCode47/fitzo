@@ -3,6 +3,7 @@ import { UserAPI } from '@/api/user';
 import { CustomModal } from '@/components/ui/CustomModal';
 import { theme } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { DumbbellLoader } from '@/components/ui/DumbbellLoader';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Scanner() {
@@ -67,7 +68,7 @@ export default function Scanner() {
     return (
       <View style={styles.permissionRoot}>
         <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color={theme.accent} />
+        <DumbbellLoader />
       </View>
     );
   }
@@ -129,7 +130,7 @@ export default function Scanner() {
         <View style={styles.frameArea}>
           {loading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color={theme.accent} />
+              <DumbbellLoader />
               <Text style={styles.loadingText}>Procesando...</Text>
             </View>
           ) : (

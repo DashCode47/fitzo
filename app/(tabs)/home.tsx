@@ -9,6 +9,7 @@ import { UserAPI } from "@/api/user";
 import { PromoCarousel } from "@/components/home/HeaderComponents";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeSkeleton } from "@/components/home/HomeSkeleton";
+import { TodayWorkoutCard } from "@/components/home/TodayWorkoutCard";
 import {
   EventsTimeline,
   NutritionCard,
@@ -31,6 +32,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -97,6 +99,8 @@ export default function HomeScreen() {
     isHydrated,
     lastStreak,
     setLastStreak,
+    streakData,
+    setStreakData,
   } = useAppStore();
   const { startWorkout, replaceModalProps } = useStartWorkout();
 
@@ -105,12 +109,13 @@ export default function HomeScreen() {
   const [loadError, setLoadError] = useState(false);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
   // const { count: gymCount, maxCapacity } = useGymOccupancy();
-  const [streakData, setStreakData] = useState<StreakData>({
-    streak: 0,
-    weekDays: 0,
-    todayCount: 0,
-  });
+  // streakData itself lives in the persisted store (see useAppStore) so the
+  // last known streak/check-in state shows immediately on mount instead of
+  // resetting to 0 every time this screen is revisited.
+  const streak: StreakData = streakData ?? { streak: 0, weekDays: 0, todayCount: 0 };
+  const [streakLoading, setStreakLoading] = useState(!streakData);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [startingWorkout, setStartingWorkout] = useState(false);
   const [showStreakLost, setShowStreakLost] = useState(false);
 
   const [data, setData] = useState<any>({
@@ -185,21 +190,33 @@ export default function HomeScreen() {
           .catch(() => {});
       }
 
-      // SYNC RANK TO DB (Optimization: only if we have weights)
+      // Streak + rank sync. getStreakData is awaited on its own path (not
+      // masked behind a shared .catch) so a rank-sync failure can't also
+      // blank out the check-in card, and so streakLoading turns off exactly
+      // when the streak itself resolves — regardless of how long the rank
+      // sync below takes. On failure the store keeps whatever streak was
+      // last loaded instead of resetting to 0 — getStreakData throws now
+      // instead of masking network errors as an empty streak.
       if (session.user.id) {
-        Promise.all([
-          RanksAPI.getUserMaxWeights(session.user.id),
-          AttendanceAPI.getStreakData(session.user.id),
-        ])
-          .then(async ([weights, streakInfo]) => {
-            // Detect streak loss
+        const streakPromise = AttendanceAPI.getStreakData(session.user.id)
+          .then((streakInfo) => {
             if (streakInfo.streak === 0 && lastStreak > 0) {
               setShowStreakLost(true);
             }
             setLastStreak(streakInfo.streak);
             setStreakData(streakInfo);
+            return streakInfo;
+          })
+          .catch((e) => {
+            console.error("[HomeScreen] Failed to load streak:", e);
+            return null;
+          })
+          .finally(() => setStreakLoading(false));
 
-            if (weights.length) {
+        // SYNC RANK TO DB (Optimization: only if we have weights)
+        Promise.all([RanksAPI.getUserMaxWeights(session.user.id), streakPromise])
+          .then(async ([weights, streakInfo]) => {
+            if (weights.length && streakInfo) {
               const { data: stats } = await supabase
                 .from("user_stats")
                 .select("weight, gender")
@@ -221,6 +238,8 @@ export default function HomeScreen() {
             }
           })
           .catch(() => {});
+      } else {
+        setStreakLoading(false);
       }
     } catch (e) {
       console.error("[HomeScreen] Refresh failed:", e);
@@ -232,7 +251,7 @@ export default function HomeScreen() {
   };
 
   const handleCheckIn = async () => {
-    if (checkingIn || streakData.todayCount >= 1) return;
+    if (checkingIn || streakLoading || streak.todayCount >= 1) return;
     setCheckingIn(true);
     try {
       const {
@@ -280,7 +299,7 @@ export default function HomeScreen() {
     if (!todayRoutine || !profile) return;
 
     try {
-      setLoading(true);
+      setStartingWorkout(true);
       const routine = await RoutinesAPI.getRoutineDetail(todayRoutine.id);
       if (!routine) return;
       startWorkout(routine);
@@ -288,13 +307,15 @@ export default function HomeScreen() {
       console.error("[HomeScreen] Failed to start workout:", e);
       setErrorAlert("No pudimos cargar tu rutina de hoy. Revisa tu conexión e intenta de nuevo.");
     } finally {
-      setLoading(false);
+      setStartingWorkout(false);
     }
   };
 
   if (loading) {
     return <HomeSkeleton />;
   }
+
+  const todayRoutine = getRoutineForDay(new Date().getDay());
 
   return (
     <View style={styles.root}>
@@ -328,7 +349,7 @@ export default function HomeScreen() {
           {/* ── Header ── */}
           <HomeHeader
             profile={profile}
-            streakData={streakData}
+            streakData={streak}
             onScannerPress={goToScanner}
             onProfilePress={goToProfile}
           />
@@ -353,21 +374,25 @@ export default function HomeScreen() {
                 color={theme.accent}
               />
               <Text style={styles.attendanceInfoText}>
-                {streakData.weekDays >= 4
-                  ? "¡Racha asegurada esta semana!"
-                  : `${streakData.weekDays}/4 días esta semana`}
+                {streakLoading
+                  ? "Cargando racha..."
+                  : streak.weekDays >= 4
+                    ? "¡Racha asegurada esta semana!"
+                    : `${streak.weekDays}/4 días esta semana`}
               </Text>
             </View>
             <TouchableOpacity
               style={[
                 styles.checkInBtn,
-                streakData.todayCount >= 1 && styles.checkInBtnDone,
+                streak.todayCount >= 1 && styles.checkInBtnDone,
               ]}
               onPress={handleCheckIn}
-              disabled={streakData.todayCount >= 1 || checkingIn}
+              disabled={streakLoading || streak.todayCount >= 1 || checkingIn}
               activeOpacity={0.8}
             >
-              {streakData.todayCount >= 1 ? (
+              {streakLoading ? (
+                <ActivityIndicator size="small" color={theme.textMuted} />
+              ) : streak.todayCount >= 1 ? (
                 <>
                   <Ionicons
                     name="checkmark-circle"
@@ -391,6 +416,17 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* ── Today's Workout (hero) ── */}
+          {todayRoutine && (
+            <View style={{ marginHorizontal: 20, marginTop: 8 }}>
+              <TodayWorkoutCard
+                routine={todayRoutine}
+                loading={startingWorkout}
+                onPress={handleStartTodayWorkout}
+              />
+            </View>
+          )}
+
           {/* ── Crowd Meter ── */}
           {/* <CrowdMeter count={gymCount} maxCapacity={maxCapacity} /> */}
 
@@ -401,39 +437,6 @@ export default function HomeScreen() {
           <View style={styles.carouselWrap}>
             <PromoCarousel data={data.promos} onPressItem={handleBannerPress} />
           </View>
-
-          {/* ── Today's Workout CTA ── */}
-          {getRoutineForDay(new Date().getDay()) && (
-            <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-              <TouchableOpacity
-                style={styles.ctaCard}
-                onPress={handleStartTodayWorkout}
-              >
-                <LinearGradient
-                  colors={[
-                    "rgba(155, 147, 255, 0.1)",
-                    "rgba(108, 99, 255, 0.05)",
-                  ]}
-                  style={styles.ctaGradient}
-                >
-                  <View style={styles.ctaIcon}>
-                    <Ionicons name="play" size={20} color={theme.accent} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.ctaTitle}>Entrenamiento de hoy</Text>
-                    <Text style={styles.ctaSubtitle}>
-                      {getRoutineForDay(new Date().getDay())?.name}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={theme.textMuted}
-                  />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* ── Upcoming Events ── */}
           {data.events?.length > 0 && (
@@ -645,35 +648,5 @@ const createStyles = (theme: AppTheme) =>
     // ── Carousel wrapper ─────────────────────────────────────────────────────────
     carouselWrap: {
       marginTop: 16,
-    },
-    ctaCard: {
-      borderRadius: 18,
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: theme.accentBorder,
-    },
-    ctaGradient: {
-      flexDirection: "row",
-      alignItems: "center",
-      padding: 16,
-      gap: 12,
-    },
-    ctaIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.accentDim,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    ctaTitle: {
-      fontSize: 15,
-      fontWeight: "700",
-      color: theme.textPrimary,
-    },
-    ctaSubtitle: {
-      fontSize: 12,
-      color: theme.accent,
-      marginTop: 1,
     },
   });

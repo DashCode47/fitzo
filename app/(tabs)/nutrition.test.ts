@@ -33,6 +33,12 @@ describe("suggestActivityLevel", () => {
     expect(suggestActivityLevel([], "sedentary")).toBeNull();
   });
 
+  it("returns null instead of throwing for an unknown declared level", () => {
+    const logs = [0, 2].map((d) => log(dayInWindow(d)));
+    expect(suggestActivityLevel(logs, null as any)).toBeNull();
+    expect(suggestActivityLevel(logs, "light" as any)).toBeNull();
+  });
+
   it("returns null when the observed weekly average matches the declared level", () => {
     // "moderate" expects 1-4/week; 6 logs spread evenly across the 14-day window = 3/week.
     const logs = [0, 2, 4, 7, 9, 11].map((d) => log(dayInWindow(d)));

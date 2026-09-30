@@ -13,11 +13,15 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAppStore } from "@/store/useAppStore";
 
 import { NotificationService } from "@/services/notifications";
+import { useTrainingReminders } from "@/services/trainingReminders";
+import { useWorkoutAutoFinish } from "@/services/workoutAutoFinish";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const segments = useSegments();
   const { profile } = useAppStore();
+  useWorkoutAutoFinish();
+  useTrainingReminders();
 
   useEffect(() => {
     if (profile?.id) {

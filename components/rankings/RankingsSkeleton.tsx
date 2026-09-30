@@ -1,7 +1,8 @@
+import { Bone } from "@/components/ui/Bone";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const createStyles = (theme: AppTheme) =>
@@ -29,62 +30,8 @@ const createStyles = (theme: AppTheme) =>
     },
   });
 
-// ─── Shimmer bone ─────────────────────────────────────────────────────────────
-function Bone({
-  w,
-  h,
-  radius = 8,
-  style,
-  theme,
-}: {
-  w: number | string;
-  h: number;
-  radius?: number;
-  style?: any;
-  theme: AppTheme;
-}) {
-  const shimmer = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmer, {
-          toValue: 0,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, [shimmer]);
-
-  const opacity = shimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.35, 0.7],
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width: w as any,
-          height: h,
-          borderRadius: radius,
-          backgroundColor: theme.surface,
-          opacity,
-        },
-        style,
-      ]}
-    />
-  );
-}
-
 // ─── Single row skeleton ──────────────────────────────────────────────────────
-function RowSkeleton({ theme, styles }: { theme: AppTheme; styles: any }) {
+function RowSkeleton({ styles }: { styles: any }) {
   return (
     <View style={styles.row}>
       <Bone
@@ -92,16 +39,15 @@ function RowSkeleton({ theme, styles }: { theme: AppTheme; styles: any }) {
         h={14}
         radius={4}
         style={{ marginHorizontal: 4 }}
-        theme={theme}
       />
-      <Bone w={44} h={44} radius={13} theme={theme} />
+      <Bone w={44} h={44} radius={13} />
       <View style={styles.info}>
-        <Bone w="60%" h={14} radius={4} theme={theme} />
-        <Bone w={60} h={10} radius={4} style={{ marginTop: 4 }} theme={theme} />
+        <Bone w="60%" h={14} radius={4} />
+        <Bone w={60} h={10} radius={4} style={{ marginTop: 4 }} />
       </View>
       <View style={styles.scoreCol}>
-        <Bone w={48} h={16} radius={4} theme={theme} />
-        <Bone w={24} h={9} radius={3} style={{ marginTop: 3 }} theme={theme} />
+        <Bone w={48} h={16} radius={4} />
+        <Bone w={24} h={9} radius={3} style={{ marginTop: 3 }} />
       </View>
     </View>
   );
@@ -114,7 +60,7 @@ export function RankingsSkeleton() {
   return (
     <View style={styles.list}>
       {Array.from({ length: 8 }).map((_, i) => (
-        <RowSkeleton key={i} theme={theme} styles={styles} />
+        <RowSkeleton key={i} styles={styles} />
       ))}
     </View>
   );

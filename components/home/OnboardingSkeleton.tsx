@@ -1,7 +1,7 @@
+import { DumbbellLoader } from "@/components/ui/DumbbellLoader";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Easing,
   Image,
@@ -71,11 +71,7 @@ export function OnboardingSkeleton() {
       </Animated.View>
 
       <View style={styles.footer}>
-        <ActivityIndicator
-          size="small"
-          color="#C5A356"
-          style={{ marginBottom: 16 }}
-        />
+        <DumbbellLoader width={48} color="#C5A356" style={{ marginBottom: 16 }} />
         <Text style={styles.loadingText}>Preparando tu experiencia...</Text>
       </View>
     </View>

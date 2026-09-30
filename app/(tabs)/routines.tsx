@@ -1,7 +1,9 @@
-import { RoutinesAPI } from "@/api/routines";
+import { Routine, RoutinesAPI } from "@/api/routines";
+import { TodayWorkoutCard } from "@/components/home/TodayWorkoutCard";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { Bone } from "@/components/ui/Bone";
 import { useStartWorkout } from "@/hooks/useStartWorkout";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,7 +12,6 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -20,7 +21,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const DAYS = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DAY_CARD_WIDTH = 70;
 const DAY_CARD_GAP = 10;
 
@@ -40,6 +41,7 @@ export default function RoutinesScreen() {
 
   const [loading, setLoading] = useState(!isHydrated);
   const [refreshing, setRefreshing] = useState(false);
+  const [startingWorkout, setStartingWorkout] = useState(false);
   const scheduleScrollRef = useRef<ScrollView>(null);
   const [scheduleRowWidth, setScheduleRowWidth] = useState(0);
 
@@ -103,7 +105,6 @@ export default function RoutinesScreen() {
     // Add small delay to ensure the modal can reopen correctly in Android/iOS
     setTimeout(async () => {
       try {
-        setLoading(true);
         await RoutinesAPI.deleteRoutine(id);
         loadData();
       } catch (e) {
@@ -114,8 +115,6 @@ export default function RoutinesScreen() {
         );
         setModalType("error");
         setModalVisible(true);
-      } finally {
-        setLoading(false);
       }
     }, 400);
   };
@@ -129,7 +128,7 @@ export default function RoutinesScreen() {
     if (!todayRoutine || !profile) return;
 
     try {
-      setLoading(true);
+      setStartingWorkout(true);
       const routine = await RoutinesAPI.getRoutineDetail(todayRoutine.id);
       if (!routine) return;
       startWorkout(routine);
@@ -140,18 +139,98 @@ export default function RoutinesScreen() {
       setModalType("error");
       setModalVisible(true);
     } finally {
-      setLoading(false);
+      setStartingWorkout(false);
     }
+  };
+
+  const todayIdx = new Date().getDay();
+  const todayRoutine = getRoutineForDay(todayIdx);
+  const myRoutines = routines?.filter((r) => !r.is_template) ?? [];
+  const gymRoutines = routines?.filter((r) => r.is_template) ?? [];
+
+  const renderRoutine = (routine: Routine) => {
+    const isOwner = !routine.is_template && routine.created_by === profile?.id;
+    return (
+      <TouchableOpacity
+        key={routine.id}
+        style={styles.routineCard}
+        onPress={() => router.push(`/routine-detail?id=${routine.id}`)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.routineInfo}>
+          <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
+          <View style={styles.routineMeta}>
+            {!!routine.estimated_duration && (
+              <View style={styles.metaBadge}>
+                <Ionicons name="time-outline" size={12} color={theme.textMuted} />
+                <Text style={styles.metaText}>{routine.estimated_duration} min</Text>
+              </View>
+            )}
+            {!!routine.difficulty && (
+              <View style={styles.metaBadge}>
+                <Ionicons name="speedometer-outline" size={12} color={theme.textMuted} />
+                <Text style={styles.metaText}>
+                  {RoutinesAPI.translateDifficulty(routine.difficulty)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+        {isOwner ? (
+          <View style={styles.routineActions}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => router.push(`/routine-edit?id=${routine.id}`)}
+              accessibilityLabel="Editar rutina"
+            >
+              <Ionicons name="create-outline" size={17} color={theme.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => confirmDeleteRoutine(routine)}
+              accessibilityLabel="Eliminar rutina"
+            >
+              <Ionicons name="trash-outline" size={17} color={theme.error} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+        )}
+      </TouchableOpacity>
+    );
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.root}>
         <LinearGradient
           colors={theme.gradients.bg}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color={theme.accent} />
+        <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+          <View style={styles.scroll}>
+            <View style={styles.header}>
+              <View style={{ gap: 6 }}>
+                <Bone w={150} h={24} radius={6} />
+                <Bone w={210} h={12} radius={4} />
+              </View>
+              <Bone w={48} h={48} radius={14} />
+            </View>
+            <Bone w="100%" h={150} radius={24} style={{ marginBottom: 28 }} />
+            <Bone w={110} h={12} radius={4} style={{ marginBottom: 12 }} />
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 24, overflow: "hidden" }}>
+              {DAYS.map((day) => (
+                <Bone key={day} w={DAY_CARD_WIDTH} h={96} radius={16} />
+              ))}
+            </View>
+            <View style={styles.routineSection}>
+              <Bone w={140} h={16} radius={5} />
+              {[0, 1, 2, 3].map((i) => (
+                <Bone key={i} w="100%" h={84} radius={18} />
+              ))}
+            </View>
+          </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -201,8 +280,32 @@ export default function RoutinesScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Today */}
+          {todayRoutine ? (
+            <View style={{ marginBottom: 28 }}>
+              <TodayWorkoutCard
+                routine={todayRoutine}
+                loading={startingWorkout}
+                onPress={handleStartTodayWorkout}
+              />
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.restCard}
+              onPress={() => router.push(`/schedule-edit?day=${todayIdx}`)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="moon-outline" size={18} color={theme.textSecondary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.restTitle}>Hoy es día libre</Text>
+                <Text style={styles.restSubtitle}>Toca para asignar una rutina</Text>
+              </View>
+              <Ionicons name="add" size={18} color={theme.accent} />
+            </TouchableOpacity>
+          )}
+
           {/* Weekly Schedule */}
-          <Text style={styles.sectionTitle}>Plan Semanal</Text>
+          <Text style={styles.sectionTitle}>Plan semanal</Text>
           <ScrollView
             ref={scheduleScrollRef}
             horizontal
@@ -215,155 +318,41 @@ export default function RoutinesScreen() {
           >
             {DAYS.map((day, idx) => {
               const routine = getRoutineForDay(idx);
-              const isToday = new Date().getDay() === idx;
+              const isToday = todayIdx === idx;
               return (
                 <TouchableOpacity
                   key={day}
                   style={[styles.dayCard, isToday && styles.dayCardToday]}
                   onPress={() => router.push(`/schedule-edit?day=${idx}`)}
                 >
-                  <Text
-                    style={[styles.dayName, isToday && styles.dayNameToday]}
-                  >
-                    {day}
+                  <Text style={[styles.dayName, isToday && styles.dayNameToday]}>
+                    {day.toUpperCase()}
                   </Text>
-                  <Ionicons
-                    name={routine ? "barbell" : "remove"}
-                    size={18}
-                    color={routine ? theme.accent : theme.textMuted}
-                    style={styles.dayIcon}
-                  />
-                  {routine && (
-                    <Text style={styles.dayRoutineName} numberOfLines={1}>
-                      {routine.name}
-                    </Text>
-                  )}
+                  <View style={[styles.dayDot, routine && styles.dayDotActive]} />
+                  <Text
+                    style={[styles.dayRoutineName, !routine && { color: theme.textMuted }]}
+                    numberOfLines={2}
+                  >
+                    {routine?.name ?? "Libre"}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
 
-          {/* Current Workout Call to Action (if any) */}
-          <TouchableOpacity
-            style={styles.ctaCard}
-            onPress={handleStartTodayWorkout}
-          >
-            <LinearGradient
-              colors={[theme.accentDim, theme.surface]}
-              style={styles.ctaGradient}
-            >
-              <View style={styles.ctaIcon}>
-                <Ionicons name="play" size={20} color={theme.accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.ctaTitle}>Entrenamiento de hoy</Text>
-                <Text style={styles.ctaSubtitle}>
-                  {getRoutineForDay(new Date().getDay())?.name ||
-                    "No hay rutina asignada para hoy"}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={theme.textMuted}
-              />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Routine List */}
-          <View style={styles.routineSection}>
-            <Text style={styles.sectionTitle}>Explorar Rutinas</Text>
-            {routines?.map((routine) => (
-              <View key={routine.id} style={styles.routineCardWrapper}>
-                <TouchableOpacity
-                  style={styles.routineCard}
-                  onPress={() =>
-                    router.push(`/routine-detail?id=${routine.id}`)
-                  }
-                >
-                  <View style={styles.routineInfo}>
-                    <Text style={styles.routineName}>{routine.name}</Text>
-                    <View style={styles.routineMeta}>
-                      <View style={styles.metaBadge}>
-                        <Ionicons
-                          name="time-outline"
-                          size={12}
-                          color={theme.textMuted}
-                        />
-                        <Text style={styles.metaText}>
-                          {routine.estimated_duration} min
-                        </Text>
-                      </View>
-                      <View style={styles.metaBadge}>
-                        <Ionicons
-                          name="flash-outline"
-                          size={12}
-                          color={theme.textMuted}
-                        />
-                        <Text style={styles.metaText}>
-                          {RoutinesAPI.translateDifficulty(routine.difficulty)}
-                        </Text>
-                      </View>
-                      {routine.is_template && (
-                        <View
-                          style={[
-                            styles.metaBadge,
-                            { backgroundColor: theme.accentDim },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.metaText,
-                              {
-                                color: theme.accent,
-                                fontSize: 10,
-                                fontWeight: "800",
-                              },
-                            ]}
-                          >
-                            GYM
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={theme.textMuted}
-                  />
-                </TouchableOpacity>
-
-                {/* Edit/Delete options for non-templates (user creations) */}
-                {!routine.is_template && routine.created_by === profile?.id && (
-                  <View style={styles.routineActions}>
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() =>
-                        router.push(`/routine-edit?id=${routine.id}`)
-                      }
-                    >
-                      <Ionicons
-                        name="create-outline"
-                        size={18}
-                        color={theme.accent}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() => confirmDeleteRoutine(routine)}
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={18}
-                        color={theme.error}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+          {/* Routine lists */}
+          {myRoutines.length > 0 && (
+            <View style={[styles.routineSection, { marginBottom: 28 }]}>
+              <Text style={styles.sectionTitle}>Tus rutinas</Text>
+              {myRoutines.map(renderRoutine)}
+            </View>
+          )}
+          {gymRoutines.length > 0 && (
+            <View style={styles.routineSection}>
+              <Text style={styles.sectionTitle}>Del gimnasio</Text>
+              {gymRoutines.map(renderRoutine)}
+            </View>
+          )}
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -389,11 +378,6 @@ const createStyles = (theme: AppTheme) =>
     root: {
       flex: 1,
       backgroundColor: theme.bgDeep,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
     },
     topGlow: {
       position: "absolute",
@@ -439,10 +423,12 @@ const createStyles = (theme: AppTheme) =>
       alignItems: "center",
     },
     sectionTitle: {
-      fontSize: 18,
+      fontSize: 12,
       fontWeight: "700",
-      color: theme.textPrimary,
-      marginBottom: 14,
+      color: theme.textSecondary,
+      letterSpacing: 1.8,
+      textTransform: "uppercase",
+      marginBottom: 12,
     },
     scheduleRow: {
       flexDirection: "row",
@@ -451,86 +437,72 @@ const createStyles = (theme: AppTheme) =>
       paddingHorizontal: 20,
     },
     dayCard: {
-      width: 70,
+      width: DAY_CARD_WIDTH,
+      minHeight: 96,
       backgroundColor: theme.bgCard,
       borderRadius: 16,
       paddingVertical: 12,
       paddingHorizontal: 8,
       alignItems: "center",
-      marginRight: 10,
+      marginRight: DAY_CARD_GAP,
       borderWidth: 1,
       borderColor: theme.borderSubtle,
     },
     dayCardToday: {
-      borderColor: theme.accent,
-      borderWidth: 2,
+      borderColor: theme.accentBorder,
       backgroundColor: theme.accentDim,
-      shadowColor: theme.accent,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.25,
-      shadowRadius: 6,
-      elevation: 3,
     },
     dayName: {
-      fontSize: 12,
-      fontWeight: "600",
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1,
       color: theme.textMuted,
-      marginBottom: 8,
     },
     dayNameToday: {
-      color: theme.accent,
-      fontWeight: "800",
+      color: theme.accentLight,
     },
-    dayIcon: {
-      marginBottom: 8,
+    dayDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginVertical: 10,
+      backgroundColor: theme.borderMuted,
+    },
+    dayDotActive: {
+      backgroundColor: theme.accent,
     },
     dayRoutineName: {
       fontSize: 10,
+      fontWeight: "600",
       color: theme.textSecondary,
       textAlign: "center",
       width: "100%",
     },
-    ctaCard: {
-      borderRadius: 18,
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: theme.accentBorder,
-      marginBottom: 32,
-    },
-    ctaGradient: {
+    restCard: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 16,
       gap: 12,
+      padding: 16,
+      marginBottom: 28,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderStyle: "dashed",
+      borderColor: theme.borderMuted,
     },
-    ctaIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.accentDim,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    ctaTitle: {
-      fontSize: 15,
+    restTitle: {
+      fontSize: 14,
       fontWeight: "700",
       color: theme.textPrimary,
     },
-    ctaSubtitle: {
+    restSubtitle: {
       fontSize: 12,
-      color: theme.accent,
+      color: theme.textSecondary,
       marginTop: 1,
     },
     routineSection: {
       gap: 12,
     },
-    routineCardWrapper: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
     routineCard: {
-      flex: 1,
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: theme.bgCard,
@@ -541,13 +513,14 @@ const createStyles = (theme: AppTheme) =>
       gap: 12,
     },
     routineActions: {
-      gap: 8,
+      flexDirection: "row",
+      gap: 6,
     },
     actionBtn: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      backgroundColor: theme.bgCard,
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: theme.surface,
       borderWidth: 1,
       borderColor: theme.borderMuted,
       justifyContent: "center",

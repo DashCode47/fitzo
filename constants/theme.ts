@@ -52,6 +52,13 @@ const palette = {
   darkBg:      '#000000',
   darkCard:    '#111111',
   darkSurface: '#1A1A1A',
+
+  // Midnight (navy + sapphire/platinum)
+  navy900: '#060A14',
+  navy800: '#0B1222',
+  navy700: '#111A2E',
+  sapphire500: '#5D7AA6',
+  platinum300: '#AEBBD0',
 } as const;
 
 // ─── Theme shape ──────────────────────────────────────────────────────────────
@@ -212,8 +219,39 @@ export const goldTheme: AppTheme = {
   },
 } as const;
 
+export const midnightTheme: AppTheme = {
+  bgDeep:   palette.navy900,
+  bgBase:   palette.navy800,
+  bgSubtle: palette.navy700,
+  bgCard:   palette.navy800,
+  surface:  'rgba(174,187,208,0.05)',
+
+  textPrimary:   '#F1F4F9',
+  textSecondary: palette.platinum300,
+  textMuted:     '#66728A',
+
+  accent:        palette.sapphire500,
+  accentLight:   palette.platinum300,
+  accentDim:     'rgba(93,122,166,0.16)',
+  accentBorder:  'rgba(174,187,208,0.35)',
+  accentGlow:    'rgba(93,122,166,0.08)',
+
+  borderSubtle:  'rgba(174,187,208,0.08)',
+  borderMuted:   'rgba(174,187,208,0.14)',
+
+  success: palette.green400,
+  error:   palette.red400,
+  warning: palette.amber400,
+
+  gradients: {
+    bg:      [palette.navy900, palette.navy800, palette.navy700],
+    accent:  [palette.sapphire500, '#8196B8'],
+    topGlow: ['rgba(174,187,208,0.12)', 'rgba(174,187,208,0)'],
+  },
+} as const;
+
 // ─── Active theme ─────────────────────────────────────────────────────────────
-export type ThemeMode = 'dark' | 'light' | 'cyan' | 'gold';
+export type ThemeMode = 'dark' | 'light' | 'cyan' | 'gold' | 'midnight';
 
 /**
  * Helper to get the theme object based on mode string.
@@ -223,6 +261,7 @@ export const getTheme = (mode: ThemeMode): AppTheme => {
         case 'light': return lightTheme;
         case 'cyan':  return cyanTheme;
         case 'gold':  return goldTheme;
+        case 'midnight': return midnightTheme;
         default:      return darkTheme;
     }
 };

@@ -1,7 +1,7 @@
 import { Exercise, RoutinesAPI } from "@/api/routines";
-import { WorkoutsAPI } from "@/api/workouts";
 import { RanksAPI } from "@/api/ranks";
 import { AppTheme } from "@/constants/theme";
+import { saveActiveWorkout } from "@/services/workoutAutoFinish";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAppStore, ActiveWorkout } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   BackHandler,
   Image,
@@ -224,7 +225,6 @@ export default function WorkoutSessionScreen() {
     removeWorkoutSet,
     reorderWorkoutExercises,
     setActiveWorkout,
-    userStats,
   } = useAppStore();
 
   const [, forceTick] = useState(0);
@@ -348,34 +348,7 @@ export default function WorkoutSessionScreen() {
 
     try {
       setSubmitting(true);
-      const totalVol = activeWorkout.exercises.reduce((acc, ex) => {
-        return acc + ex.sets.reduce((sx, s) => sx + s.weight * s.reps, 0);
-      }, 0);
-
-      const logData = {
-        user_id: profile.id,
-        routine_id: activeWorkout.routineId,
-        started_at: activeWorkout.startTime,
-        finished_at: new Date().toISOString(),
-        duration_seconds: elapsed,
-        total_volume: totalVol,
-      };
-
-      const exerciseLogs = activeWorkout.exercises.map((ex, idx) => ({
-        exercise_id: ex.exerciseId,
-        sets_completed: ex.sets.filter((s) => s.completed),
-        order_index: idx,
-      }));
-
-      await WorkoutsAPI.saveWorkoutSession(logData, exerciseLogs);
-
-      // Keep the leaderboard fresh right after a session, instead of only
-      // syncing when the user happens to visit "Mis Rangos". Fire-and-forget:
-      // the workout is already saved, this shouldn't block finishing the flow.
-      if (profile.id && userStats?.weight) {
-        RanksAPI.syncUserRank(profile.id, userStats.weight, (userStats.gender as any) || "M");
-      }
-
+      await saveActiveWorkout(activeWorkout);
       setShowSuccessModal(true);
     } catch (e) {
       console.error("[WorkoutSession] Failed to save:", e);
@@ -436,11 +409,12 @@ export default function WorkoutSessionScreen() {
   const renderExerciseCard = (ex: WorkoutExercise, exIdx: number, dragHandle?: () => void) => {
     const isCollapsed = collapsedIds.has(ex.exerciseId);
     const completedCount = ex.sets.filter((s) => s.completed).length;
+    const isExerciseDone = ex.sets.length > 0 && completedCount === ex.sets.length;
     const pr = personalRecords[ex.name];
     const muscleGroup = muscleGroups[ex.exerciseId];
 
     return (
-      <View style={styles.exerciseBlock}>
+      <View style={[styles.exerciseBlock, isExerciseDone && styles.exerciseBlockDone]}>
         <View style={styles.exerciseHeader}>
           <TouchableOpacity
             onLongPress={dragHandle}
@@ -468,7 +442,15 @@ export default function WorkoutSessionScreen() {
               )}
             </View>
           </TouchableOpacity>
-          <Text style={styles.exerciseSummary}>
+          {isExerciseDone && (
+            <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+          )}
+          <Text
+            style={[
+              styles.exerciseSummary,
+              isExerciseDone && { color: theme.success },
+            ]}
+          >
             {completedCount}/{ex.sets.length} series
           </Text>
           <TouchableOpacity onPress={() => showInfo(ex.exerciseId)}>
@@ -655,7 +637,9 @@ export default function WorkoutSessionScreen() {
               <Text style={styles.routineTitle}>{activeWorkout.routineName}</Text>
               <TouchableOpacity style={styles.sortBtn} onPress={sortByMuscleGroup}>
                 <Ionicons name="body-outline" size={14} color={theme.accent} />
-                <Text style={styles.sortBtnText}>POR MÚSCULO</Text>
+                <Text style={styles.sortBtnText} numberOfLines={1}>
+                  ORDENAR POR MÚSCULO
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -777,6 +761,7 @@ export default function WorkoutSessionScreen() {
                   <TouchableOpacity
                     style={styles.cancelBtn}
                     onPress={() => setShowFinishModal(false)}
+                    disabled={submitting}
                   >
                     <Text style={styles.cancelBtnText}>CONTINUAR</Text>
                   </TouchableOpacity>
@@ -789,9 +774,11 @@ export default function WorkoutSessionScreen() {
                       colors={theme.gradients.accent}
                       style={styles.confirmGradient}
                     >
-                      <Text style={styles.confirmBtnText}>
-                        {submitting ? "GUARDANDO..." : "SÍ, FINALIZAR"}
-                      </Text>
+                      {submitting ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.confirmBtnText}>SÍ, FINALIZAR</Text>
+                      )}
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -977,11 +964,13 @@ const createStyles = (theme: AppTheme) =>
       color: theme.textPrimary,
       marginTop: 8,
       textTransform: "uppercase",
+      flexShrink: 1,
     },
     titleRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+      gap: 10,
     },
     sortBtn: {
       flexDirection: "row",
@@ -993,6 +982,7 @@ const createStyles = (theme: AppTheme) =>
       borderRadius: 20,
       borderWidth: 1,
       borderColor: theme.accentBorder,
+      flexShrink: 0,
     },
     sortBtnText: {
       fontSize: 10,
@@ -1010,6 +1000,10 @@ const createStyles = (theme: AppTheme) =>
       marginBottom: 20,
       borderWidth: 1,
       borderColor: theme.borderSubtle,
+    },
+    exerciseBlockDone: {
+      backgroundColor: theme.success + "10",
+      borderColor: theme.success,
     },
     exerciseBlockDragging: {
       opacity: 0.85,

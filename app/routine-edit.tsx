@@ -7,6 +7,7 @@ import {
 import { ExerciseCatalogModal, ExercisePreviewModal } from "@/components/exercise-catalog-modal";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { DumbbellLoader } from "@/components/ui/DumbbellLoader";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -208,7 +209,7 @@ export default function RoutineEditScreen() {
           colors={theme.gradients.bg}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator color={theme.accent} size="large" />
+        <DumbbellLoader />
       </View>
     );
   }

@@ -3,6 +3,7 @@ import { REPRESENTATIVE_EXERCISES } from "@/constants/ranks";
 import { AppTheme } from "@/constants/theme";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { DumbbellLoader } from "@/components/ui/DumbbellLoader";
 import { useStartWorkout } from "@/hooks/useStartWorkout";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,7 +11,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Modal,
   ScrollView,
@@ -74,7 +74,7 @@ export default function RoutineDetailScreen() {
           colors={theme.gradients.bg}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color={theme.accent} />
+        <DumbbellLoader />
       </View>
     );
   }

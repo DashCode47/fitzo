@@ -3,6 +3,7 @@ import { RoutinesAPI } from "@/api/routines";
 import { WorkoutsAPI } from "@/api/workouts";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { Bone } from "@/components/ui/Bone";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -11,7 +12,6 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Modal,
   RefreshControl,
@@ -273,9 +273,35 @@ export default function StatsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingRoot}>
+      <View style={styles.root}>
         <LinearGradient colors={theme.gradients.bg} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color={theme.accent} />
+        <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+          <View style={styles.scroll}>
+            <View style={[styles.header, { justifyContent: "flex-start" }]}>
+              <View style={{ gap: 6 }}>
+                <Bone w={190} h={24} radius={6} />
+                <Bone w={170} h={12} radius={4} />
+              </View>
+            </View>
+            <View style={styles.statGrid}>
+              {[0, 1, 2, 3].map((i) => (
+                <View key={i} style={styles.statTile}>
+                  <Bone w={30} h={30} radius={10} />
+                  <Bone w={64} h={22} radius={5} />
+                  <Bone w={96} h={9} radius={3} />
+                </View>
+              ))}
+            </View>
+            <Bone w={200} h={14} radius={4} style={{ marginTop: 4 }} />
+            <Bone w="100%" h={200} radius={18} />
+            <Bone w={220} h={14} radius={4} style={{ marginTop: 4 }} />
+            <View style={styles.prList}>
+              {[0, 1, 2].map((i) => (
+                <Bone key={i} w="100%" h={58} radius={14} />
+              ))}
+            </View>
+          </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -762,12 +788,6 @@ function WeeklyBarChart({
 const createStyles = (theme: AppTheme) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: theme.bgDeep },
-    loadingRoot: {
-      flex: 1,
-      backgroundColor: theme.bgDeep,
-      justifyContent: "center",
-      alignItems: "center",
-    },
     topGlow: { position: "absolute", top: 0, left: 0, right: 0, height: 220 },
     scroll: { paddingHorizontal: 20, paddingBottom: 20, gap: 16 },
 

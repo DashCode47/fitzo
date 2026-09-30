@@ -83,11 +83,14 @@ describe("computeDailyCounts", () => {
 
 describe("weekRangeLabel", () => {
   it("formats a same-month range without repeating the month", () => {
-    // Find a weekOffset whose Monday..Sunday span stays within one month by construction:
-    // use a fixed reference week (Mon Aug 3 – Sun Aug 9, 2026) via offset from "now" is flaky,
-    // so instead assert on the shape/structure rather than exact text tied to today's date.
-    const label = weekRangeLabel(0);
-    expect(label).toMatch(/\d+ – .+ de \w+/);
+    // Pin "now" to Wed Aug 5 2026 so this week is Mon Aug 3 – Sun Aug 9: a label
+    // tied to the real date breaks whenever the current week crosses a month.
+    jest.useFakeTimers({ now: new Date(2026, 7, 5, 12) });
+    try {
+      expect(weekRangeLabel(0)).toBe("3 – 9 de agosto");
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("includes both months when the week crosses a month boundary", () => {

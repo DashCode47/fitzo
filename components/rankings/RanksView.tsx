@@ -2,7 +2,6 @@ import { RanksAPI, calculateAllRanks } from "@/api/ranks";
 import { useAppStore } from "@/store/useAppStore";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import { MuscleRankCard } from "./MuscleRankCard";
 
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { DumbbellLoader } from "@/components/ui/DumbbellLoader";
 import { useFocusEffect } from "@react-navigation/native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -191,7 +191,7 @@ export const RanksView: React.FC = () => {
   if (loading && !muscleRanks) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.accent} />
+        <DumbbellLoader />
         <Text style={styles.loadingText}>Calculando tu nivel de fuerza...</Text>
       </View>
     );

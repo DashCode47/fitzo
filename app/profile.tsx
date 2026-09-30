@@ -6,6 +6,7 @@ import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { DumbbellLoader } from "@/components/ui/DumbbellLoader";
 import { useProfileImage } from "@/hooks/useProfileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +17,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -41,6 +43,8 @@ export default function ProfileScreen() {
     setUserStats,
     themeMode,
     setThemeMode,
+    remindersEnabled,
+    setRemindersEnabled,
   } = useAppStore();
 
   const theme = useAppTheme();
@@ -48,7 +52,6 @@ export default function ProfileScreen() {
 
   const [loading, setLoading] = useState(!profile);
   const { uploadAvatar, uploading } = useProfileImage();
-  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalConfig, setModalConfig] = useState({
@@ -142,7 +145,6 @@ export default function ProfileScreen() {
     try {
       const url = await uploadAvatar();
       if (url && profile) {
-        setAvatarTimestamp(Date.now());
         setProfile({ ...profile, photo_url: url });
       }
     } catch (e) {
@@ -165,7 +167,7 @@ export default function ProfileScreen() {
           colors={theme.gradients.bg}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color={theme.accent} />
+        <DumbbellLoader />
       </View>
     );
   }
@@ -199,9 +201,7 @@ export default function ProfileScreen() {
   const phone = profile?.phone || "No registrado";
   const role = profile?.role || "CLIENT";
   const points = profile?.total_points || 0;
-  const photoUrl = profile?.photo_url
-    ? `${profile.photo_url}?t=${avatarTimestamp}`
-    : null;
+  const photoUrl = profile?.photo_url || null;
 
   return (
     <View style={styles.root}>
@@ -434,6 +434,33 @@ export default function ProfileScreen() {
               onPress={() => setThemeMode("gold")}
               theme={theme}
               styles={styles}
+            />
+            <ThemeOption
+              isActive={themeMode === "midnight"}
+              color="#0B1222"
+              onPress={() => setThemeMode("midnight")}
+              theme={theme}
+              styles={styles}
+            />
+          </View>
+
+          {/* ── Training reminders toggle ── */}
+          <View style={styles.historyLinkRow}>
+            <View style={styles.historyIcon}>
+              <Ionicons
+                name="notifications-outline"
+                size={18}
+                color={theme.accent}
+              />
+            </View>
+            <Text style={styles.historyLinkText}>
+              Recordatorios de entrenamiento
+            </Text>
+            <Switch
+              value={remindersEnabled}
+              onValueChange={setRemindersEnabled}
+              trackColor={{ true: theme.accent }}
+              accessibilityLabel="Recordatorios de entrenamiento"
             />
           </View>
 

@@ -85,9 +85,11 @@ export const useProfileImage = () => {
       console.log("[useProfileImage] Upload successful");
 
       // 4. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl: baseUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+      // Same file path is overwritten on every upload, so bust image caches app-wide.
+      const publicUrl = `${baseUrl}?t=${Date.now()}`;
       console.log("[useProfileImage] Public URL generated:", publicUrl);
 
       // 5. Update the profile table

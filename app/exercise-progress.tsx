@@ -2,6 +2,7 @@ import { Exercise, RoutinesAPI } from "@/api/routines";
 import { WorkoutsAPI } from "@/api/workouts";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { DumbbellLoader } from "@/components/ui/DumbbellLoader";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,7 +10,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -33,6 +33,7 @@ export default function ExerciseProgressScreen() {
 
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [truncated, setTruncated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -52,23 +53,32 @@ export default function ExerciseProgressScreen() {
       const ex = catalog.find((e) => e.id === Number(id));
       if (ex) setExercise(ex);
 
-      const data = await WorkoutsAPI.getExerciseProgress(userId, Number(id));
-      setHistory(data);
+      const { items, truncated: wasTruncated } = await WorkoutsAPI.getExerciseProgress(
+        userId,
+        Number(id),
+      );
+      setHistory(items);
+      setTruncated(wasTruncated);
     } catch (e) {
       console.error("[ExerciseProgress] Loading failed:", e);
+      // Keep any previously loaded history visible — only surface the error
+      // banner when we have nothing to show, so a transient refresh failure
+      // doesn't make correctly-loaded data disappear or look like "no data".
       setLoadError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const getChartPoints = () => {
-    if (history.length < 2) return "";
-    const maxVal = Math.max(...history.map((h) => h.maxWeight), 1);
+  const chartablePoints = history.filter((h) => h.hasData !== false);
 
-    return history
+  const getChartPoints = () => {
+    if (chartablePoints.length < 2) return "";
+    const maxVal = Math.max(...chartablePoints.map((h) => h.maxWeight), 1);
+
+    return chartablePoints
       .map((h, i) => {
-        const x = (i / (history.length - 1)) * CHART_WIDTH;
+        const x = (i / (chartablePoints.length - 1)) * CHART_WIDTH;
         const y = CHART_HEIGHT - (h.maxWeight / maxVal) * (CHART_HEIGHT - 20);
         return `${x},${y}`;
       })
@@ -82,14 +92,19 @@ export default function ExerciseProgressScreen() {
           colors={theme.gradients.bg}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color={theme.accent} />
+        <DumbbellLoader />
       </View>
     );
   }
 
   const maxPR =
-    history.length > 0 ? Math.max(...history.map((h) => h.maxWeight)) : 0;
-  const lastPR = history.length > 0 ? history[history.length - 1].maxWeight : 0;
+    chartablePoints.length > 0
+      ? Math.max(...chartablePoints.map((h) => h.maxWeight))
+      : null;
+  const lastPR =
+    chartablePoints.length > 0
+      ? chartablePoints[chartablePoints.length - 1].maxWeight
+      : null;
 
   return (
     <View style={styles.root}>
@@ -133,45 +148,30 @@ export default function ExerciseProgressScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>RÉCORD PERSONAL</Text>
-              <Text style={styles.statValue}>{maxPR} kg</Text>
+              <Text style={styles.statValue}>
+                {maxPR !== null ? `${maxPR} kg` : "—"}
+              </Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>ÚLTIMO PESO</Text>
-              <Text style={styles.statValue}>{lastPR} kg</Text>
+              <Text style={styles.statValue}>
+                {lastPR !== null ? `${lastPR} kg` : "—"}
+              </Text>
             </View>
           </View>
 
           {/* Chart Section */}
           <Text style={styles.sectionTitle}>HISTORIAL DE CARGA (KGs)</Text>
+          {loadError && chartablePoints.length > 0 && (
+            <TouchableOpacity style={styles.staleBanner} onPress={loadData}>
+              <Ionicons name="alert-circle-outline" size={14} color={theme.textMuted} />
+              <Text style={styles.staleBannerText}>
+                No se pudo actualizar. Mostrando el último dato disponible — toca para reintentar.
+              </Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.chartContainer}>
-            {history.length > 1 ? (
-              <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-                <Polyline
-                  points={getChartPoints()}
-                  fill="none"
-                  stroke={theme.accent}
-                  strokeWidth="3"
-                />
-                {history.map((h, i) => {
-                  const maxVal = Math.max(
-                    ...history.map((hx) => hx.maxWeight),
-                    1,
-                  );
-                  const x = (i / (history.length - 1)) * CHART_WIDTH;
-                  const y =
-                    CHART_HEIGHT - (h.maxWeight / maxVal) * (CHART_HEIGHT - 20);
-                  return (
-                    <Circle
-                      key={i}
-                      cx={x}
-                      cy={y}
-                      r="4"
-                      fill={theme.accentLight}
-                    />
-                  );
-                })}
-              </Svg>
-            ) : loadError ? (
+            {loadError && chartablePoints.length === 0 ? (
               <View style={styles.emptyChart}>
                 <Ionicons
                   name="cloud-offline-outline"
@@ -186,6 +186,33 @@ export default function ExerciseProgressScreen() {
                   <Text style={styles.retryBtnText}>Reintentar</Text>
                 </TouchableOpacity>
               </View>
+            ) : chartablePoints.length > 1 ? (
+              <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+                <Polyline
+                  points={getChartPoints()}
+                  fill="none"
+                  stroke={theme.accent}
+                  strokeWidth="3"
+                />
+                {chartablePoints.map((h, i) => {
+                  const maxVal = Math.max(
+                    ...chartablePoints.map((hx) => hx.maxWeight),
+                    1,
+                  );
+                  const x = (i / (chartablePoints.length - 1)) * CHART_WIDTH;
+                  const y =
+                    CHART_HEIGHT - (h.maxWeight / maxVal) * (CHART_HEIGHT - 20);
+                  return (
+                    <Circle
+                      key={i}
+                      cx={x}
+                      cy={y}
+                      r="4"
+                      fill={theme.accentLight}
+                    />
+                  );
+                })}
+              </Svg>
             ) : (
               <View style={styles.emptyChart}>
                 <Ionicons
@@ -212,12 +239,22 @@ export default function ExerciseProgressScreen() {
                   })}
                 </Text>
                 <Text style={styles.logVol}>
-                  {log.totalVol} kg volumen total
+                  {log.hasData === false
+                    ? "Sin series registradas para este ejercicio"
+                    : `${log.totalVol} kg volumen total`}
                 </Text>
               </View>
-              <Text style={styles.logMax}>{log.maxWeight} kg</Text>
+              <Text style={styles.logMax}>
+                {log.hasData === false ? "—" : `${log.maxWeight} kg`}
+              </Text>
             </View>
           ))}
+          {truncated && (
+            <Text style={styles.truncatedNote}>
+              Mostrando tus {history.length} sesiones más recientes. El
+              historial completo es más largo.
+            </Text>
+          )}
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
@@ -353,6 +390,19 @@ const createStyles = (theme: AppTheme) =>
       fontSize: 13,
       fontWeight: "800",
     },
+    staleBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 12,
+      paddingHorizontal: 4,
+    },
+    staleBannerText: {
+      flex: 1,
+      color: theme.textMuted,
+      fontSize: 11,
+      lineHeight: 15,
+    },
     logItem: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -375,5 +425,12 @@ const createStyles = (theme: AppTheme) =>
       color: theme.accent,
       fontSize: 18,
       fontWeight: "900",
+    },
+    truncatedNote: {
+      color: theme.textMuted,
+      fontSize: 11,
+      textAlign: "center",
+      marginTop: 14,
+      lineHeight: 16,
     },
   });

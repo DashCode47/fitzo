@@ -19,10 +19,11 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '700',
-    color: theme.textPrimary,
-    letterSpacing: -0.2,
+    color: theme.textSecondary,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
   },
   seeAll: {
     fontSize: 13,
@@ -108,8 +109,8 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 12,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: theme.bgCard,
+    borderColor: theme.borderMuted,
   },
   podiumRow: {
     flexDirection: 'row',
@@ -128,7 +129,7 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
   },
   podiumAvatar: {
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: theme.borderMuted,
     backgroundColor: theme.surface,
   },
   glowRing: {
@@ -148,7 +149,7 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#111',
+    borderColor: theme.bgCard,
   },
   rankBadgeText: {
     fontSize: 11,
@@ -168,13 +169,13 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     marginTop: 2,
   },
   tierPill: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: theme.surface,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: theme.borderSubtle,
   },
   tierText: {
     color: theme.textSecondary,
@@ -280,8 +281,10 @@ export const EventsTimeline = ({ data, onPressItem }: EventsProps) => {
           <Text style={styles.emptyText}>No hay eventos próximos.</Text>
         ) : (
           data.map((item, index) => {
-            const date = new Date(item.event_date);
-            const day = date.getDate() + 1;
+            // event_date is 'YYYY-MM-DD'; parse as local date (new Date() reads it as UTC and shifts the day)
+            const [y, m, d] = item.event_date.slice(0, 10).split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            const day = date.getDate();
             const month = date.toLocaleString('es', { month: 'short' }).toUpperCase();
             const isLast = index === data.length - 1;
 

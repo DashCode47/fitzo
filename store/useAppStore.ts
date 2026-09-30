@@ -1,5 +1,7 @@
+import type { ThemeMode } from '@/constants/theme';
 
 import { Banner } from '@/api/banners';
+import { StreakData } from '@/api/attendance';
 import { DietPlan, UserStats } from '@/api/nutrition';
 import { Routine, UserSchedule } from '@/api/routines';
 import { WorkoutLog } from '@/api/workouts';
@@ -27,6 +29,7 @@ export interface ActiveWorkout {
     routineId: number;
     routineName: string;
     startTime: string;
+    lastSetAt?: string; // when the latest set was marked completed; drives auto-finish
     exercises: Array<{
         exerciseId: number;
         name: string;
@@ -58,10 +61,12 @@ interface AppState {
 
   muscleRanks: UserRanks | null;
   lastStreak: number;
-  
+  streakData: StreakData | null;
+
   // Settings
-  themeMode: 'dark' | 'light' | 'cyan' | 'gold';
-  
+  themeMode: ThemeMode;
+  remindersEnabled: boolean;
+
   // Hydration state
   isHydrated: boolean;
 
@@ -81,7 +86,9 @@ interface AppState {
   setUserSchedule: (schedule: UserSchedule[]) => void;
   setMuscleRanks: (ranks: UserRanks | null) => void;
   setLastStreak: (streak: number) => void;
-  setThemeMode: (mode: 'dark' | 'light' | 'cyan' | 'gold') => void;
+  setStreakData: (data: StreakData) => void;
+  setThemeMode: (mode: ThemeMode) => void;
+  setRemindersEnabled: (val: boolean) => void;
   setHydrated: (val: boolean) => void;
   
   // Actions
@@ -109,7 +116,9 @@ export const useAppStore = create<AppState>()(
       userSchedule: null,
       muscleRanks: null,
       lastStreak: 0,
+      streakData: null,
       themeMode: 'dark',
+      remindersEnabled: true,
       isHydrated: false,
 
       setProfile: (profile) => set({ profile }),
@@ -131,7 +140,9 @@ export const useAppStore = create<AppState>()(
       setUserSchedule: (userSchedule) => set({ userSchedule }),
       setMuscleRanks: (muscleRanks) => set({ muscleRanks }),
       setLastStreak: (lastStreak) => set({ lastStreak }),
+      setStreakData: (streakData) => set({ streakData }),
       setThemeMode: (themeMode) => set({ themeMode }),
+      setRemindersEnabled: (remindersEnabled) => set({ remindersEnabled }),
       setHydrated: (isHydrated) => set({ isHydrated }),
 
       updateWorkoutSet: (exIdx, setIdx, data) => set((state) => {
@@ -140,6 +151,14 @@ export const useAppStore = create<AppState>()(
           const ex = newWorkout.exercises[exIdx];
           if (ex) {
               ex.sets[setIdx] = { ...ex.sets[setIdx], ...data };
+          }
+          if (data.completed) newWorkout.lastSetAt = new Date().toISOString();
+          if ('completed' in data) {
+              // Fully completed exercises float to the top (stable sort keeps relative order).
+              const isDone = (e: typeof ex) => e.sets.length > 0 && e.sets.every((s) => s.completed);
+              newWorkout.exercises = [...newWorkout.exercises].sort(
+                  (a, b) => Number(isDone(b)) - Number(isDone(a)),
+              );
           }
           return { activeWorkout: newWorkout };
       }),
@@ -188,7 +207,8 @@ export const useAppStore = create<AppState>()(
         workoutLogs: null,
         userSchedule: null,
         muscleRanks: null,
-        lastStreak: 0
+        lastStreak: 0,
+        streakData: null
       }),
     }),
     {
