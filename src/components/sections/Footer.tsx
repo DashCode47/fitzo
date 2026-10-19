@@ -13,7 +13,7 @@ const links: Record<string, { label: string; href: string }[]> = {
   ],
   Legal: [
     { label: "Privacidad", href: "/privacidad" },
-    { label: "Términos de uso", href: "#" },
+    { label: "Términos de uso", href: "/terminos" },
   ],
 };
 

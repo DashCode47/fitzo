@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Soporte | Fitzo",
+  title: "Soporte",
   description: "Centro de ayuda de Fitzo: preguntas frecuentes y contacto con soporte.",
 };
 
