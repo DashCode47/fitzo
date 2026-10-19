@@ -24,6 +24,26 @@ export const AuthAPI = {
     await SecureStore.deleteItemAsync('user_data');
   },
 
+  deleteAccount: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+
+    // Avatars are stored as `${user.id}.${ext}` in the root of the bucket.
+    // Best effort: a leftover photo must not block deleting the account.
+    const { data: files } = await supabase.storage.from('avatars').list('', { search: user.id });
+    if (files?.length) {
+      await supabase.storage.from('avatars').remove(files.map((f) => f.name));
+    }
+
+    const { error } = await supabase.rpc('delete_own_account');
+    if (error) throw error;
+
+    // The user no longer exists server-side, so only clear the local session.
+    await supabase.auth.signOut({ scope: 'local' });
+    await SecureStore.deleteItemAsync('user_token');
+    await SecureStore.deleteItemAsync('user_data');
+  },
+
   getToken: async () => {
     return await SecureStore.getItemAsync('user_token');
   },

@@ -27,6 +27,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MUSCLE_GROUPS, RANK_TIERS } from "@/constants/ranks";
 import { useAppStore } from "@/store/useAppStore";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+
+const LEGAL_LINKS: {
+  label: string;
+  url: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+}[] = [
+  { label: "Soporte", url: "https://fitzo.one/soporte/", icon: "help-circle-outline" },
+  { label: "Términos y condiciones", url: "https://fitzo.one/terminos/", icon: "document-text-outline" },
+  { label: "Política de privacidad", url: "https://fitzo.one/privacidad/", icon: "shield-checkmark-outline" },
+];
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -62,6 +73,7 @@ export default function ProfileScreen() {
   });
 
   const [loadError, setLoadError] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (isHydrated && profile?.id) {
@@ -135,6 +147,37 @@ export default function ProfileScreen() {
           goToLogin();
         } catch (error) {
           console.error("Logout failed:", error);
+        }
+      },
+    });
+    setModalVisible(true);
+  };
+
+  const handleDeleteAccount = () => {
+    setModalConfig({
+      title: "Eliminar cuenta",
+      message:
+        "Se borrarán permanentemente tu cuenta, tu historial de entrenamientos, tus rutinas, tu plan nutricional y tu foto de perfil. Esta acción no se puede deshacer.",
+      type: "confirm",
+      onConfirm: async () => {
+        setModalVisible(false);
+        setDeleting(true);
+        try {
+          await AuthAPI.deleteAccount();
+          clearAll();
+          goToLogin();
+        } catch (error) {
+          console.error("Account deletion failed:", error);
+          setModalConfig({
+            title: "Error",
+            message:
+              "No pudimos eliminar tu cuenta. Revisa tu conexión e intenta de nuevo.",
+            type: "error",
+            onConfirm: () => {},
+          });
+          setModalVisible(true);
+        } finally {
+          setDeleting(false);
         }
       },
     });
@@ -223,6 +266,7 @@ export default function ProfileScreen() {
         type={modalConfig.type}
         onClose={() => setModalVisible(false)}
         onConfirm={modalConfig.onConfirm}
+        buttonText={modalConfig.title === "Eliminar cuenta" ? "Eliminar" : undefined}
       />
 
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
@@ -487,6 +531,27 @@ export default function ProfileScreen() {
             />
           </TouchableOpacity>
 
+          {/* ── Help & legal ── */}
+          <View style={styles.card}>
+            {LEGAL_LINKS.map((link, i) => (
+              <React.Fragment key={link.url}>
+                {i > 0 && <View style={styles.divider} />}
+                <TouchableOpacity
+                  style={styles.infoRow}
+                  onPress={() => WebBrowser.openBrowserAsync(link.url)}
+                  activeOpacity={0.7}
+                  accessibilityRole="link"
+                >
+                  <View style={styles.infoIconBox}>
+                    <Ionicons name={link.icon} size={16} color={theme.accent} />
+                  </View>
+                  <Text style={styles.historyLinkText}>{link.label}</Text>
+                  <Ionicons name="open-outline" size={16} color={theme.textMuted} />
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
+          </View>
+
           {/* ── Logout ── */}
           <TouchableOpacity
             style={styles.logoutBtn}
@@ -495,6 +560,20 @@ export default function ProfileScreen() {
           >
             <Ionicons name="log-out-outline" size={18} color={theme.error} />
             <Text style={styles.logoutText}>Cerrar sesión</Text>
+          </TouchableOpacity>
+
+          {/* ── Delete account ── */}
+          <TouchableOpacity
+            style={styles.deleteAccountBtn}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+            activeOpacity={0.7}
+          >
+            {deleting ? (
+              <ActivityIndicator size="small" color={theme.error} />
+            ) : (
+              <Text style={styles.deleteAccountText}>Eliminar cuenta</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -865,6 +944,16 @@ const createStyles = (theme: AppTheme) =>
       fontSize: 15,
       fontWeight: "700",
       color: theme.error,
+    },
+    deleteAccountBtn: {
+      alignItems: "center",
+      paddingVertical: 12,
+    },
+    deleteAccountText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.error,
+      textDecorationLine: "underline",
     },
     sectionHeader: {
       flexDirection: "row",

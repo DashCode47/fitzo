@@ -1,0 +1,1 @@
+-- Applied remotely before migrations were tracked in this repo (placeholder to match remote history).
