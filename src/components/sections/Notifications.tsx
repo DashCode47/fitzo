@@ -1,6 +1,3 @@
-import Image from "next/image";
-import af1 from "@/assets/images/af1.jpg";
-
 const stats = [
   { value: "98%", label: "Uptime del sistema" },
   { value: "Auto", label: "Notificaciones automáticas" },
@@ -8,7 +5,13 @@ const stats = [
   { value: "24/7", label: "Soporte disponible" },
 ];
 
-export default function CrowdMeter() {
+const pushes = [
+  { title: "🔥 Tu racha está en peligro", body: "Llevas 3 días sin entrenar. Hoy toca pierna — ¡no la pierdas!", time: "ahora" },
+  { title: "🏆 Carlos te pasó en el ranking", body: "Te faltan 120 pts para recuperar el puesto #3.", time: "2 h" },
+  { title: "🎂 ¡Feliz cumpleaños, Ana!", body: "Tu gimnasio tiene una sorpresa para ti en recepción.", time: "ayer" },
+];
+
+export default function Notifications() {
   return (
     <section className="section">
       <div className="wrap">
@@ -43,12 +46,19 @@ export default function CrowdMeter() {
             </ul>
           </div>
 
-          <Image
-            src={af1}
-            alt="Fitzo — Notificaciones push automáticas"
-            sizes="(min-width: 1024px) 600px, 100vw"
-            className="w-full rounded-card"
-          />
+          {/* Push notification stack */}
+          <div className="card-dark flex flex-col gap-3" aria-label="Ejemplos de notificaciones push">
+            {pushes.map((n, i) => (
+              <div key={n.title} className={`rounded-[20px] p-4 ${i === 0 ? "bg-ember text-obsidian" : "bg-chalk/10"}`}>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span>Fitzo</span>
+                  <span className={i === 0 ? "" : "text-chalk/50"}>{n.time}</span>
+                </div>
+                <p>{n.title}</p>
+                <p className={`text-sm ${i === 0 ? "" : "text-chalk/70"}`}>{n.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

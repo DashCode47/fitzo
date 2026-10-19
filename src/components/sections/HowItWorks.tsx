@@ -9,13 +9,13 @@ const steps = [
     number: "02",
     title: "Toma el mando",
     description:
-      "Carga tus rutinas y productos en minutos. El panel es tan intuitivo que tu equipo lo dominará en la primera hora de uso.",
+      "Carga tus rutinas en minutos. El panel es tan intuitivo que tu equipo lo dominará en la primera hora de uso.",
   },
   {
     number: "03",
     title: "Mira cómo crece",
     description:
-      "Tus miembros compiten, compran y regresan. Reciben notificaciones que los reactivan y tú ves los resultados mientras el sistema trabaja solo.",
+      "Tus miembros compiten, progresan y regresan. Reciben notificaciones que los reactivan y tú ves los resultados mientras el sistema trabaja solo.",
   },
 ];
 

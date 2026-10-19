@@ -7,7 +7,7 @@ import Customization from "@/components/sections/Customization";
 import HowItWorks from "@/components/sections/HowItWorks";
 import Rankings from "@/components/sections/Rankings";
 import Nutrition from "@/components/sections/Nutrition";
-import CrowdMeter from "@/components/sections/CrowdMeter";
+import Notifications from "@/components/sections/Notifications";
 import CTA from "@/components/sections/CTA";
 import Footer from "@/components/sections/Footer";
 
@@ -23,7 +23,7 @@ export default function LandingPage() {
       <HowItWorks />
       <Rankings />
       <Nutrition />
-      <CrowdMeter />
+      <Notifications />
       <CTA />
       <Footer />
     </main>

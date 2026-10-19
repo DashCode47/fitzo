@@ -11,8 +11,8 @@ const pillars = [
   },
   {
     number: "03",
-    headline: "Multiplica tus ingresos",
-    body: "Vende suplementos, bebidas y planes especiales directamente en la app. Convierte tu gimnasio en un ecosistema de ventas 24/7 con el catálogo integrado y notificaciones push.",
+    headline: "Más valor por cada membresía",
+    body: "Rutinas, planes nutricionales, rangos de fuerza y seguimiento de progreso incluidos en la app. Tus miembros reciben más por lo que pagan, sin que tengas que contratar más personal.",
   },
 ];
 
