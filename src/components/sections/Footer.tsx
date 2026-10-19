@@ -9,7 +9,7 @@ const links: Record<string, { label: string; href: string }[]> = {
   ],
   Soporte: [
     { label: "Contacto", href: "https://wa.me/593978724619" },
-    { label: "Centro de ayuda", href: "#" },
+    { label: "Centro de ayuda", href: "/soporte" },
   ],
   Legal: [
     { label: "Privacidad", href: "/privacidad" },
