@@ -6,7 +6,6 @@ export const ROUTES = {
   STATS: '/(tabs)/stats',
   NUTRITION: '/(tabs)/nutrition',
   PROFILE: '/profile',
-  SCANNER: '/scanner',
   RANKINGS: '/rankings',
   ROUTINES: '/(tabs)/routines',
   ROUTINE_DETAIL: '/routine-detail',

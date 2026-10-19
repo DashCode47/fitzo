@@ -13,7 +13,6 @@ export const useAppNavigation = () => {
   const goToProfile = () => router.push(ROUTES.PROFILE);
   const goBack = () => router.back();
   const goToRankings = () => router.push(ROUTES.RANKINGS);
-  const goToScanner = () => router.push(ROUTES.SCANNER);
   const goToRoutines = () => router.replace(ROUTES.ROUTINES);
   const goToRoutineDetail = (id: number) => router.push({ pathname: ROUTES.ROUTINE_DETAIL, params: { id } });
   const goToRoutineCreate = () => router.push(ROUTES.ROUTINE_CREATE);
@@ -32,7 +31,6 @@ export const useAppNavigation = () => {
     goToProfile,
     goBack,
     goToRankings,
-    goToScanner,
     goToRoutines,
     goToRoutineDetail,
     goToRoutineCreate,

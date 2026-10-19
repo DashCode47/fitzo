@@ -50,7 +50,6 @@ Nutrition is a core feature that syncs local state with remote plans:
 The "Iron Legends" system rewards users:
 - **Points**: Users earn points via gym visits and activities (stored in `profiles.total_points`).
 - **Leaderboard**: Fetched via `LeaderboardAPI`.
-- **Scanner**: `app/scanner.tsx` allows users to scan QR codes for attendance/events.
 
 ---
 

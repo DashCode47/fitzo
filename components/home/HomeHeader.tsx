@@ -9,11 +9,10 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 interface HomeHeaderProps {
   profile: UserProfile | null;
   streakData: StreakData;
-  onScannerPress: () => void;
   onProfilePress: () => void;
 }
 
-export const HomeHeader = ({ profile, streakData, onScannerPress, onProfilePress }: HomeHeaderProps) => {
+export const HomeHeader = ({ profile, streakData, onProfilePress }: HomeHeaderProps) => {
   const theme = useAppTheme();
   const styles = createStyles(theme);
 
@@ -31,9 +30,6 @@ export const HomeHeader = ({ profile, streakData, onScannerPress, onProfilePress
         </View>
       </View>
       <View style={styles.headerRight}>
-        {/* <TouchableOpacity style={styles.iconBtn} onPress={onScannerPress}>
-          <Ionicons name="qr-code-outline" size={20} color={theme.textSecondary} />
-        </TouchableOpacity> */}
         <TouchableOpacity style={styles.avatarBtn} onPress={onProfilePress}>
           {profile?.photo_url ? (
             <Image source={{ uri: profile.photo_url }} style={styles.avatar} />
@@ -96,16 +92,6 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     color: theme.textSecondary,
     fontSize: 11,
     fontWeight: '600',
-  },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: theme.surface,
-    borderWidth: 1,
-    borderColor: theme.borderSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   avatarBtn: {
     width: 44,

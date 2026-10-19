@@ -41,7 +41,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { goToLogin, goToProfile, goToNutrition, goToScanner } =
+  const { goToLogin, goToProfile, goToNutrition } =
     useAppNavigation();
   const theme = useAppTheme();
   const styles = createStyles(theme);
@@ -312,7 +312,6 @@ export default function HomeScreen() {
           <HomeHeader
             profile={profile}
             streakData={streak}
-            onScannerPress={goToScanner}
             onProfilePress={goToProfile}
           />
 

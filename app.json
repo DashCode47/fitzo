@@ -9,8 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.fitzo.one"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.fitzo.one",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
 
@@ -32,6 +36,14 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fitzo accede a tus fotos para que puedas elegir tu foto de perfil.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {
