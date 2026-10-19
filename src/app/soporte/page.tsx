@@ -31,43 +31,43 @@ const faqs = [
 
 export default function Support() {
   return (
-    <main className="min-h-screen py-20 px-4 section-padding">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen py-20">
+      <div className="wrap max-w-3xl">
         {/* Back link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-gold text-sm transition-colors mb-10"
+          className="inline-block text-obsidian/60 hover:text-ember text-sm transition-colors mb-10"
         >
           ← Volver al inicio
         </Link>
 
         {/* Header */}
         <div className="mb-12">
-          <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
+          <span className="tag mb-6">
             Ayuda
           </span>
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
-            Centro de <span className="gold-text">Soporte</span>
+          <h1 className="h2 mb-4">
+            Centro de <span className="text-ember">Soporte</span>
           </h1>
-          <p className="text-white/40 text-sm">¿Tienes un problema con la app? Estamos para ayudarte.</p>
+          <p className="text-obsidian/70 text-sm">¿Tienes un problema con la app? Estamos para ayudarte.</p>
         </div>
 
         {/* Contact */}
-        <div className="glass-card p-6 mb-8">
-          <h2 className="text-white font-bold text-lg mb-3">Contáctanos</h2>
-          <p className="text-white/55 leading-relaxed mb-4">
+        <div className="card p-6 mb-8">
+          <h2 className="display text-[26px] mb-3">Contáctanos</h2>
+          <p className="text-obsidian/70 leading-relaxed mb-4">
             Respondemos normalmente en menos de 48 horas.
           </p>
           <div className="flex flex-col gap-2 text-sm">
             <a
               href="mailto:daviddev47@hotmail.com"
-              className="text-gold hover:text-gold-light transition-colors font-semibold"
+              className="text-ember hover:text-obsidian transition-colors"
             >
               Correo: daviddev47@hotmail.com
             </a>
             <a
               href="https://wa.me/593978724619"
-              className="text-gold hover:text-gold-light transition-colors font-semibold"
+              className="text-ember hover:text-obsidian transition-colors"
             >
               WhatsApp: +593 97 872 4619
             </a>
@@ -77,16 +77,16 @@ export default function Support() {
         {/* FAQ */}
         <div className="flex flex-col gap-6">
           {faqs.map((f) => (
-            <div key={f.q} className="glass-card p-6">
-              <h2 className="text-white font-bold text-lg mb-3">{f.q}</h2>
-              <p className="text-white/55 leading-relaxed">{f.a}</p>
+            <div key={f.q} className="card p-6">
+              <h2 className="display text-[26px] mb-3">{f.q}</h2>
+              <p className="text-obsidian/70 leading-relaxed">{f.a}</p>
             </div>
           ))}
         </div>
 
-        <p className="text-center text-white/40 text-sm mt-12">
+        <p className="text-center text-obsidian/70 text-sm mt-12">
           Consulta también nuestra{" "}
-          <Link href="/privacidad" className="text-gold hover:text-gold-light transition-colors">
+          <Link href="/privacidad" className="text-ember hover:text-obsidian transition-colors">
             Política de Privacidad
           </Link>
           .

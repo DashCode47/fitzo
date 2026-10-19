@@ -49,49 +49,49 @@ const sections = [
 
 export default function PrivacyPolicy() {
   return (
-    <main className="min-h-screen py-20 px-4 section-padding">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen py-20">
+      <div className="wrap max-w-3xl">
         {/* Back link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-gold text-sm transition-colors mb-10"
+          className="inline-block text-obsidian/60 hover:text-ember text-sm transition-colors mb-10"
         >
           ← Volver al inicio
         </Link>
 
         {/* Header */}
         <div className="mb-12">
-          <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
+          <span className="tag mb-6">
             Legal
           </span>
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
+          <h1 className="h2 mb-4">
             Política de{" "}
-            <span className="gold-text">Privacidad</span>
+            <span className="text-ember">Privacidad</span>
           </h1>
-          <p className="text-white/40 text-sm">Última actualización: 5 de mayo de 2026</p>
+          <p className="text-obsidian/70 text-sm">Última actualización: 5 de mayo de 2026</p>
         </div>
 
         {/* Intro */}
-        <div className="glass-card p-6 mb-8">
-          <p className="text-white/60 leading-relaxed">
-            En <span className="text-white font-semibold">Fitzo</span>, valoramos tu privacidad y nos comprometemos a proteger tus datos personales. Esta política explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestra aplicación móvil.
+        <div className="card p-6 mb-8">
+          <p className="text-obsidian/70 leading-relaxed">
+            En <span className="text-obsidian">Fitzo</span>, valoramos tu privacidad y nos comprometemos a proteger tus datos personales. Esta política explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestra aplicación móvil.
           </p>
         </div>
 
         {/* Sections */}
         <div className="flex flex-col gap-6">
           {sections.map((section) => (
-            <div key={section.title} className="glass-card p-6">
-              <h2 className="text-white font-bold text-lg mb-3">{section.title}</h2>
-              <p className="text-white/55 leading-relaxed mb-4">{section.content}</p>
+            <div key={section.title} className="card p-6">
+              <h2 className="display text-[26px] mb-3">{section.title}</h2>
+              <p className="text-obsidian/70 leading-relaxed mb-4">{section.content}</p>
               {section.items && (
                 <ul className="flex flex-col gap-3">
                   {section.items.map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gold mt-2" />
-                      <span className="text-white/55 text-sm leading-relaxed">
+                      <span className="dot mt-2" />
+                      <span className="text-obsidian/70 text-sm leading-relaxed">
                         {"label" in item && item.label && (
-                          <span className="text-white font-semibold">{item.label}: </span>
+                          <span className="text-obsidian">{item.label}: </span>
                         )}
                         {item.text}
                       </span>
@@ -103,14 +103,14 @@ export default function PrivacyPolicy() {
           ))}
 
           {/* Contact section */}
-          <div className="glass-card p-6">
-            <h2 className="text-white font-bold text-lg mb-3">8. Contacto</h2>
-            <p className="text-white/55 leading-relaxed mb-3">
+          <div className="card p-6">
+            <h2 className="display text-[26px] mb-3">8. Contacto</h2>
+            <p className="text-obsidian/70 leading-relaxed mb-3">
               Si tienes preguntas sobre esta política o el tratamiento de tus datos, puedes contactarnos en:
             </p>
             <a
               href="mailto:daviddev47@hotmail.com"
-              className="text-gold hover:text-gold-light transition-colors font-semibold text-sm"
+              className="text-ember hover:text-obsidian transition-colors text-sm"
             >
               daviddev47@hotmail.com
             </a>
@@ -118,7 +118,7 @@ export default function PrivacyPolicy() {
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-white/20 text-xs mt-12">
+        <p className="text-center text-obsidian/50 text-xs mt-12">
           © 2026 Fitzo App. Todos los derechos reservados.
         </p>
       </div>

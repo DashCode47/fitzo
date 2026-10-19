@@ -5,6 +5,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
+import { WA_URL, WhatsAppIcon } from "@/lib/whatsapp";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -43,60 +44,34 @@ export default async function PostPage({ params }: Props) {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-32 pb-24 section-padding">
-        <div className="max-w-3xl mx-auto">
-          {/* Back */}
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-2 text-white/30 hover:text-gold text-sm mb-12 transition-colors"
-          >
+      <main className="min-h-screen pt-28 md:pt-32 pb-20">
+        <div className="wrap max-w-3xl">
+          <Link href="/blog" className="inline-block rounded-full text-obsidian/60 hover:text-ember text-sm mb-10 transition-colors">
             ← Volver al blog
           </Link>
 
-          {/* Header */}
-          <div className="mb-12">
-            <div className="flex items-center gap-4 mb-5 text-xs text-white/30 font-medium uppercase tracking-widest">
-              <time dateTime={post.date}>
-                {new Date(post.date).toLocaleDateString("es-EC", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="tag">{post.readingTime}</span>
+              <time dateTime={post.date} className="text-xs text-obsidian/60">
+                {new Date(post.date).toLocaleDateString("es-EC", { year: "numeric", month: "long", day: "numeric" })}
               </time>
-              <span>·</span>
-              <span>{post.readingTime}</span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-6">
-              {post.title}
-            </h1>
-            <p className="text-white/50 text-lg leading-relaxed">
-              {post.description}
-            </p>
+            <h1 className="display text-[48px] md:text-[80px] mb-6">{post.title}</h1>
+            <p className="text-obsidian/70 text-lg leading-[1.55]">{post.description}</p>
           </div>
 
-          <hr className="border-white/[0.06] mb-12" />
+          <hr className="divider mb-10" />
 
-          {/* MDX Content */}
           <article className="prose-fitzo">
             <MDXRemote source={post.content} />
           </article>
 
-          <hr className="border-white/[0.06] mt-16 mb-12" />
-
-          {/* CTA */}
-          <div className="glass-card p-8 text-center">
-            <p className="text-white/50 text-sm uppercase tracking-widest mb-3">
-              ¿Listo para transformar tu gimnasio?
-            </p>
-            <h2 className="text-2xl font-black text-white mb-6">
-              Prueba Fitzo gratis hoy
-            </h2>
-            <a
-              href="https://wa.me/593978724619?text=Hola%2C%20me%20interesa%20una%20demo%20de%20Fitzo%20para%20mi%20gimnasio%20%F0%9F%92%AA"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary inline-flex items-center gap-2"
-            >
+          <div className="card-ember text-center mt-16">
+            <p className="text-sm mb-3">¿Listo para transformar tu gimnasio?</p>
+            <h2 className="display text-[48px] mb-8">Prueba Fitzo gratis hoy</h2>
+            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="btn-primary bg-obsidian text-chalk hover:bg-chalk hover:text-obsidian">
+              <WhatsAppIcon />
               Activar mi gimnasio gratis
             </a>
           </div>

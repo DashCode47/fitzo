@@ -1,17 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Anton, DM_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// ponytail: Anton stands in for PP Neue Corp Compact (paid font), per DESIGN.md substitutes
+const display = Anton({
+  variable: "--font-display",
+  weight: "400",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sans = DM_Sans({
+  variable: "--font-sans",
+  weight: "500",
   subsets: ["latin"],
 });
 
@@ -80,7 +83,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#7B2FF7",
+  themeColor: "#e2e2df",
 };
 
 export default function RootLayout({
@@ -89,7 +92,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased text-white`}
+        className={`${display.variable} ${sans.variable} antialiased`}
       >
         {/* Meta Pixel Code */}
         <Script id="fb-pixel" strategy="afterInteractive">

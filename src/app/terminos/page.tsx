@@ -49,38 +49,38 @@ const sections = [
 
 export default function Terms() {
   return (
-    <main className="min-h-screen py-20 px-4 section-padding">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen py-20">
+      <div className="wrap max-w-3xl">
         {/* Back link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-gold text-sm transition-colors mb-10"
+          className="inline-block text-obsidian/60 hover:text-ember text-sm transition-colors mb-10"
         >
           ← Volver al inicio
         </Link>
 
         {/* Header */}
         <div className="mb-12">
-          <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
+          <span className="tag mb-6">
             Legal
           </span>
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
-            Términos de <span className="gold-text">Uso</span>
+          <h1 className="h2 mb-4">
+            Términos de <span className="text-ember">Uso</span>
           </h1>
-          <p className="text-white/40 text-sm">Última actualización: 19 de octubre de 2026</p>
+          <p className="text-obsidian/70 text-sm">Última actualización: 19 de octubre de 2026</p>
         </div>
 
         {/* Sections */}
         <div className="flex flex-col gap-6">
           {sections.map((section) => (
-            <div key={section.title} className="glass-card p-6">
-              <h2 className="text-white font-bold text-lg mb-3">{section.title}</h2>
-              <p className="text-white/55 leading-relaxed">
+            <div key={section.title} className="card p-6">
+              <h2 className="display text-[26px] mb-3">{section.title}</h2>
+              <p className="text-obsidian/70 leading-relaxed">
                 {section.content}
                 {section.title.startsWith("7.") && (
                   <>
                     {" "}
-                    <Link href="/privacidad" className="text-gold hover:text-gold-light transition-colors">
+                    <Link href="/privacidad" className="text-ember hover:text-obsidian transition-colors">
                       Ver Política de Privacidad
                     </Link>
                   </>
@@ -90,8 +90,8 @@ export default function Terms() {
                 <ul className="flex flex-col gap-3 mt-4">
                   {section.items.map((item) => (
                     <li key={item} className="flex gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gold mt-2" />
-                      <span className="text-white/55 text-sm leading-relaxed">{item}</span>
+                      <span className="dot mt-2" />
+                      <span className="text-obsidian/70 text-sm leading-relaxed">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -100,14 +100,14 @@ export default function Terms() {
           ))}
 
           {/* Contact section */}
-          <div className="glass-card p-6">
-            <h2 className="text-white font-bold text-lg mb-3">9. Contacto</h2>
-            <p className="text-white/55 leading-relaxed mb-3">
+          <div className="card p-6">
+            <h2 className="display text-[26px] mb-3">9. Contacto</h2>
+            <p className="text-obsidian/70 leading-relaxed mb-3">
               Si tienes preguntas sobre estos términos, puedes contactarnos en:
             </p>
             <a
               href="mailto:daviddev47@hotmail.com"
-              className="text-gold hover:text-gold-light transition-colors font-semibold text-sm"
+              className="text-ember hover:text-obsidian transition-colors text-sm"
             >
               daviddev47@hotmail.com
             </a>
@@ -115,7 +115,7 @@ export default function Terms() {
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-white/20 text-xs mt-12">
+        <p className="text-center text-obsidian/50 text-xs mt-12">
           © 2026 Fitzo App. Todos los derechos reservados.
         </p>
       </div>

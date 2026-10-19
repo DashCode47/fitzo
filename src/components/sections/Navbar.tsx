@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import LogoImg from "@/assets/images/logo-purple.png";
+import LogoMark from "@/assets/images/logo-mark.png";
+import { WA_URL, WhatsAppIcon } from "@/lib/whatsapp";
 
 const navLinks = [
   { label: "Características", href: "#features" },
@@ -14,41 +15,32 @@ const navLinks = [
   { label: "Blog", href: "/blog" },
 ];
 
+export function Logo() {
+  return (
+    <Link href="/" className="flex items-center gap-2" aria-label="Fitzo — Software de gestión para gimnasios">
+      <Image src={LogoMark} alt="" height={24} className="h-6 w-auto" />
+      <span className="display text-[28px] leading-none">Fitzo</span>
+    </Link>
+  );
+}
+
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const isHome = pathname === "/";
+  const isHome = usePathname() === "/";
 
-  function resolveHref(href: string) {
-    if (href.startsWith("#")) return isHome ? href : `/${href}`;
-    return href;
-  }
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const resolveHref = (href: string) => (href.startsWith("#") && !isHome ? `/${href}` : href);
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/80 backdrop-blur-md border-b border-white/[0.06]" : ""
-        }`}
-    >
-      <nav className="section-padding flex items-center justify-between h-16 md:h-20">
-        {/* Logo */}
-        <Link href="/" className="flex items-center group">
-          <Image src={LogoImg} alt="Fitzo — Software de gestión para gimnasios" height={36} className="h-20 w-auto" />
-        </Link>
+    <header className="fixed top-3 inset-x-0 z-50 px-4">
+      <nav className="max-w-page mx-auto bg-limestone rounded-full flex items-center justify-between h-14 md:h-16 pl-5 pr-2">
+        <Logo />
 
-        {/* Desktop links */}
-        <ul className="hidden md:flex items-center gap-8">
+        <ul className="hidden md:flex items-center gap-[9px]">
           {navLinks.map((link) => (
             <li key={link.href}>
               <Link
                 href={resolveHref(link.href)}
-                className="text-sm text-white/60 hover:text-gold transition-colors duration-200 tracking-wide"
+                className="rounded-full px-3 py-2 hover:bg-pumice transition-colors"
               >
                 {link.label}
               </Link>
@@ -56,62 +48,42 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* CTA */}
-        <div className="hidden md:flex items-center gap-3">
-          <a
-            href="https://wa.me/593978724619?text=Hola%2C%20me%20interesa%20una%20demo%20de%20Fitzo%20para%20mi%20gimnasio%20%F0%9F%92%AA"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary text-sm py-2.5 px-6 flex items-center gap-2"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.833L.057 23.25a.75.75 0 00.918.928l5.555-1.43A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.66-.523-5.176-1.432l-.372-.22-3.849.99.999-3.75-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-            </svg>
-            Prueba gratis
-          </a>
-        </div>
-
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden flex flex-col gap-1.5 p-2"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
+        <a
+          href={WA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-primary hidden md:inline-flex"
         >
-          <span
-            className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? "rotate-45 translate-y-2" : ""
-              }`}
-          />
-          <span
-            className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? "opacity-0" : ""
-              }`}
-          />
-          <span
-            className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? "-rotate-45 -translate-y-2" : ""
-              }`}
-          />
+          <WhatsAppIcon />
+          Prueba gratis
+        </a>
+
+        <button
+          className="md:hidden flex flex-col gap-1.5 p-3"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Abrir menú"
+          aria-expanded={menuOpen}
+        >
+          <span className={`block w-6 h-0.5 bg-obsidian transition-transform ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
+          <span className={`block w-6 h-0.5 bg-obsidian transition-opacity ${menuOpen ? "opacity-0" : ""}`} />
+          <span className={`block w-6 h-0.5 bg-obsidian transition-transform ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
         </button>
       </nav>
 
-      {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-white/[0.06] px-6 py-6 flex flex-col gap-4">
+        <div className="md:hidden mt-2 bg-limestone rounded-card p-6 flex flex-col gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={resolveHref(link.href)}
               onClick={() => setMenuOpen(false)}
-              className="text-white/70 hover:text-gold transition-colors py-2 text-lg"
+              className="rounded-full px-3 py-3 text-lg hover:bg-pumice transition-colors"
             >
               {link.label}
             </Link>
           ))}
-          <a
-            href="https://wa.me/593978724619?text=Hola%2C%20me%20interesa%20una%20demo%20de%20Fitzo%20para%20mi%20gimnasio%20%F0%9F%92%AA"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary mt-2 text-center"
-          >
+          <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="btn-primary mt-4">
+            <WhatsAppIcon />
             Activar mi gimnasio gratis
           </a>
         </div>

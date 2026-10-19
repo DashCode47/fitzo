@@ -2,105 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --gold: #7b2ff7;
-  --gold-light: #a855f7;
-  --gold-bright: #a855f7;
-  --dark-card: #111111;
-  --dark-surface: #1a1a1a;
-}
+/* Caldera design system — see DESIGN.md. Flat: no shadows anywhere. */
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
-
   html {
     scroll-behavior: smooth;
   }
 
   body {
-    background-color: #050505;
-    color: #fff;
-    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    @apply bg-pumice text-obsidian font-sans font-medium;
     overflow-x: hidden;
   }
 
   ::selection {
-    background-color: rgba(123, 47, 247, 0.3);
-    color: #fff;
-  }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #111;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #7b2ff7;
-    border-radius: 3px;
+    @apply bg-ember text-obsidian;
   }
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-2xl;
+  .wrap {
+    @apply max-w-page mx-auto px-4 md:px-8;
   }
 
-  .gold-text {
-    background-image: linear-gradient(135deg, #7b2ff7 0%, #a855f7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .section {
+    @apply py-8 md:py-10;
   }
 
-  .gold-border {
-    @apply border border-gold/30;
+  /* Ultrabold condensed display type, positive tracking per spec */
+  .display {
+    @apply font-display uppercase;
+    letter-spacing: 0.02em;
+    line-height: 1.05; /* 0.94 in spec clips Spanish accents (Ó, Ñ) */
   }
 
-  .section-padding {
-    @apply px-6 md:px-12 lg:px-20 xl:px-32;
+  .h2 {
+    @apply display text-[48px] md:text-[80px];
+  }
+
+  .card {
+    @apply bg-limestone rounded-card p-6 md:p-10;
+  }
+
+  .card-ember {
+    @apply bg-ember text-chalk rounded-card p-6 md:p-10;
+  }
+
+  .card-dark {
+    @apply bg-obsidian text-chalk rounded-card p-6 md:p-10;
+  }
+
+  .tag {
+    @apply inline-block bg-sulfur text-obsidian rounded-full px-2.5 py-1 text-xs;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white transition-all duration-200;
-    background: linear-gradient(135deg, #7b2ff7 0%, #a855f7 100%);
-    background-size: 200% auto;
-  }
-
-  .btn-primary:hover {
-    background-position: right center;
-    box-shadow: 0 0 30px rgba(123, 47, 247, 0.55);
-    transform: translateY(-1px);
+    @apply inline-flex items-center justify-center gap-2 bg-ember text-obsidian rounded-full px-6 py-3 transition-colors hover:bg-obsidian hover:text-chalk;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white border border-gold/40 transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 border-[1.5px] border-obsidian text-obsidian rounded-card px-6 py-[10.5px] transition-colors hover:bg-obsidian hover:text-chalk;
   }
 
-  .btn-secondary:hover {
-    @apply border-gold/80 bg-gold/10;
-    transform: translateY(-1px);
+  .dot {
+    @apply w-2 h-2 rounded-full bg-ember flex-shrink-0;
   }
 
-  /* Blog MDX prose styles */
+  .divider {
+    @apply border-0 border-t-[1.5px] border-dotted border-obsidian;
+  }
+
+  /* Hero halftone: violet→ember dots fading to solid ember at top right */
+  .halftone {
+    background-color: #524ae9;
+    background-image:
+      linear-gradient(to bottom left, #fc5000 0%, rgba(252, 80, 0, 0) 55%),
+      radial-gradient(circle, #fc5000 0 2px, transparent 2.5px);
+    background-size: 100% 100%, 9px 9px;
+  }
+
+  /* Blog MDX prose */
   .prose-fitzo {
-    @apply text-white/70 leading-relaxed;
+    @apply text-obsidian/80 leading-relaxed;
   }
 
   .prose-fitzo h2 {
-    @apply text-2xl md:text-3xl font-black text-white mt-12 mb-4;
+    @apply display text-[32px] md:text-[48px] text-obsidian mt-14 mb-5;
   }
 
   .prose-fitzo h3 {
-    @apply text-xl font-black text-white mt-8 mb-3;
+    @apply display text-[26px] text-obsidian mt-10 mb-3;
   }
 
   .prose-fitzo p {
-    @apply mb-6 text-base md:text-lg leading-relaxed;
+    @apply mb-6 text-base md:text-lg leading-[1.55];
   }
 
   .prose-fitzo ul {
@@ -108,56 +102,35 @@
   }
 
   .prose-fitzo ul li {
-    @apply pl-5 relative text-white/70;
+    @apply pl-5 relative;
   }
 
   .prose-fitzo ul li::before {
-    content: "→";
-    @apply absolute left-0 text-gold font-bold;
+    content: "";
+    @apply absolute left-0 top-[0.6em] w-2 h-2 rounded-full bg-ember;
   }
 
   .prose-fitzo ol {
     @apply mb-6 space-y-2 list-decimal pl-6;
   }
 
-  .prose-fitzo ol li {
-    @apply text-white/70;
-  }
-
   .prose-fitzo strong {
-    @apply text-white font-bold;
+    @apply text-obsidian;
   }
 
   .prose-fitzo a {
-    @apply text-gold hover:text-gold-light underline transition-colors;
+    @apply text-ember underline hover:text-obsidian transition-colors;
   }
 
   .prose-fitzo blockquote {
-    @apply border-l-4 border-gold/50 pl-6 my-8 text-white/50 italic;
+    @apply bg-limestone rounded-[20px] px-6 py-5 my-8;
   }
 
   .prose-fitzo code {
-    @apply bg-white/[0.06] text-gold px-1.5 py-0.5 rounded text-sm font-mono;
+    @apply bg-limestone px-1.5 py-0.5 rounded text-sm;
   }
 
   .prose-fitzo hr {
-    @apply border-white/[0.06] my-10;
+    @apply divider my-10;
   }
-}
-
-@layer utilities {
-
-  .text-shadow-gold {
-    text-shadow: 0 0 30px rgba(123, 47, 247, 0.5);
-  }
-
-  .bg-noise {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  }
-
-  .animate-delay-100 { animation-delay: 100ms; }
-  .animate-delay-200 { animation-delay: 200ms; }
-  .animate-delay-300 { animation-delay: 300ms; }
-  .animate-delay-400 { animation-delay: 400ms; }
-  .animate-delay-500 { animation-delay: 500ms; }
 }

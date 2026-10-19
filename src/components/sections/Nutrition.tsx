@@ -1,93 +1,54 @@
+import { WA_URL } from "@/lib/whatsapp";
+
 const macros = [
-  { label: "Proteína", value: 165, unit: "g", color: "#7B2FF7", percent: 70 },
-  { label: "Carbohidratos", value: 220, unit: "g", color: "#3b82f6", percent: 55 },
-  { label: "Grasas", value: 65, unit: "g", color: "#22c55e", percent: 45 },
+  { label: "Proteína", value: 165, percent: 70, bar: "bg-ember" },
+  { label: "Carbohidratos", value: 220, percent: 55, bar: "bg-plasma" },
+  { label: "Grasas", value: 65, percent: 45, bar: "bg-obsidian" },
 ];
 
-const goals = [
-  { icon: "💪", label: "Ganancia muscular" },
-  { icon: "🔥", label: "Pérdida de grasa" },
-  { icon: "⚡", label: "Rendimiento deportivo" },
-  { icon: "🏃", label: "Resistencia cardiovascular" },
-];
+const goals = ["Ganancia muscular", "Pérdida de grasa", "Rendimiento deportivo", "Resistencia cardiovascular"];
+
+const R = 40;
+const C = 2 * Math.PI * R;
 
 export default function Nutrition() {
   return (
-    <section
-      id="nutrition"
-      className="relative py-24 md:py-32 section-padding overflow-hidden"
-    >
-      <div
-        className="absolute right-0 bottom-0 w-[400px] h-[400px] rounded-full opacity-[0.06] pointer-events-none"
-        style={{ background: "radial-gradient(ellipse, #22c55e 0%, transparent 70%)" }}
-        aria-hidden="true"
-      />
-
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-        {/* Left: Nutrition card mockup */}
-        <div className="flex flex-col items-center lg:items-start">
-          <div
-            className="w-full max-w-sm glass-card p-7 rounded-3xl"
-            style={{ boxShadow: "0 0 60px rgba(123,47,247,0.15)" }}
-          >
-            {/* Card header */}
-            <div className="flex items-center justify-between mb-6">
+    <section id="nutrition" className="section">
+      <div className="wrap grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Plan mockup */}
+        <div className="card flex items-center justify-center">
+          <div className="w-full max-w-sm bg-chalk rounded-card p-7">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-white/40 text-xs uppercase tracking-widest">Plan activo</p>
-                <p className="text-white font-bold text-lg">Volumen Limpio 🍗</p>
+                <p className="text-obsidian/50 text-xs">Plan activo</p>
+                <p className="display text-[26px]">Volumen limpio</p>
               </div>
-              <div
-                className="px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{
-                  background: "rgba(123,47,247,0.15)",
-                  color: "#A855F7",
-                  border: "1px solid rgba(123,47,247,0.3)",
-                }}
-              >
-                ACTIVO
+              <span className="tag">Activo</span>
+            </div>
+
+            <div className="relative w-40 h-40 mx-auto mb-8">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r={R} fill="none" stroke="#e2e2df" strokeWidth="10" />
+                <circle
+                  cx="50" cy="50" r={R} fill="none" stroke="#fc5000" strokeWidth="10"
+                  strokeLinecap="round" strokeDasharray={`${C * 0.72} ${C}`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="display text-[48px]">2,340</span>
+                <span className="text-obsidian/50 text-xs">kcal / día</span>
               </div>
             </div>
 
-            {/* Calorie ring */}
-            <div className="flex items-center justify-center mb-8">
-              <div className="relative w-36 h-36">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                  <circle
-                    cx="50" cy="50" r="40" fill="none"
-                    stroke="url(#goldGrad)" strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 40 * 0.72} ${2 * Math.PI * 40}`}
-                  />
-                  <defs>
-                    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#7B2FF7" />
-                      <stop offset="100%" stopColor="#A855F7" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-black text-white">2,340</span>
-                  <span className="text-white/40 text-xs">kcal / día</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Macros */}
             <div className="space-y-4">
-              {macros.map((macro) => (
-                <div key={macro.label}>
+              {macros.map((m) => (
+                <div key={m.label}>
                   <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-white/60">{macro.label}</span>
-                    <span className="font-bold" style={{ color: macro.color }}>
-                      {macro.value}{macro.unit}
-                    </span>
+                    <span className="text-obsidian/70">{m.label}</span>
+                    <span>{m.value}g</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-white/[0.06]">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${macro.percent}%`, background: macro.color }}
-                    />
+                  <div className="h-2 rounded-full bg-pumice">
+                    <div className={`h-full rounded-full ${m.bar}`} style={{ width: `${m.percent}%` }} />
                   </div>
                 </div>
               ))}
@@ -95,40 +56,25 @@ export default function Nutrition() {
           </div>
         </div>
 
-        {/* Right: Text */}
-        <div>
-          <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
-            Nutrición
-          </span>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-            Tu dieta,{" "}
-            <span className="gold-text">calculada para ti</span>
-          </h2>
-          <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Tus miembros ingresan su peso, altura, edad y objetivo. Fitzo calcula
-            automáticamente sus calorías y macros, y les asigna un plan de
-            alimentación personalizado — sin que tengas que contratar a un nutricionista.
+        <div className="card">
+          <span className="tag">Nutrición</span>
+          <h2 className="h2 mt-6 mb-6">Tu dieta, calculada para ti</h2>
+          <p className="text-obsidian/70 text-lg leading-[1.55] mb-8">
+            Tus miembros ingresan su peso, altura, edad y objetivo. Fitzo calcula automáticamente sus calorías
+            y macros, y les asigna un plan de alimentación personalizado — sin que tengas que contratar a un
+            nutricionista.
           </p>
 
-          {/* Goals */}
-          <div className="grid grid-cols-2 gap-3 mb-10">
-            {goals.map((goal) => (
-              <div
-                key={goal.label}
-                className="glass-card flex items-center gap-3 px-4 py-3.5 hover:border-gold/20 transition-colors"
-              >
-                <span className="text-xl">{goal.icon}</span>
-                <span className="text-white/70 text-sm font-medium">{goal.label}</span>
-              </div>
+          <ul className="mb-10">
+            {goals.map((g) => (
+              <li key={g} className="flex items-center gap-3 py-3 border-t-[1.5px] border-dotted border-obsidian">
+                <span className="dot" />
+                {g}
+              </li>
             ))}
-          </div>
+          </ul>
 
-          <a
-            href="https://wa.me/593978724619?text=Hola%2C%20me%20interesa%20una%20demo%20de%20Fitzo%20para%20mi%20gimnasio%20%F0%9F%92%AA"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary inline-flex"
-          >
+          <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
             Activar nutrición en mi gimnasio
           </a>
         </div>

@@ -46,107 +46,52 @@ export default function VideoDemo() {
   };
 
   return (
-    <section className="relative py-24 md:py-32 section-padding overflow-hidden">
-      {/* Background glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden="true"
-        style={{
-          background:
-            "linear-gradient(180deg, transparent 0%, rgba(123,47,247,0.04) 50%, transparent 100%)",
-        }}
-      />
-
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
-            Demo
-          </span>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-            Míralo en{" "}
-            <span className="gold-text">acción</span>
-          </h2>
-          <p className="text-white/50 text-lg max-w-xl mx-auto">
+    <section className="section">
+      <div className="wrap">
+        <div className="max-w-3xl mb-10 md:mb-14">
+          <span className="tag">Demo</span>
+          <h2 className="h2 mt-6">Míralo en acción</h2>
+          <p className="text-lg text-obsidian/70 mt-6">
             Así se ve Fitzo desde adentro — la experiencia que vivirán tus miembros cada día.
           </p>
         </div>
 
-        {/* Video wrapper */}
-        <div ref={containerRef} className="flex justify-center">
-          <div
-            className="relative rounded-2xl overflow-hidden w-full"
-            style={{
-              aspectRatio: "16/9",
-              border: "1px solid rgba(123,47,247,0.35)",
-              boxShadow: "0 0 80px rgba(123,47,247,0.2), 0 0 0 8px rgba(255,255,255,0.03)",
-            }}
-          >
-            {shouldLoad && (
-              <iframe
-                ref={iframeRef}
-                src="https://player.vimeo.com/video/1177014189?badge=0&autopause=0&player_id=0&app_id=58479&portrait=0&byline=0&title=0&controls=0"
-                allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
-                loading="lazy"
-                className="absolute inset-0 w-full h-full"
-                title="Fitzo — Demo en video del software de gestión gamificado para gimnasios"
-              />
-            )}
+        <div ref={containerRef} className="relative rounded-card overflow-hidden bg-obsidian w-full aspect-video">
+          {shouldLoad && (
+            <iframe
+              ref={iframeRef}
+              src="https://player.vimeo.com/video/1177014189?badge=0&autopause=0&player_id=0&app_id=58479&portrait=0&byline=0&title=0&controls=0"
+              allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+              loading="lazy"
+              className="absolute inset-0 w-full h-full"
+              title="Fitzo — Demo en video del software de gestión gamificado para gimnasios"
+            />
+          )}
 
-            {/* Custom play/pause overlay */}
-            <button
-              onClick={togglePlay}
-              aria-label={isPlaying ? "Pausar" : "Reproducir"}
-              className="absolute inset-0 w-full h-full flex items-center justify-center group"
-              style={{ background: "transparent" }}
+          <button
+            onClick={togglePlay}
+            aria-label={isPlaying ? "Pausar" : "Reproducir"}
+            className="absolute inset-0 w-full h-full flex items-center justify-center group"
+          >
+            <span
+              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
+                isPlaying
+                  ? "bg-obsidian/60 opacity-0 group-hover:opacity-100"
+                  : "bg-ember"
+              } ${isReady ? "" : "opacity-80"}`}
             >
-              {/* Show big play button when paused, subtle pause on hover when playing */}
-              <div
-                className="flex items-center justify-center rounded-full transition-all duration-300"
-                style={{
-                  width: 64,
-                  height: 64,
-                  background: isPlaying
-                    ? "rgba(0,0,0,0)"
-                    : "linear-gradient(135deg, #7B2FF7, #A855F7)",
-                  boxShadow: isPlaying
-                    ? "none"
-                    : "0 0 40px rgba(123,47,247,0.6)",
-                  opacity: isPlaying ? 0 : 1,
-                  transform: isPlaying ? "scale(0.8)" : "scale(1)",
-                }}
-              >
-                {/* Play icon */}
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="white"
-                  style={{ marginLeft: 3 }}
-                >
+              {isPlaying ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                  <rect x="5" y="3" width="4" height="18" rx="1" />
+                  <rect x="15" y="3" width="4" height="18" rx="1" />
+                </svg>
+              ) : (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#070607" style={{ marginLeft: 3 }}>
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-              </div>
-
-              {/* Pause indicator on hover while playing */}
-              {isReady && (
-                <div
-                  className="absolute flex items-center justify-center rounded-full transition-all duration-200 opacity-0 group-hover:opacity-100"
-                  style={{
-                    width: 56,
-                    height: 56,
-                    background: "rgba(0,0,0,0.5)",
-                    display: isPlaying ? undefined : "none",
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                    <rect x="5" y="3" width="4" height="18" rx="1" />
-                    <rect x="15" y="3" width="4" height="18" rx="1" />
-                  </svg>
-                </div>
               )}
-            </button>
-          </div>
+            </span>
+          </button>
         </div>
       </div>
     </section>

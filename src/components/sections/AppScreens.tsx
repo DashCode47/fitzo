@@ -1,7 +1,4 @@
-"use client";
-
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
 import mu1 from "@/assets/images/screens/mu1.png";
 import mu2 from "@/assets/images/screens/mu2.png";
 import mu3 from "@/assets/images/screens/mu3.png";
@@ -22,7 +19,6 @@ const screens = [
       "Ranking de los más activos",
       "Promociones personalizadas",
     ],
-    color: "#7B2FF7",
   },
   {
     image: mu2,
@@ -35,7 +31,6 @@ const screens = [
       "Entrenamiento del día destacado",
       "Biblioteca de rutinas por nivel",
     ],
-    color: "#3b82f6",
   },
   {
     image: mu3,
@@ -48,7 +43,6 @@ const screens = [
       "Visibilidad 24/7 de tus productos",
       "Impulsa compras por impulso",
     ],
-    color: "#a855f7",
   },
   {
     image: mu4,
@@ -61,7 +55,6 @@ const screens = [
       "Diferenciación inmediata de tu competencia",
       "Valor agregado de alto impacto",
     ],
-    color: "#22c55e",
   },
   {
     image: mu5,
@@ -74,7 +67,6 @@ const screens = [
       "Títulos y rangos por rendimiento",
       "FOMO que convierte ausencias en asistencia",
     ],
-    color: "#FACC15",
   },
   {
     image: mu6,
@@ -87,7 +79,6 @@ const screens = [
       "Guía clara de cómo subir de nivel",
       "Seguimiento por grupo muscular",
     ],
-    color: "#22c55e",
   },
   {
     image: mu7,
@@ -100,130 +91,51 @@ const screens = [
       "Historial de carga con gráfica",
       "Detalle de cada sesión registrada",
     ],
-    color: "#3b82f6",
   },
 ];
 
-function ScreenRow({ screen, index }: { screen: typeof screens[0]; index: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  const isEven = index % 2 === 0;
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.2 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"} items-center gap-12 lg:gap-20`}
-    >
-      {/* Mockup */}
-      <div
-        className="flex-shrink-0 flex justify-center transition-all duration-700"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible
-            ? "translateY(0px) scale(1)"
-            : `translateY(50px) scale(0.92)`,
-          transitionDelay: "0ms",
-        }}
-      >
-        <div
-          style={{
-            filter: `drop-shadow(0 0 50px ${screen.color}35)`,
-            transition: "filter 0.7s ease",
-          }}
-        >
-          <Image
-            src={screen.image}
-            alt={screen.tag}
-            width={240}
-            className="w-48 md:w-60 h-auto"
-          />
-        </div>
-      </div>
-
-      {/* Text */}
-      <div
-        className="flex-1 text-center lg:text-left transition-all duration-700"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateX(0px)" : `translateX(${isEven ? "40px" : "-40px"})`,
-          transitionDelay: "150ms",
-        }}
-      >
-        <span
-          className="inline-block text-xs font-bold tracking-[4px] uppercase mb-4"
-          style={{ color: screen.color }}
-        >
-          {screen.tag}
-        </span>
-        <h3 className="text-3xl md:text-4xl font-black text-white mb-5 leading-tight">
-          {screen.title}
-        </h3>
-        <p className="text-white/50 text-lg leading-relaxed mb-8">
-          {screen.description}
-        </p>
-
-        {/* Benefits */}
-        <ul className="flex flex-col gap-3">
-          {screen.benefits.map((b, i) => (
-            <li
-              key={b}
-              className="flex items-center gap-3 justify-center lg:justify-start transition-all duration-500"
-              style={{
-                opacity: visible ? 1 : 0,
-                transform: visible ? "translateX(0)" : "translateX(20px)",
-                transitionDelay: `${300 + i * 100}ms`,
-              }}
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ background: screen.color }}
-              />
-              <span className="text-white/70 text-sm">{b}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
 export default function AppScreens() {
   return (
-    <section className="relative py-24 md:py-32 section-padding overflow-hidden">
-      <div className="max-w-6xl mx-auto">
-
-        {/* Header */}
-        <div className="text-center mb-20">
-          <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
-            La App
-          </span>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-            Cada pantalla,{" "}
-            <span className="gold-text">diseñada con propósito</span>
-          </h2>
-          <p className="text-white/50 text-lg max-w-xl mx-auto">
+    <section className="section">
+      <div className="wrap">
+        <div className="max-w-3xl mb-10 md:mb-14">
+          <span className="tag">La App</span>
+          <h2 className="h2 mt-6">Cada pantalla, diseñada con propósito</h2>
+          <p className="text-lg text-obsidian/70 mt-6">
             Una experiencia que tus miembros van a querer abrir todos los días.
           </p>
         </div>
 
-        {/* Screens list */}
-        <div className="flex flex-col gap-32">
+        <div className="flex flex-col gap-4">
           {screens.map((screen, i) => (
-            <ScreenRow key={screen.tag} screen={screen} index={i} />
+            <article key={screen.tag} className="card grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+              <div
+                className={`rounded-card overflow-hidden flex justify-center pt-10 px-6 ${
+                  i % 2 ? "bg-obsidian lg:order-2" : "bg-ember"
+                }`}
+              >
+                <Image
+                  src={screen.image}
+                  alt={`App Fitzo — ${screen.tag}`}
+                  sizes="240px"
+                  className="w-48 md:w-60 h-auto -mb-12"
+                />
+              </div>
+
+              <div>
+                <span className="tag">{screen.tag}</span>
+                <h3 className="display text-[32px] md:text-[48px] mt-6 mb-5">{screen.title}</h3>
+                <p className="text-obsidian/70 text-lg leading-[1.55] mb-8">{screen.description}</p>
+                <ul className="flex flex-col">
+                  {screen.benefits.map((b) => (
+                    <li key={b} className="flex items-center gap-3 py-3 border-t-[1.5px] border-dotted border-obsidian">
+                      <span className="dot" />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
           ))}
         </div>
       </div>

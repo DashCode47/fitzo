@@ -16,7 +16,7 @@ export default function Testimonials() {
           <span className="inline-block text-gold text-xs font-bold tracking-[4px] uppercase mb-4">
             Wall of Love
           </span>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+          <h2 className="text-[36px] md:text-[48px] font-black text-white mb-4">
             Lo que dicen{" "}
             <span className="gold-text">los primeros</span>
           </h2>

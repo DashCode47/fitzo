@@ -17,54 +17,31 @@ export default function BlogPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-32 pb-24 section-padding">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-16">
-            <span className="text-gold text-xs font-bold tracking-[4px] uppercase">
-              Blog
-            </span>
-            <h1 className="text-4xl md:text-5xl font-black text-white mt-3 mb-4">
-              Recursos para{" "}
-              <span className="gold-text">gimnasios modernos</span>
-            </h1>
-            <p className="text-white/50 text-lg max-w-xl">
-              Estrategias, casos de éxito y tecnología para retener más miembros
-              y hacer crecer tu gimnasio.
+      <main className="min-h-screen pt-28 md:pt-32 pb-20">
+        <div className="wrap">
+          <div className="max-w-3xl mb-10 md:mb-14">
+            <span className="tag">Blog</span>
+            <h1 className="h2 mt-6 mb-6">Recursos para gimnasios modernos</h1>
+            <p className="text-obsidian/70 text-lg max-w-xl">
+              Estrategias, casos de éxito y tecnología para retener más miembros y hacer crecer tu gimnasio.
             </p>
           </div>
 
-          {/* Posts grid */}
           {posts.length === 0 ? (
-            <p className="text-white/30">Próximamente...</p>
+            <p className="text-obsidian/50">Próximamente...</p>
           ) : (
-            <div className="grid gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {posts.map((post) => (
-                <Link
-                  key={post.slug}
-                  href={`/blog/${post.slug}`}
-                  className="glass-card p-8 group hover:border-gold/30 transition-all duration-300"
-                >
-                  <div className="flex items-center gap-4 mb-3 text-xs text-white/30 font-medium uppercase tracking-widest">
-                    <time dateTime={post.date}>
-                      {new Date(post.date).toLocaleDateString("es-EC", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                <Link key={post.slug} href={`/blog/${post.slug}`} className="card group flex flex-col">
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="tag">{post.readingTime}</span>
+                    <time dateTime={post.date} className="text-xs text-obsidian/60">
+                      {new Date(post.date).toLocaleDateString("es-EC", { year: "numeric", month: "long", day: "numeric" })}
                     </time>
-                    <span>·</span>
-                    <span>{post.readingTime}</span>
                   </div>
-                  <h2 className="text-xl md:text-2xl font-black text-white group-hover:text-gold transition-colors mb-3">
-                    {post.title}
-                  </h2>
-                  <p className="text-white/50 leading-relaxed">
-                    {post.description}
-                  </p>
-                  <span className="inline-block mt-5 text-gold text-sm font-semibold">
-                    Leer artículo →
-                  </span>
+                  <h2 className="display text-[32px] group-hover:text-ember transition-colors mb-4">{post.title}</h2>
+                  <p className="text-obsidian/70 leading-[1.55] mb-8">{post.description}</p>
+                  <span className="mt-auto text-ember">Leer artículo →</span>
                 </Link>
               ))}
             </div>
