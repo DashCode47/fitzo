@@ -25,24 +25,21 @@ const SLIDES = [
     title: "BIENVENIDO A\nFITZO",
     description:
       "Tu transformación comienza hoy.\nEntrena con los mejores equipos y programas.",
-    image:
-      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1200",
+    image: require("@/assets/images/onboarding/onboarding-1.jpg"),
   },
   {
     id: "2",
     title: "SEGUIMIENTO\nTOTAL",
     description:
       "Monitorea tu progreso, marcas personales\ny nutrición en tiempo real.",
-    image:
-      "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200",
+    image: require("@/assets/images/onboarding/onboarding-2.jpg"),
   },
   {
     id: "3",
     title: "MÁXIMO\nPOTENCIAL",
     description:
       "Únete a la elite del fitness y comparte tus logros con nuestra comunidad.",
-    image:
-      "https://images.unsplash.com/photo-1541534741688-6078c64b5903?q=80&w=1200",
+    image: require("@/assets/images/onboarding/onboarding-3.jpg"),
   },
 ];
 
@@ -112,7 +109,7 @@ export default function OnboardingScreen() {
   const renderSlide = ({ item }: { item: (typeof SLIDES)[0] }) => (
     <View style={styles.slide}>
       <Image
-        source={{ uri: item.image }}
+        source={item.image}
         style={styles.image}
         resizeMode="cover"
       />

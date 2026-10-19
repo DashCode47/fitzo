@@ -34,24 +34,7 @@
 
 ---
 
-## 4. Medidor de Aforo en Tiempo Real
-
-- Indicador visual del nivel de ocupación del gimnasio (Baja, Media, Alta).
-- Porcentaje y cantidad de personas en el gym en ese momento.
-- **Mensaje clave:** *"Entrena cuando quieras. Siempre sabrás qué tan lleno está el gym."*
-
----
-
-## 5. Check-in Automático por Geolocalización
-
-- Detección automática cuando el usuario llega al gimnasio (geofencing con Radar).
-- Registro de asistencia sin que el usuario haga nada.
-- Funciona incluso con la app cerrada (tracking en segundo plano).
-- **Mensaje clave:** *"Solo llega al gym. La app registra tu asistencia por ti."*
-
----
-
-## 6. Sistema de Puntos y Gamificación — "Iron Legends"
+## 4. Sistema de Puntos y Gamificación — "Iron Legends"
 
 Los usuarios acumulan puntos por:
 
@@ -68,7 +51,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 7. Ranking / Leaderboard Mensual
+## 5. Ranking / Leaderboard Mensual
 
 - Tabla de posiciones mensual con todos los miembros.
 - Muestra avatar, nombre, puntos y racha de días consecutivos.
@@ -78,7 +61,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 8. Escáner QR
+## 6. Escáner QR
 
 - Escaneo de códigos QR para canjear recompensas de puntos.
 - Feedback inmediato con modal de éxito o error.
@@ -87,7 +70,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 9. Generador de QR para Administradores
+## 7. Generador de QR para Administradores
 
 - Los administradores pueden crear códigos QR de recompensa desde la app.
 - Tipos de recompensa: compra, reseña, referido, renovación anticipada.
@@ -96,7 +79,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 10. Plan Nutricional Personalizado
+## 8. Plan Nutricional Personalizado
 
 - Formulario de onboarding nutricional: peso, altura, edad, género, nivel de actividad.
 - Selección de objetivo: **Corte** (perder grasa), **Mantenimiento** o **Volumen** (ganar músculo).
@@ -108,7 +91,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 11. Tienda / Shop
+## 9. Tienda / Shop
 
 - Catálogo de productos en formato grid.
 - Imagen, nombre, categoría, descripción y precio de cada producto.
@@ -116,7 +99,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 12. Promociones, Eventos y Noticias
+## 10. Promociones, Eventos y Noticias
 
 - Carrusel de banners con promos activas, eventos y noticias.
 - Vista detallada de cada banner con imagen, descripción completa y fechas.
@@ -126,7 +109,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 13. Perfil de Usuario
+## 11. Perfil de Usuario
 
 - Foto de perfil con opción de subir desde cámara o galería.
 - Información personal: correo, teléfono, nombre de usuario, rol.
@@ -137,7 +120,7 @@ Los usuarios acumulan puntos por:
 
 ---
 
-## 14. Experiencia Visual y de Diseño
+## 12. Experiencia Visual y de Diseño
 
 - Tema oscuro con acentos dorados (#C5A356).
 - Efectos de glassmorfismo y gradientes.
@@ -152,11 +135,10 @@ Los usuarios acumulan puntos por:
 
 | Pilar | Funcionalidad Estrella |
 |---|---|
-| **Conveniencia** | Check-in automático por geolocalización |
 | **Motivación** | Sistema de puntos, ranking mensual y gamificación |
 | **Nutrición** | Plan de dieta personalizado con cálculo automático |
 | **Comunidad** | Leaderboard, referidos y eventos |
-| **Información** | Aforo en tiempo real, promos y noticias |
+| **Información** | Promos, eventos y noticias |
 | **Experiencia** | Diseño premium, animaciones y tema oscuro |
 
 ---

@@ -6,6 +6,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -267,9 +268,19 @@ export default function LoginScreen() {
             {/* Footer */}
             <Text style={styles.footer}>
               Al continuar aceptas nuestros{' '}
-              <Text style={styles.accentText}>Términos</Text>
+              <Text
+                style={styles.accentText}
+                onPress={() => WebBrowser.openBrowserAsync('https://fitzo.one/terminos/')}
+              >
+                Términos
+              </Text>
               {' '}y{' '}
-              <Text style={styles.accentText}>Privacidad</Text>
+              <Text
+                style={styles.accentText}
+                onPress={() => WebBrowser.openBrowserAsync('https://fitzo.one/privacidad/')}
+              >
+                Privacidad
+              </Text>
             </Text>
 
           </SafeAreaView>

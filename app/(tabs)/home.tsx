@@ -5,7 +5,6 @@ import { LeaderboardAPI } from "@/api/leaderboard";
 import { NutritionAPI } from "@/api/nutrition";
 import { RoutinesAPI } from "@/api/routines";
 import { UserAPI } from "@/api/user";
-// import { CrowdMeter } from '@/components/home/HeaderComponents';
 import { PromoCarousel } from "@/components/home/HeaderComponents";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeSkeleton } from "@/components/home/HomeSkeleton";
@@ -20,8 +19,6 @@ import { AppTheme } from "@/constants/theme";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useStartWorkout } from "@/hooks/useStartWorkout";
-// import { useGymOccupancy } from '@/hooks/useGymOccupancy';
-// import { RadarService } from '@/lib/radar';
 import { RanksAPI, calculateAllRanks } from "@/api/ranks";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/store/useAppStore";
@@ -41,40 +38,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// function LocationPermissionNotice({ onAction, theme, styles }: { onAction: () => void, theme: AppTheme, styles: any }) {
-//   const [visible, setVisible] = React.useState(false);
-//
-//   React.useEffect(() => {
-//     const checkStatus = async () => {
-//       const status = await RadarService.getPermissionsStatus();
-//       if (status === 'NOT_DETERMINED' || status === 'DENIED') setVisible(true);
-//     };
-//     checkStatus().catch(e => console.error('[LocationPermissionNotice]', e));
-//   }, []);
-//
-//   if (!visible) return null;
-//
-//   return (
-//     <TouchableOpacity style={styles.noticeContainer} onPress={onAction} activeOpacity={0.85}>
-//       <LinearGradient
-//         colors={theme.gradients.accent}
-//         start={{ x: 0, y: 0 }}
-//         end={{ x: 1, y: 0 }}
-//         style={styles.noticeGradient}
-//       >
-//         <View style={styles.noticeIconBox}>
-//           <Ionicons name="location" size={18} color="#fff" />
-//         </View>
-//         <View style={styles.noticeTextBlock}>
-//           <Text style={styles.noticeTitle}>Activa tu ubicación</Text>
-//           <Text style={styles.noticeSubtitle}>Regístrate automáticamente al llegar</Text>
-//         </View>
-//         <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
-//       </LinearGradient>
-//     </TouchableOpacity>
-//   );
-// }
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -108,7 +71,6 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
-  // const { count: gymCount, maxCapacity } = useGymOccupancy();
   // streakData itself lives in the persisted store (see useAppStore) so the
   // last known streak/check-in state shows immediately on mount instead of
   // resetting to 0 every time this screen is revisited.
@@ -427,12 +389,6 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── Crowd Meter ── */}
-          {/* <CrowdMeter count={gymCount} maxCapacity={maxCapacity} /> */}
-
-          {/* ── Location notice ── */}
-          {/* <LocationPermissionNotice onAction={goToLocationPermission} theme={theme} styles={styles} /> */}
-
           {/* ── Promo Carousel ── */}
           <View style={styles.carouselWrap}>
             <PromoCarousel data={data.promos} onPressItem={handleBannerPress} />
@@ -602,47 +558,6 @@ const createStyles = (theme: AppTheme) =>
     avatar: {
       width: 38,
       height: 38,
-    },
-
-    // ── Location notice ──────────────────────────────────────────────────────────
-    noticeContainer: {
-      marginHorizontal: 20,
-      marginTop: 12,
-      borderRadius: 14,
-      overflow: "hidden",
-      shadowColor: theme.accent,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    noticeGradient: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      gap: 12,
-    },
-    noticeIconBox: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      backgroundColor: "rgba(255,255,255,0.2)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    noticeTextBlock: {
-      flex: 1,
-    },
-    noticeTitle: {
-      color: "#fff",
-      fontSize: 13,
-      fontWeight: "700",
-    },
-    noticeSubtitle: {
-      color: "rgba(255,255,255,0.75)",
-      fontSize: 11,
-      marginTop: 1,
     },
 
     // ── Carousel wrapper ─────────────────────────────────────────────────────────

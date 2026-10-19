@@ -1,7 +1,7 @@
 import { Banner } from "@/api/banners";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -13,91 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// ─── CrowdMeter ───────────────────────────────────────────────────────────────
-interface CrowdMeterProps {
-  count: number;
-  maxCapacity?: number;
-  users?: { _id?: string; userId?: string; metadata?: { name?: string } }[];
-}
-
-export const CrowdMeter = ({
-  count,
-  maxCapacity = 80,
-  users = [],
-}: CrowdMeterProps) => {
-  const theme = useAppTheme();
-  const styles = createStyles(theme);
-  const percentage = Math.min(Math.round((count / maxCapacity) * 100), 100);
-  const status = percentage > 80 ? "Alta" : percentage > 50 ? "Media" : "Baja";
-  const barColor =
-    percentage > 80
-      ? theme.error
-      : percentage > 50
-        ? theme.warning
-        : theme.success;
-  const iconBg =
-    percentage > 80
-      ? "rgba(248,113,113,0.12)"
-      : percentage > 50
-        ? "rgba(251,191,36,0.12)"
-        : "rgba(52,211,153,0.12)";
-
-  return (
-    <View style={styles.crowdWrap}>
-      <View style={styles.crowdCard}>
-        {/* Left: icon + info */}
-        <View style={styles.crowdLeft}>
-          <View style={[styles.crowdIconBox, { backgroundColor: iconBg }]}>
-            <MaterialIcons name="groups" size={20} color={barColor} />
-          </View>
-          <View>
-            <Text style={styles.crowdLabel}>AFLUENCIA</Text>
-            <View style={styles.crowdStatusRow}>
-              <View style={[styles.crowdDot, { backgroundColor: barColor }]} />
-              <Text style={[styles.crowdStatusText, { color: barColor }]}>
-                {status}
-              </Text>
-              <Text style={styles.crowdCount}>
-                {count} / {maxCapacity}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Right: bar + percentage */}
-        <View style={styles.barWrapper}>
-          <Text style={[styles.barPercent, { color: barColor }]}>
-            {percentage}%
-          </Text>
-          <View style={styles.barTrack}>
-            <View
-              style={[
-                styles.barFill,
-                { width: `${percentage}%` as any, backgroundColor: barColor },
-              ]}
-            />
-          </View>
-        </View>
-      </View>
-
-      {users.length > 0 && (
-        <View style={styles.crowdChips}>
-          {users.map((u, i) => (
-            <View key={u._id || i} style={styles.chip}>
-              <View
-                style={[styles.chipDot, { backgroundColor: theme.accent }]}
-              />
-              <Text style={styles.chipText}>
-                {u.metadata?.name || u.userId || "–"}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-};
 
 // ─── PromoCarousel ────────────────────────────────────────────────────────────
 interface PromoCarouselProps {
@@ -243,109 +158,6 @@ export const TopBar = ({ user, onPressProfile }: TopBarProps) => {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const createStyles = (theme: AppTheme) =>
   StyleSheet.create({
-    // CrowdMeter
-    crowdWrap: {
-      marginHorizontal: 20,
-      marginTop: 8,
-    },
-    crowdCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: theme.bgCard,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      gap: 12,
-    },
-    crowdLeft: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    crowdIconBox: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor: "rgba(52,211,153,0.1)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    crowdLabel: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: theme.textMuted,
-      letterSpacing: 1,
-      marginBottom: 2,
-    },
-    crowdStatusRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-    },
-    crowdDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-    },
-    crowdStatusText: {
-      color: theme.textPrimary,
-      fontSize: 14,
-      fontWeight: "600",
-    },
-    crowdCount: {
-      color: theme.textMuted,
-      fontSize: 12,
-    },
-    barWrapper: {
-      alignItems: "flex-end",
-      gap: 4,
-    },
-    barPercent: {
-      fontSize: 11,
-      fontWeight: "700",
-      letterSpacing: 0.5,
-    },
-    barTrack: {
-      width: 80,
-      height: 8,
-      backgroundColor: theme.surface,
-      borderRadius: 4,
-      overflow: "hidden",
-    },
-    barFill: {
-      height: "100%",
-      borderRadius: 4,
-    },
-    crowdChips: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 6,
-      marginTop: 8,
-    },
-    chip: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: theme.bgCard,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
-      gap: 5,
-    },
-    chipDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    chipText: {
-      color: theme.textSecondary,
-      fontSize: 11,
-    },
-
     // PromoCarousel
     carouselList: {
       gap: 16,

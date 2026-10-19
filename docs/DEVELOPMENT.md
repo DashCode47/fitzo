@@ -1,6 +1,6 @@
 # Iron Body - Documentation Technical Guide
 
-Welcome to the **Iron Body** frontend documentation. This project is a mobile application built with **Expo** and **React Native**, designed to integrate directly with **Supabase** for authentication and data management, and **Radar** for geofencing.
+Welcome to the **Iron Body** frontend documentation. This project is a mobile application built with **Expo** and **React Native**, designed to integrate directly with **Supabase** for authentication and data management.
 
 ## 🚀 Tech Stack
 
@@ -8,7 +8,6 @@ Welcome to the **Iron Body** frontend documentation. This project is a mobile ap
 - **Language**: TypeScript
 - **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
 - **Database & Auth**: [Supabase](https://supabase.com/)
-- **Geofencing**: [Radar](https://radar.com/)
 - **State Management**: React Hooks & [Zustand](https://github.com/pmndrs/zustand) (with Persistence)
 - **Icons**: @expo/vector-icons (Ionicons, MaterialIcons)
 - **Styling**: React Native StyleSheet + Expo Linear Gradient
@@ -22,7 +21,7 @@ Welcome to the **Iron Body** frontend documentation. This project is a mobile ap
 ├── api/             # Supabase data fetching (Auth, User, Content, Nutrition, Banners)
 ├── app/             # Expo Router screens
 │   ├── (tabs)/      # Bottom tab navigation (Home, Nutrition, Rankings, Store)
-│   ├── _layout.tsx  # Root layout, Radar init, Providers
+│   ├── _layout.tsx  # Root layout, Providers
 │   ├── profile.tsx  # User Profile & Settings
 │   └── login.tsx    # Auth entry point
 ├── components/      # UI components
@@ -30,20 +29,10 @@ Welcome to the **Iron Body** frontend documentation. This project is a mobile ap
 │   └── ui/          # Shared components
 ├── constants/       # Mocks, Theme (Colors), Routes
 ├── hooks/           # Custom hooks (Navigation, Store helpers)
-├── lib/             # Client initializations (Supabase, Radar)
+├── lib/             # Client initializations (Supabase)
 ├── store/           # Zustand global state (useAppStore.ts)
 └── utils/           # Async helpers, timeouts
 ```
-
----
-
-## 📡 Geofencing (Radar Integration)
-
-The app uses **Radar** to detect when users enter the gym automatically:
-- **Initialization**: Handled in `app/_layout.tsx` via `RadarService`.
-- **Flow**: When a user logs in, Radar identifies them (`userId`).
-- **Permissions**: A custom screen `location-permission.tsx` manages the "Always Allow" location requirement.
-- **Background**: Configured to run in the background to detect arrives even when the app is closed.
 
 ---
 
@@ -100,7 +89,6 @@ Update `hooks/useAppNavigation.ts` to expose new route methods.
 Managed in `env.ts` and `.env`:
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-- `EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY`
 
 > [!IMPORTANT]
 > Always use the `EXPO_PUBLIC_` prefix for variables to be accessible in client-side code during builds.

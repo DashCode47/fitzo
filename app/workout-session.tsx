@@ -5,6 +5,7 @@ import { saveActiveWorkout } from "@/services/workoutAutoFinish";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAppStore, ActiveWorkout } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -13,7 +14,10 @@ import {
   ActivityIndicator,
   Animated,
   BackHandler,
+  Easing,
+  GestureResponderEvent,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -29,7 +33,7 @@ import DraggableFlatList, {
   RenderItemParams,
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 type WorkoutExercise = ActiveWorkout["exercises"][number];
 
@@ -59,7 +63,7 @@ function GlowCheckBtn({
 }: {
   completed: boolean;
   isActive: boolean;
-  onPress: () => void;
+  onPress: (e: GestureResponderEvent) => void;
   accentColor: string;
   successColor: string;
   mutedColor: string;
@@ -213,6 +217,258 @@ function GlowInputWrap({
   );
 }
 
+type Flyer = { key: number; label: string; from: { x: number; y: number }; to: { x: number; y: number } };
+
+// Chip that pops out of the check button and arcs into the completion tracker.
+function FlyingChip({
+  flyer,
+  successColor,
+  onArrive,
+}: {
+  flyer: Flyer;
+  successColor: string;
+  onArrive: () => void;
+}) {
+  const tx = useRef(new Animated.Value(0)).current;
+  const ty = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.4)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const dx = flyer.to.x - flyer.from.x;
+    const dy = flyer.to.y - flyer.from.y;
+    Animated.sequence([
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 5,
+        tension: 160,
+        useNativeDriver: true,
+      }),
+      Animated.delay(120),
+      // Different easings on X and Y produce a curved path.
+      Animated.parallel([
+        Animated.timing(tx, {
+          toValue: dx,
+          duration: 650,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(ty, {
+          toValue: dy,
+          duration: 650,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 0.3,
+          duration: 650,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 650,
+          easing: Easing.in(Easing.exp),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => onArrive());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        left: flyer.from.x,
+        top: flyer.from.y,
+        opacity,
+        transform: [{ translateX: tx }, { translateY: ty }, { scale }],
+      }}
+    >
+      {/* Centered on the origin point */}
+      <View
+        style={{
+          transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          backgroundColor: successColor,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 20,
+          maxWidth: 220,
+          shadowColor: successColor,
+          shadowOpacity: 0.6,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 8,
+        }}
+      >
+        <Ionicons name="checkmark-circle" size={16} color="#fff" />
+        <Text
+          numberOfLines={1}
+          style={{ color: "#fff", fontWeight: "900", fontSize: 12, flexShrink: 1 }}
+        >
+          {flyer.label}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+// Fixed bar at the bottom that tracks how many exercises are fully completed.
+function CompletionTracker({
+  done,
+  total,
+  setsDone,
+  setsTotal,
+  pulseKey,
+  badgeRef,
+  onPress,
+  theme,
+  bottomInset,
+}: {
+  done: number;
+  total: number;
+  setsDone: number;
+  setsTotal: number;
+  pulseKey: number;
+  badgeRef: React.RefObject<View | null>;
+  onPress: () => void;
+  theme: AppTheme;
+  bottomInset: number;
+}) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  const ring = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(total ? done / total : 0)).current;
+  const allDone = total > 0 && done === total;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: total ? done / total : 0,
+      duration: 450,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done, total]);
+
+  useEffect(() => {
+    if (pulseKey === 0) return;
+    pulse.setValue(1.25);
+    ring.setValue(1);
+    Animated.parallel([
+      Animated.spring(pulse, {
+        toValue: 1,
+        friction: 4,
+        tension: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(ring, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pulseKey]);
+
+  const ringScale = ring.interpolate({ inputRange: [0, 1], outputRange: [2.2, 1] });
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: "absolute",
+        left: 16,
+        right: 16,
+        bottom: Math.max(bottomInset, 12) + 4,
+      }}
+    >
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onPress}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          backgroundColor: theme.bgCard,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: allDone ? theme.success : theme.borderSubtle,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          shadowColor: "#000",
+          shadowOpacity: 0.35,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 10,
+        }}
+      >
+        <View ref={badgeRef} collapsable={false} style={{ width: 40, height: 40 }}>
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              borderWidth: 2,
+              borderColor: theme.success,
+              opacity: ring,
+              transform: [{ scale: ringScale }],
+            }}
+          />
+          <Animated.View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: done > 0 ? theme.success : theme.surface,
+              borderWidth: 1,
+              borderColor: done > 0 ? theme.success : theme.borderMuted,
+              justifyContent: "center",
+              alignItems: "center",
+              transform: [{ scale: pulse }],
+            }}
+          >
+            <Ionicons
+              name={allDone ? "trophy" : "checkmark-done"}
+              size={18}
+              color={done > 0 ? "#fff" : theme.textMuted}
+            />
+          </Animated.View>
+        </View>
+
+        <View style={{ flex: 1, gap: 6 }}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+            <Text style={{ color: theme.textPrimary, fontSize: 13, fontWeight: "900", letterSpacing: 0.5 }}>
+              {allDone ? "¡RUTINA COMPLETA!" : `${done}/${total} EJERCICIOS`}
+            </Text>
+            <Text style={{ color: theme.textMuted, fontSize: 11, fontWeight: "700", fontVariant: ["tabular-nums"] }}>
+              {setsDone}/{setsTotal} series
+            </Text>
+          </View>
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.surface, overflow: "hidden" }}>
+            <Animated.View
+              style={{
+                height: "100%",
+                borderRadius: 3,
+                backgroundColor: theme.success,
+                width: progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
+              }}
+            />
+          </View>
+        </View>
+
+        {allDone && <Ionicons name="chevron-forward" size={18} color={theme.success} />}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function WorkoutSessionScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
@@ -232,6 +488,24 @@ export default function WorkoutSessionScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [infoAlert, setInfoAlert] = useState<{ title: string; message: string; isError?: boolean } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const insets = useSafeAreaInsets();
+
+  // Completion tracker + "fly to tracker" animation state.
+  const rootRef = useRef<View>(null);
+  const trackerBadgeRef = useRef<View>(null);
+  const [flyers, setFlyers] = useState<Flyer[]>([]);
+  const [pendingArrivals, setPendingArrivals] = useState(0);
+  const [trackerPulse, setTrackerPulse] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   // Exercise cards can be collapsed individually and reordered via drag & drop.
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
@@ -375,6 +649,62 @@ export default function WorkoutSessionScreen() {
   };
 
   if (!activeWorkout) return null;
+
+  const isDone = (ex: WorkoutExercise) =>
+    ex.sets.length > 0 && ex.sets.every((s) => s.completed);
+  const doneExercises = activeWorkout.exercises.filter(isDone).length;
+  const totalSets = activeWorkout.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+  const doneSets = activeWorkout.exercises.reduce(
+    (acc, ex) => acc + ex.sets.filter((s) => s.completed).length,
+    0,
+  );
+  // The counter only ticks up once the flying chip lands on the tracker.
+  const displayedDone = Math.max(0, doneExercises - pendingArrivals);
+
+  const launchFlyer = (label: string, pageX: number, pageY: number) => {
+    const root = rootRef.current;
+    const badge = trackerBadgeRef.current;
+    if (!root || !badge || keyboardVisible) {
+      setTrackerPulse((n) => n + 1);
+      return;
+    }
+    setPendingArrivals((n) => n + 1);
+    root.measureInWindow((rx, ry) => {
+      badge.measureInWindow((bx, by, bw, bh) => {
+        setFlyers((prev) => [
+          ...prev,
+          {
+            key: Date.now() + Math.random(),
+            label,
+            from: { x: pageX - rx, y: pageY - ry },
+            to: { x: bx - rx + bw / 2, y: by - ry + bh / 2 },
+          },
+        ]);
+      });
+    });
+  };
+
+  const handleFlyerArrive = (key: number) => {
+    setFlyers((prev) => prev.filter((f) => f.key !== key));
+    setPendingArrivals((n) => Math.max(0, n - 1));
+    setTrackerPulse((n) => n + 1);
+  };
+
+  const toggleSet = (exIdx: number, setIdx: number, e: GestureResponderEvent) => {
+    const ex = activeWorkout.exercises[exIdx];
+    const set = ex?.sets[setIdx];
+    if (!set) return;
+    const completesExercise =
+      !set.completed && ex.sets.every((s, i) => i === setIdx || s.completed);
+    const { pageX, pageY } = e.nativeEvent;
+    updateWorkoutSet(exIdx, setIdx, { completed: !set.completed });
+    if (completesExercise) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      launchFlyer(ex.name, pageX, pageY);
+    } else if (!set.completed) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+  };
 
   let activeGlowEx = -1;
   let activeGlowSet = -1;
@@ -549,11 +879,7 @@ export default function WorkoutSessionScreen() {
                       setIdx === activeGlowSet &&
                       set.weight > 0
                     }
-                    onPress={() =>
-                      updateWorkoutSet(exIdx, setIdx, {
-                        completed: !set.completed,
-                      })
-                    }
+                    onPress={(e) => toggleSet(exIdx, setIdx, e)}
                     accentColor={theme.accent}
                     successColor={theme.success}
                     mutedColor={theme.textMuted}
@@ -597,7 +923,7 @@ export default function WorkoutSessionScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
-      <View style={styles.root}>
+      <View ref={rootRef} collapsable={false} style={styles.root}>
         <StatusBar style={theme.bgDeep === "#FAFAFA" ? "dark" : "light"} />
         <LinearGradient
           colors={theme.gradients.bg}
@@ -662,8 +988,24 @@ export default function WorkoutSessionScreen() {
                 </View>
               </ScaleDecorator>
             )}
-            ListFooterComponent={<View style={{ height: 100 }} />}
+            ListFooterComponent={<View style={{ height: 120 + insets.bottom }} />}
           />
+
+          {!keyboardVisible && (
+            <CompletionTracker
+              done={displayedDone}
+              total={activeWorkout.exercises.length}
+              setsDone={doneSets}
+              setsTotal={totalSets}
+              pulseKey={trackerPulse}
+              badgeRef={trackerBadgeRef}
+              onPress={() => {
+                if (doneExercises === activeWorkout.exercises.length) handleFinish();
+              }}
+              theme={theme}
+              bottomInset={insets.bottom}
+            />
+          )}
 
           {/* Info / Error Modal */}
           <Modal visible={!!infoAlert} transparent animationType="fade">
@@ -898,6 +1240,15 @@ export default function WorkoutSessionScreen() {
             </View>
           </Modal>
         </SafeAreaView>
+
+        {flyers.map((f) => (
+          <FlyingChip
+            key={f.key}
+            flyer={f}
+            successColor={theme.success}
+            onArrive={() => handleFlyerArrive(f.key)}
+          />
+        ))}
       </View>
     </KeyboardAvoidingView>
     </GestureHandlerRootView>

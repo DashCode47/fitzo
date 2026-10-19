@@ -38,18 +38,6 @@ export function HomeSkeleton() {
           </View>
         </View>
 
-        {/* ── CrowdMeter ── */}
-        <View style={styles.crowdWrap}>
-          <View style={styles.crowdCard}>
-            <Bone w={36} h={36} radius={10} />
-            <View style={{ flex: 1, gap: 6 }}>
-              <Bone w={80} h={10} radius={4} />
-              <Bone w={140} h={14} radius={4} />
-            </View>
-            <Bone w={64} h={6} radius={3} />
-          </View>
-        </View>
-
         {/* ── Promo Carousel ── */}
         <View style={styles.carouselWrap}>
           <Bone
@@ -163,23 +151,6 @@ const createStyles = (theme: AppTheme) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 10,
-    },
-
-    // CrowdMeter
-    crowdWrap: {
-      marginHorizontal: 20,
-      marginTop: 8,
-    },
-    crowdCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: theme.bgCard,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      gap: 12,
     },
 
     // Carousel
