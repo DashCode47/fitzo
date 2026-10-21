@@ -6,10 +6,10 @@
 
 ## 1. Registro e Inicio de Sesión Simplificado
 
-- Registro rápido con cédula, nombre, correo y teléfono.
-- Inicio de sesión en dos pasos: ingresa tu cédula y valida con un código enviado a tu correo (OTP).
+- Registro rápido con usuario, contraseña, nombre, correo y teléfono.
+- Inicio de sesión con tu usuario y contraseña.
 - Sesión persistente: no necesitas iniciar sesión cada vez que abres la app.
-- **Mensaje clave:** *"Entra con tu cédula y listo. Sin contraseñas que olvidar."*
+- **Mensaje clave:** *"Crea tu usuario y entra en segundos."*
 
 ---
 

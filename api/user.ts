@@ -20,9 +20,8 @@ export const UserAPI = {
       const profilePayload = {
         id: user.id,
         email: user.email,
-        username: metadata.first_name || user.email.split('@')[0],
+        username: metadata.username || metadata.first_name || user.email.split('@')[0],
         display_name: `${metadata.first_name || ''} ${metadata.last_name || ''}`.trim(),
-        national_id: metadata.national_id,
         phone: metadata.phone,
         updated_at: new Date().toISOString(),
       };
@@ -88,7 +87,7 @@ export const UserAPI = {
            return {
              id: finalUserId,
              email: authData.user?.email,
-             username: authData.user?.user_metadata?.first_name,
+             username: authData.user?.user_metadata?.username || authData.user?.user_metadata?.first_name,
            };
         }
         throw error;

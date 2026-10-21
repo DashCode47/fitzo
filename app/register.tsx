@@ -29,13 +29,19 @@ type Field = {
   keyboard?: React.ComponentProps<typeof TextInput>["keyboardType"];
   maxLength?: number;
   autoCapitalize?: React.ComponentProps<typeof TextInput>["autoCapitalize"];
+  secure?: boolean;
 };
 
+const USERNAME_PATTERN = /^[a-z0-9._]{3,20}$/;
+const MIN_PASSWORD_LENGTH = 8;
+
 const INITIAL_FORM = {
+  username: "",
+  password: "",
+  confirmPassword: "",
   email: "",
   firstName: "",
   lastName: "",
-  nationalId: "",
   phone: "",
   gender: "" as "male" | "female" | "",
   weight: "",
@@ -52,17 +58,31 @@ const FIELDS: Field[] = [
   { key: "firstName", label: "Nombre", icon: "person-outline" },
   { key: "lastName", label: "Apellido", icon: "person-outline" },
   {
-    key: "nationalId",
-    label: "Cédula",
-    icon: "card-outline",
-    keyboard: "numeric",
-    maxLength: 10,
-  },
-  {
     key: "phone",
     label: "Teléfono",
     icon: "call-outline",
     keyboard: "phone-pad",
+  },
+  {
+    key: "username",
+    label: "Usuario",
+    icon: "at-outline",
+    maxLength: 20,
+    autoCapitalize: "none",
+  },
+  {
+    key: "password",
+    label: "Contraseña",
+    icon: "lock-closed-outline",
+    autoCapitalize: "none",
+    secure: true,
+  },
+  {
+    key: "confirmPassword",
+    label: "Confirmar contraseña",
+    icon: "lock-closed-outline",
+    autoCapitalize: "none",
+    secure: true,
   },
 ];
 
@@ -128,26 +148,77 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    const { email, firstName, lastName, nationalId, phone, gender, weight } =
-      formData;
+    const {
+      username,
+      password,
+      confirmPassword,
+      email,
+      firstName,
+      lastName,
+      phone,
+      gender,
+      weight,
+    } = formData;
     if (
+      !username ||
+      !password ||
+      !confirmPassword ||
       !email ||
       !firstName ||
       !lastName ||
-      !nationalId ||
       !phone ||
-      !gender ||
-      !weight
+      !gender
     ) {
       setErrorMessage(
-        "Por favor complete todos los campos, incluyendo género y peso",
+        "Por favor complete todos los campos, incluyendo género",
       );
+      setErrorVisible(true);
+      return;
+    }
+    // Optional; Spanish keyboards may type a decimal comma
+    const normalizedWeight = weight.trim().replace(",", ".");
+    if (normalizedWeight && !(Number(normalizedWeight) > 0)) {
+      setErrorMessage("Ingresa un peso válido o deja el campo vacío");
+      setErrorVisible(true);
+      return;
+    }
+    const normalizedUsername = username.trim().toLowerCase();
+    if (!USERNAME_PATTERN.test(normalizedUsername)) {
+      setErrorMessage(
+        "El usuario debe tener entre 3 y 20 caracteres: letras, números, punto o guion bajo",
+      );
+      setErrorVisible(true);
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMessage(
+        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
+      );
+      setErrorVisible(true);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMessage("Las contraseñas no coinciden");
       setErrorVisible(true);
       return;
     }
     setLoading(true);
     try {
-      await AuthAPI.registerUser({ ...formData, password: nationalId });
+      const { email: takenBy } =
+        await AuthAPI.lookupEmailByUsername(normalizedUsername);
+      if (takenBy) throw new Error("Ese usuario ya está en uso, elige otro");
+
+      await AuthAPI.registerUser({
+        username: normalizedUsername,
+        password,
+        email: email.trim(),
+        firstName,
+        lastName,
+        phone,
+        gender,
+        // Omitted when empty: the signup trigger casts it to numeric
+        weight: normalizedWeight || undefined,
+      });
       setSaved(true);
       setSuccessMessage(
         "¡Registro exitoso! Revisa tu correo para activar tu cuenta.",
@@ -267,7 +338,7 @@ export default function RegisterScreen() {
             </View>
 
             {/* Remaining fields */}
-            {[FIELDS[0], FIELDS[3], FIELDS[4]].map((field) => (
+            {[FIELDS[4], FIELDS[0], FIELDS[3], FIELDS[5], FIELDS[6]].map((field) => (
               <InputField
                 key={field.key}
                 field={field}
@@ -326,7 +397,9 @@ export default function RegisterScreen() {
             </View>
 
             {/* Weight Input */}
-            <Text style={styles.sectionLabel}>Peso (kg)</Text>
+            <Text style={styles.sectionLabel}>
+              Peso (kg) <Text style={styles.optionalLabel}>· Opcional</Text>
+            </Text>
             <InputField
               field={{
                 key: "weight",
@@ -348,18 +421,7 @@ export default function RegisterScreen() {
               />
               <Text style={styles.hintText}>
                 Tu peso se usa para calcular tu ranking de fuerza relativo.
-                Puedes actualizarlo luego en tu Perfil.
-              </Text>
-            </View>
-
-            <View style={[styles.hint, { marginTop: 0 }]}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={14}
-                color={theme.textMuted}
-              />
-              <Text style={styles.hintText}>
-                Tu cédula se usará como contraseña temporal.
+                Si lo dejas vacío, puedes agregarlo luego en Nutrición.
               </Text>
             </View>
 
@@ -438,6 +500,9 @@ function InputField({
         keyboardType={field.keyboard ?? "default"}
         maxLength={field.maxLength}
         autoCapitalize={field.autoCapitalize ?? "words"}
+        autoCorrect={field.autoCapitalize === "none" ? false : undefined}
+        secureTextEntry={field.secure}
+        textContentType={field.secure ? "newPassword" : undefined}
       />
     </View>
   );
@@ -568,6 +633,10 @@ const createStyles = (theme: AppTheme) =>
       fontWeight: "600",
       marginBottom: 8,
       marginLeft: 4,
+    },
+    optionalLabel: {
+      color: theme.textMuted,
+      fontWeight: "400",
     },
     genderRow: {
       flexDirection: "row",

@@ -55,10 +55,11 @@ The "Iron Legends" system rewards users:
 
 ## 🔐 Authentication Flow
 
-The app uses a custom **Login by Cedula** flow:
-1.  **Email Lookup**: `AuthAPI.get_email_by_national_id` finds the record.
-2.  **OTP**: `AuthAPI.signInWithOtp` sends the code.
-3.  **Persistence**: Sessions are managed by Superbase and recovered automatically on app start.
+The app uses a **username + password** flow:
+1.  **Register**: `AuthAPI.registerUser` signs up with the user's chosen username (stored in `profiles.username`, unique, case-insensitive) and password.
+2.  **Email Lookup**: `AuthAPI.lookupEmailByUsername` (RPC `lookup_email_by_username`) resolves the username to the auth email.
+3.  **Sign in**: `AuthAPI.login` calls `signInWithPassword`.
+4.  **Persistence**: Sessions are managed by Superbase and recovered automatically on app start.
 
 ---
 

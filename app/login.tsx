@@ -33,83 +33,45 @@ export default function LoginScreen() {
   const { goToRegister, goToHome } = useAppNavigation();
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const [nationalId, setNationalId] = useState('');
-  const [otp, setOtp] = useState('');
-  const [email, setEmail] = useState('');
-  const [step, setStep] = useState<'ID' | 'OTP'>('ID');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  const otpInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successVisible, setSuccessVisible] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
 
   const handleLogin = async () => {
-    if (step === 'ID') {
-      if (!nationalId) {
-        setErrorMessage('Por favor ingrese su número de cédula');
-        setErrorVisible(true);
-        return;
-      }
-      setLoading(true);
-      try {
-        const data = await AuthAPI.lookupEmailByCedula(nationalId);
-        if (!data.email) throw new Error('Cédula no encontrada');
-        setEmail(data.email);
-        if (data.email !== 'google@mail.com') {
-          await AuthAPI.signInWithOtp(data.email);
-          setSuccessMessage(`Código enviado a: ${data.email}`);
-        } else {
-          setSuccessMessage(`Bypass activado para revisión`);
-        }
-        Keyboard.dismiss();
-        setStep('OTP');
-        setSuccessVisible(true);
-      } catch (error: any) {
-        setErrorMessage(error.message || 'Cédula no registrada o inválida');
-        setErrorVisible(true);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      if (!otp) {
-        setErrorMessage('Por favor ingrese el código de verificación');
-        setErrorVisible(true);
-        return;
-      }
-      setLoading(true);
-      try {
-        let result;
-        // BYPASS PARA REVISIÓN DE GOOGLE
-        if (email === 'google@mail.com' && otp === '123456') {
-          const user = await AuthAPI.login(email, 'FitzoGoogle2026!');
-          result = { session: { user }, user }; // Mock structure for consistency
-        } else {
-          result = await AuthAPI.verifyOtp(email, otp);
-        }
-
-        const user = result.session?.user || result.user || result;
-        
-        if (user) {
-          await UserAPI.syncProfile(user).catch(err => {
-            console.error('[LoginScreen] Initial sync failed:', err);
-          });
-        }
-        goToHome();
-      } catch {
-        setErrorMessage('Código incorrecto o expirado');
-        setErrorVisible(true);
-      } finally {
-        setLoading(false);
-      }
+    if (!username.trim() || !password) {
+      setErrorMessage('Por favor ingrese su usuario y contraseña');
+      setErrorVisible(true);
+      return;
     }
-  };
+    Keyboard.dismiss();
+    setLoading(true);
+    try {
+      const { email } = await AuthAPI.lookupEmailByUsername(username.trim());
+      if (!email) throw new Error('invalid');
 
-  const handleBack = () => {
-    setStep('ID');
-    setOtp('');
-    setErrorMessage('');
+      const user = await AuthAPI.login(email, password);
+      if (user) {
+        await UserAPI.syncProfile(user).catch(err => {
+          console.error('[LoginScreen] Initial sync failed:', err);
+        });
+      }
+      goToHome();
+    } catch (error: any) {
+      // AuthAPI.login throws the Supabase error message as a string
+      setErrorMessage(
+        error === 'Email not confirmed'
+          ? 'Confirma tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.'
+          : 'Usuario o contraseña incorrectos'
+      );
+      setErrorVisible(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -121,17 +83,6 @@ export default function LoginScreen() {
         title="ERROR DE ACCESO"
         message={errorMessage}
         onClose={() => setErrorVisible(false)}
-      />
-      <CustomModal
-        visible={successVisible}
-        title="CÓDIGO ENVIADO"
-        type="success"
-        message={successMessage}
-        buttonText="ENTENDIDO"
-        onClose={() => {
-          setSuccessVisible(false);
-          setTimeout(() => otpInputRef.current?.focus(), 500);
-        }}
       />
 
       {/* Background gradient */}
@@ -166,60 +117,53 @@ export default function LoginScreen() {
             {/* ── Card ── */}
             <View style={styles.card}>
 
-              {/* Step indicator */}
-              <View style={styles.stepRow}>
-                <View style={[styles.stepDot, step === 'ID' && styles.stepDotActive]} />
-                <View style={[styles.stepLine, step === 'OTP' && styles.stepLineActive]} />
-                <View style={[styles.stepDot, step === 'OTP' && styles.stepDotActive]} />
+              <Text style={styles.cardTitle}>Bienvenido</Text>
+              <Text style={styles.cardSubtitle}>Inicia sesión para continuar</Text>
+
+              {/* Inputs */}
+              <View style={styles.inputWrapper}>
+                <Ionicons name="person-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Usuario"
+                  placeholderTextColor={theme.textMuted}
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  textContentType="username"
+                  autoComplete="username"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                />
               </View>
 
-              <Text style={styles.cardTitle}>
-                {step === 'ID' ? 'Bienvenido' : 'Verifica tu identidad'}
-              </Text>
-              <Text style={styles.cardSubtitle}>
-                {step === 'ID'
-                  ? 'Ingresa tu cédula para continuar'
-                  : `Revisa tu correo y pega el código`}
-              </Text>
-
-              {/* Input */}
-              {step === 'ID' ? (
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="card-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Número de cédula"
-                    maxLength={10}
-                    placeholderTextColor={theme.textMuted}
-                    value={nationalId}
-                    onChangeText={setNationalId}
-                    keyboardType="numeric"
-                    returnKeyType="done"
-                    onSubmitEditing={handleLogin}
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  ref={passwordInputRef}
+                  style={styles.input}
+                  placeholder="Contraseña"
+                  placeholderTextColor={theme.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
+                  autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
+                <TouchableOpacity onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={18}
+                    color={theme.textSecondary}
                   />
-                </View>
-              ) : (
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="shield-checkmark-outline" size={18} color={theme.accent} style={styles.inputIcon} />
-                  <TextInput
-                    ref={otpInputRef}
-                    style={[styles.input, { letterSpacing: 6, fontSize: 20 }]}
-                    placeholder="· · · · · ·"
-                    placeholderTextColor={theme.textMuted}
-                    value={otp}
-                    onChangeText={setOtp}
-                    keyboardType="number-pad"
-                    textContentType="oneTimeCode"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    maxLength={8}
-                    selectionColor={theme.accent}
-                    returnKeyType="done"
-                    onSubmitEditing={handleLogin}
-                  />
-                </View>
-              )}
+                </TouchableOpacity>
+              </View>
 
               {/* Primary button */}
               <TouchableOpacity
@@ -238,9 +182,7 @@ export default function LoginScreen() {
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
                     <>
-                      <Text style={styles.primaryBtnText}>
-                        {step === 'ID' ? 'Continuar' : 'Verificar'}
-                      </Text>
+                      <Text style={styles.primaryBtnText}>Iniciar sesión</Text>
                       <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
                     </>
                   )}
@@ -248,21 +190,12 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               {/* Secondary actions */}
-              {step === 'OTP' && (
-                <TouchableOpacity style={styles.ghostBtn} onPress={handleBack} disabled={loading}>
-                  <Ionicons name="arrow-back" size={14} color={theme.textSecondary} />
-                  <Text style={styles.ghostBtnText}>Volver</Text>
-                </TouchableOpacity>
-              )}
-
-              {step === 'ID' && (
-                <TouchableOpacity style={styles.ghostBtn} onPress={goToRegister}>
-                  <Text style={styles.ghostBtnText}>
-                    ¿No tienes cuenta?{' '}
-                    <Text style={styles.accentText}>Regístrate</Text>
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity style={styles.ghostBtn} onPress={goToRegister}>
+                <Text style={styles.ghostBtnText}>
+                  ¿No tienes cuenta?{' '}
+                  <Text style={styles.accentText}>Regístrate</Text>
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Footer */}
@@ -362,32 +295,6 @@ const createStyles = (theme: AppTheme) =>
       shadowOpacity: 0.4,
       shadowRadius: 24,
       elevation: 16,
-    },
-    stepRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    stepDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: theme.textMuted,
-    },
-    stepDotActive: {
-      backgroundColor: theme.accent,
-      shadowColor: theme.accent,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.8,
-      shadowRadius: 4,
-    },
-    stepLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: theme.textMuted,
-    },
-    stepLineActive: {
-      backgroundColor: theme.accent,
     },
     cardTitle: {
       fontSize: 22,
