@@ -28,8 +28,6 @@ const createStyles = (theme: AppTheme) =>
     sub: { fontSize: 13, color: theme.textSecondary },
     strong: { fontWeight: "800", color: theme.textPrimary },
 
-    ladder: { flexDirection: "row", gap: 4 },
-    seg: { flex: 1, height: 8, borderRadius: 4, backgroundColor: theme.surface, overflow: "hidden" },
     ladderEnds: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
     ladderEndText: { fontSize: 10, fontWeight: "700", color: theme.textMuted },
 
@@ -67,7 +65,7 @@ const createStyles = (theme: AppTheme) =>
   });
 
 // Hexagon emblem with the level number.
-function LevelBadge({ level, color, size = 96 }: { level: number; color: string; size?: number }) {
+export function LevelBadge({ level, color, size = 96 }: { level: number; color: string; size?: number }) {
   const hex = (r: number) =>
     Array.from({ length: 6 }, (_, k) => {
       const a = (Math.PI / 180) * (60 * k - 90);
@@ -78,12 +76,12 @@ function LevelBadge({ level, color, size = 96 }: { level: number; color: string;
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
         <Defs>
-          <SvgGradient id="lvl" x1="0" y1="0" x2="0" y2="1">
+          <SvgGradient id={`lvl-${size}`} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={color} />
             <Stop offset="1" stopColor={color} stopOpacity={0.55} />
           </SvgGradient>
         </Defs>
-        <Polygon points={hex(size / 2 - 2)} fill="url(#lvl)" />
+        <Polygon points={hex(size / 2 - 2)} fill={`url(#lvl-${size})`} />
         <Polygon
           points={hex(size / 2 - 10)}
           fill="none"
@@ -93,11 +91,47 @@ function LevelBadge({ level, color, size = 96 }: { level: number; color: string;
         />
       </Svg>
       <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-        <Text style={{ fontSize: 10, fontWeight: "800", color: "#FFFFFF", opacity: 0.85, letterSpacing: 1 }}>
+        <Text style={{ fontSize: Math.max(8, size * 0.1), fontWeight: "800", color: "#FFFFFF", opacity: 0.85, letterSpacing: 1 }}>
           NIVEL
         </Text>
-        <Text style={{ fontSize: 34, fontWeight: "900", color: "#FFFFFF", lineHeight: 38 }}>{level}</Text>
+        <Text style={{ fontSize: size * 0.35, fontWeight: "900", color: "#FFFFFF", lineHeight: size * 0.4 }}>{level}</Text>
       </View>
+    </View>
+  );
+}
+
+// 10 segments in the current level's color; the current one is partially filled.
+export function LevelLadder({
+  tierIndex,
+  progress,
+  color,
+  height = 8,
+}: {
+  tierIndex: number;
+  progress: number;
+  color: string;
+  height?: number;
+}) {
+  const theme = useAppTheme();
+  const isMax = tierIndex === RANK_TIERS.length - 1;
+  return (
+    <View style={{ flexDirection: "row", gap: 4 }}>
+      {RANK_TIERS.map((t, i) => (
+        <View
+          key={t.name}
+          style={{ flex: 1, height, borderRadius: height / 2, backgroundColor: theme.surface, overflow: "hidden" }}
+        >
+          {i <= tierIndex && (
+            <View
+              style={{
+                height: "100%",
+                width: i < tierIndex || isMax ? "100%" : `${Math.max(progress * 100, 8)}%`,
+                backgroundColor: color,
+              }}
+            />
+          )}
+        </View>
+      ))}
     </View>
   );
 }
@@ -152,23 +186,9 @@ export const RanksView: React.FC<Props> = ({ ranks, streak }) => {
           </View>
         </View>
 
-        {/* 10-step ladder in the current level's color; current segment partially filled */}
+        {/* 10-step ladder */}
         <View>
-          <View style={styles.ladder}>
-            {RANK_TIERS.map((t, i) => (
-              <View key={t.name} style={styles.seg}>
-                {i <= ranks.tierIndex && (
-                  <View
-                    style={{
-                      height: "100%",
-                      width: i < ranks.tierIndex || !next ? "100%" : `${Math.max(ranks.progress * 100, 8)}%`,
-                      backgroundColor: tier.color,
-                    }}
-                  />
-                )}
-              </View>
-            ))}
-          </View>
+          <LevelLadder tierIndex={ranks.tierIndex} progress={ranks.progress} color={tier.color} />
           <View style={styles.ladderEnds}>
             <Text style={styles.ladderEndText}>1</Text>
             <Text style={styles.ladderEndText}>{RANK_TIERS.length}</Text>

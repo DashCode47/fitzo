@@ -24,7 +24,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { LIFTS, RANK_TIERS } from "@/constants/ranks";
+import { LevelBadge, LevelLadder } from "@/components/rankings/RanksView";
+import { RANK_TIERS } from "@/constants/ranks";
 import { useAppStore } from "@/store/useAppStore";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -379,57 +380,40 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* ── My Ranks Section ── */}
-          {ranks && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Mis Rangos</Text>
+          {/* ── My Level ── */}
+          {ranks && (() => {
+            const tier = RANK_TIERS[ranks.tierIndex];
+            const next = RANK_TIERS[ranks.tierIndex + 1];
+            return (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Mi Nivel</Text>
+                </View>
                 <TouchableOpacity
+                  style={[styles.levelCard, { borderColor: tier.color + "50" }]}
                   onPress={() => router.push("/(tabs)/rankings")}
+                  activeOpacity={0.85}
                 >
-                  <Text style={styles.viewMoreRanks}>VER TODOS</Text>
+                  <LevelBadge level={ranks.tierIndex + 1} color={tier.color} size={60} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Text style={[styles.levelCardTitle, { color: tier.color }]}>{tier.name}</Text>
+                    <Text style={styles.levelCardSub}>
+                      {next
+                        ? `${Math.round(ranks.progress * 100)}% hacia ${next.name}`
+                        : "¡Nivel máximo!"}
+                    </Text>
+                    <LevelLadder
+                      tierIndex={ranks.tierIndex}
+                      progress={ranks.progress}
+                      color={tier.color}
+                      height={6}
+                    />
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
                 </TouchableOpacity>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.ranksScroll}
-              >
-                {ranks.lifts.map((rank) => {
-                  const muscle = LIFTS.find((l) => l.key === rank.lift);
-                  const tier = RANK_TIERS[rank.tierIndex];
-                  return (
-                    <TouchableOpacity
-                      key={rank.lift}
-                      style={styles.miniRankCard}
-                      onPress={() => router.push("/(tabs)/rankings")}
-                    >
-                      <Ionicons
-                        name={muscle?.icon as any}
-                        size={16}
-                        color={theme.accent}
-                      />
-                      <Text style={styles.miniRankMuscle} numberOfLines={1}>
-                        {muscle?.label}
-                      </Text>
-                      <View
-                        style={[
-                          styles.miniTierBadge,
-                          { backgroundColor: tier.color + "20" },
-                        ]}
-                      >
-                        <Text
-                          style={[styles.miniTierText, { color: tier.color }]}
-                        >
-                          {tier.name}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </>
-          )}
+              </>
+            );
+          })()}
 
           {/* ── Theme Selection ── */}
           <View style={styles.sectionHeader}>
@@ -1000,40 +984,15 @@ const createStyles = (theme: AppTheme) =>
       fontWeight: "600" as const,
       color: "#f59e0b",
     },
-    viewMoreRanks: {
-      fontSize: 11,
-      fontWeight: "800",
-      color: theme.accent,
-      letterSpacing: 0.5,
-    },
-    ranksScroll: {
-      gap: 10,
-      paddingBottom: 4,
-    },
-    miniRankCard: {
-      width: 90,
-      backgroundColor: theme.bgCard,
-      borderRadius: 14,
-      padding: 10,
+    levelCard: {
+      flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: 14,
+      padding: 14,
+      borderRadius: 18,
       borderWidth: 1,
-      borderColor: theme.borderSubtle,
+      backgroundColor: theme.bgCard,
     },
-    miniRankMuscle: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: theme.textMuted,
-      textTransform: "uppercase",
-    },
-    miniTierBadge: {
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
-    miniTierText: {
-      fontSize: 9,
-      fontWeight: "800",
-      textTransform: "uppercase",
-    },
+    levelCardTitle: { fontSize: 18, fontWeight: "900" },
+    levelCardSub: { fontSize: 12, color: theme.textSecondary },
   });

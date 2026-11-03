@@ -5,7 +5,6 @@ import { RanksView } from "@/components/rankings/RanksView";
 import { RANK_TIERS } from "@/constants/ranks";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { useAppStore } from "@/store/useAppStore";
 import { withTimeout } from "@/utils/async";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,10 +12,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
-  Animated,
-  Easing,
   Image,
   RefreshControl,
   ScrollView,
@@ -113,27 +110,6 @@ const createStyles = (theme: AppTheme) =>
       borderColor: theme.borderSubtle,
       gap: 12,
     },
-    rowTop3: { borderColor: theme.borderMuted },
-    rowFirst: {
-      paddingVertical: 14,
-      borderWidth: 0,
-      backgroundColor: "transparent",
-      shadowColor: "#C5A356",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.35,
-      shadowRadius: 12,
-      elevation: 8,
-    },
-    rowFirstGradient: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderRadius: 16,
-      borderWidth: 1.5,
-      borderColor: "#C5A35680",
-    },
     rowMe: {
       borderColor: theme.accentBorder,
       backgroundColor: theme.accentDim,
@@ -151,15 +127,9 @@ const createStyles = (theme: AppTheme) =>
       justifyContent: "center",
       alignItems: "center",
     },
-    avatarWrapFirst: {
-      width: 46,
-      height: 46,
-      borderRadius: 14,
-    },
     avatar: { width: "100%", height: "100%" },
     nameCol: { flex: 1 },
     name: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
-    nameFirst: { fontSize: 15 },
     tierBadge: {
       flexDirection: "row",
       alignItems: "center",
@@ -219,6 +189,7 @@ const createStyles = (theme: AppTheme) =>
 
 
 // ─── Podium ───────────────────────────────────────────────────────────────────
+// ponytail: static on purpose — the old pulse/shimmer/glow loops competed with the level card.
 function PodiumView({
   top3,
   profileId,
@@ -228,121 +199,23 @@ function PodiumView({
   profileId?: string;
   theme: AppTheme;
 }) {
-  const first = top3.find((i) => i.position === 1);
-  const second = top3.find((i) => i.position === 2);
-  const third = top3.find((i) => i.position === 3);
-  const reduceMotion = useReduceMotion();
+  const byPos = (p: number) => top3.find((i) => i.position === p);
+  if (!byPos(1)) return null;
 
-  // Crown float animation for #1
-  const crownFloat = useRef(new Animated.Value(0)).current;
-
-  // Slide-up animations for each slot — start already at rest when reduce
-  // motion is on, so entries render in place instead of sliding/fading in.
-  const anim1 = useRef(new Animated.Value(reduceMotion ? 0 : 50)).current;
-  const fade1 = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const anim2 = useRef(new Animated.Value(reduceMotion ? 0 : 50)).current;
-  const fade2 = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const anim3 = useRef(new Animated.Value(reduceMotion ? 0 : 50)).current;
-  const fade3 = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(crownFloat, {
-          toValue: -6,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(crownFloat, {
-          toValue: 0,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduceMotion]);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    const makeParallel = (
-      anim: Animated.Value,
-      fade: Animated.Value,
-      delay: number,
-    ) =>
-      Animated.parallel([
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 480,
-          delay,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.back(1.1)),
-        }),
-        Animated.timing(fade, {
-          toValue: 1,
-          duration: 380,
-          delay,
-          useNativeDriver: true,
-        }),
-      ]);
-
-    Animated.parallel([
-      makeParallel(anim1, fade1, 0),
-      makeParallel(anim2, fade2, 80),
-      makeParallel(anim3, fade3, 160),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduceMotion]);
-
-  if (!first) return null;
-
-  const tierInfo = (entry?: LeaderboardItem) =>
-    entry
-      ? RANK_TIERS.find((t) => t.name === entry.rankTier) || RANK_TIERS[0]
-      : RANK_TIERS[0];
-
-  const podiumSlot = (
-    entry: LeaderboardItem | undefined,
-    pos: 1 | 2 | 3,
-    podiumH: number,
-    slideAnim: Animated.Value,
-    fadeAnim: Animated.Value,
-  ) => {
+  const slot = (entry: LeaderboardItem | undefined, pos: 1 | 2 | 3, podiumH: number) => {
     if (!entry) return <View style={{ flex: 1 }} />;
     const rankColor = RANK_COLORS[pos - 1];
     const avatarSize = pos === 1 ? 64 : 52;
-    const isMe = entry.id === profileId;
-    const tier = tierInfo(entry);
+    const tier = RANK_TIERS.find((t) => t.name === entry.rankTier) || RANK_TIERS[0];
 
     return (
-      <Animated.View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }}
-      >
-        {/* Crown for #1 */}
-        {pos === 1 && (
-          <Animated.View
-            style={{ transform: [{ translateY: crownFloat }], marginBottom: 4 }}
-          >
-            <Text style={{ fontSize: 22 }}>👑</Text>
-          </Animated.View>
-        )}
-        {/* Medal for #2/#3 */}
-        {pos !== 1 && (
-          <Ionicons
-            name="medal-outline"
-            size={18}
-            color={rankColor}
-            style={{ marginBottom: 6 }}
-          />
+      <View style={{ flex: 1, alignItems: "center" }}>
+        {pos === 1 ? (
+          <Text style={{ fontSize: 22, marginBottom: 4 }}>👑</Text>
+        ) : (
+          <Ionicons name="medal-outline" size={18} color={rankColor} style={{ marginBottom: 6 }} />
         )}
 
-        {/* Avatar */}
         <View
           style={{
             width: avatarSize,
@@ -358,42 +231,30 @@ function PodiumView({
           }}
         >
           {entry.avatar ? (
-            <Image
-              source={{ uri: entry.avatar }}
-              style={{ width: "100%", height: "100%" }}
-            />
+            <Image source={{ uri: entry.avatar }} style={{ width: "100%", height: "100%" }} />
           ) : (
-            <Ionicons
-              name="person"
-              size={pos === 1 ? 28 : 22}
-              color={theme.textMuted}
-            />
+            <Ionicons name="person" size={pos === 1 ? 28 : 22} color={theme.textMuted} />
           )}
         </View>
 
-        {/* Name */}
         <Text
           numberOfLines={1}
           style={{
             fontSize: pos === 1 ? 13 : 12,
             fontWeight: "800",
             color: pos === 1 ? rankColor : theme.textPrimary,
-            marginBottom: 2,
+            marginBottom: 4,
             maxWidth: "100%",
             textAlign: "center",
             paddingHorizontal: 4,
           }}
         >
           {entry.name}
-          {isMe ? " ★" : ""}
+          {entry.id === profileId ? " (tú)" : ""}
         </Text>
 
-        {/* Tier badge */}
         <View
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 3,
             backgroundColor: tier.color + "22",
             paddingHorizontal: 7,
             paddingVertical: 3,
@@ -401,12 +262,9 @@ function PodiumView({
             marginBottom: 8,
           }}
         >
-          <Text style={{ fontSize: 9, fontWeight: "800", color: tier.color }}>
-            {tier.name}
-          </Text>
+          <Text style={{ fontSize: 10, fontWeight: "800", color: tier.color }}>{tier.name}</Text>
         </View>
 
-        {/* Podium block */}
         <LinearGradient
           colors={[rankColor + "55", rankColor + "22"]}
           style={{
@@ -421,32 +279,17 @@ function PodiumView({
             borderColor: rankColor + "60",
           }}
         >
-          <Text
-            style={{
-              fontSize: pos === 1 ? 22 : 18,
-              fontWeight: "900",
-              color: rankColor,
-            }}
-          >
-            {pos}
-          </Text>
+          <Text style={{ fontSize: pos === 1 ? 22 : 18, fontWeight: "900", color: rankColor }}>{pos}</Text>
         </LinearGradient>
-      </Animated.View>
+      </View>
     );
   };
 
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "flex-end",
-        paddingHorizontal: 16,
-        marginBottom: 8,
-      }}
-    >
-      {podiumSlot(second, 2, 56, anim2, fade2)}
-      {podiumSlot(first, 1, 80, anim1, fade1)}
-      {podiumSlot(third, 3, 44, anim3, fade3)}
+    <View style={{ flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 16, marginBottom: 12 }}>
+      {slot(byPos(2), 2, 56)}
+      {slot(byPos(1), 1, 80)}
+      {slot(byPos(3), 3, 44)}
     </View>
   );
 }
@@ -455,255 +298,42 @@ function PodiumView({
 function LeaderboardRow({
   item,
   isMe,
-  index,
   theme,
   styles,
 }: {
   item: LeaderboardItem;
   isMe: boolean;
-  index: number;
   theme: AppTheme;
   styles: any;
 }) {
-  const isTop3 = item.position <= 3;
-  const isFirst = item.position === 1;
-  const isSecond = item.position === 2;
-  const isThird = item.position === 3;
-  const rankColor = isTop3 ? RANK_COLORS[item.position - 1] : null;
-  const tierInfo =
-    RANK_TIERS.find((t) => t.name === item.rankTier) || RANK_TIERS[0];
-  const reduceMotion = useReduceMotion();
+  // Top 3 only reach here when there are fewer than 3 entries (no podium).
+  const medal = item.position <= 3 ? RANK_COLORS[item.position - 1] : null;
+  const tier = RANK_TIERS.find((t) => t.name === item.rankTier) || RANK_TIERS[0];
 
-  // Todos — slide desde la derecha + fade en secuencia (ya en reposo si reduce motion)
-  const slideAnim = useRef(new Animated.Value(reduceMotion ? 0 : 60)).current;
-  const fadeAnim = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  useEffect(() => {
-    if (reduceMotion) return;
-    const delay = index * 55;
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        delay,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.back(1.1)),
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        delay,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduceMotion]);
-
-  // #1 — pulso lento (scale 1.0 → 1.015) encima del slide
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (!isFirst || reduceMotion) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.015,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFirst, reduceMotion]);
-
-  // #2 — shimmer horizontal deslizante
-  const shimmerAnim = useRef(new Animated.Value(-200)).current;
-  useEffect(() => {
-    if (!isSecond || reduceMotion) return;
-    const loop = Animated.loop(
-      Animated.timing(shimmerAnim, {
-        toValue: 200,
-        duration: 1800,
-        useNativeDriver: true,
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSecond, reduceMotion]);
-
-  // #3 — bronze glow pulsing border opacity
-  const bronzeAnim = useRef(new Animated.Value(0.3)).current;
-  useEffect(() => {
-    if (!isThird || reduceMotion) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bronzeAnim, {
-          toValue: 0.8,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bronzeAnim, {
-          toValue: 0.3,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isThird, reduceMotion]);
-
-  const innerRow = (
-    <>
-      {/* #1 — fondo gradiente dorado */}
-      {isFirst && (
-        <LinearGradient
-          colors={["#C5A35618", "#C5A35608", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
-      )}
-
-      {/* #2 shimmer overlay */}
-      {isSecond && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            width: 60,
-            transform: [{ translateX: shimmerAnim }],
-          }}
-        >
-          <LinearGradient
-            colors={["transparent", RANK_COLORS[1] + "40", "transparent"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-      )}
-
-      {/* #3 — bronze glow border overlay */}
-      {isThird && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: 16,
-            borderWidth: 2,
-            borderColor: RANK_COLORS[2],
-            opacity: bronzeAnim,
-          }}
-        />
-      )}
-
+  return (
+    <View style={[styles.row, isMe && styles.rowMe]}>
       <View style={styles.posCol}>
-        {isFirst ? (
-          <Ionicons name="ribbon" size={24} color={RANK_COLORS[0]} />
-        ) : isTop3 ? (
-          <Ionicons name="trophy" size={18} color={rankColor!} />
-        ) : (
-          <Text style={[styles.posNum, isMe && { color: theme.accent }]}>
-            {item.position}
-          </Text>
-        )}
+        <Text style={[styles.posNum, medal && { color: medal }, isMe && { color: theme.accent }]}>
+          {item.position}
+        </Text>
       </View>
-      <View
-        style={[
-          styles.avatarWrap,
-          isFirst && [
-            styles.avatarWrapFirst,
-            { borderWidth: 2.5, borderColor: RANK_COLORS[0] },
-          ],
-          !isFirst && isTop3 && { borderColor: rankColor! },
-        ]}
-      >
+      <View style={[styles.avatarWrap, medal && { borderColor: medal }]}>
         {item.avatar ? (
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
         ) : (
-          <Ionicons
-            name="person"
-            size={isFirst ? 22 : 18}
-            color={theme.textMuted}
-          />
+          <Ionicons name="person" size={18} color={theme.textMuted} />
         )}
       </View>
       <View style={styles.nameCol}>
-        <Text
-          style={[
-            styles.name,
-            isFirst && [
-              styles.nameFirst,
-              { color: "#C5A356", fontWeight: "800" },
-            ],
-            !isFirst && isMe && { color: theme.accent },
-          ]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.name, isMe && { color: theme.accent }]} numberOfLines={1}>
           {item.name}
-          {isMe && !isFirst ? " (tú)" : ""}
+          {isMe ? " (tú)" : ""}
         </Text>
       </View>
-      <View
-        style={[styles.tierBadge, { backgroundColor: tierInfo.color + "20" }]}
-      >
-        <Text style={[styles.tierText, { color: tierInfo.color }]}>
-          {tierInfo.name}
-        </Text>
+      <View style={[styles.tierBadge, { backgroundColor: tier.color + "20" }]}>
+        <Text style={[styles.tierText, { color: tier.color }]}>{tier.name}</Text>
       </View>
-    </>
-  );
-
-  const rowContent = (
-    <View
-      style={[
-        styles.row,
-        isTop3 && styles.rowTop3,
-        isFirst && styles.rowFirst,
-        isMe && styles.rowMe,
-        (isFirst || isSecond || isThird) && { overflow: "hidden" },
-      ]}
-    >
-      {innerRow}
     </View>
-  );
-
-  // #1: slide horizontal + fade + pulso loop
-  if (isFirst) {
-    return (
-      <Animated.View
-        style={{
-          transform: [{ translateX: slideAnim }, { scale: pulseAnim }],
-          opacity: fadeAnim,
-        }}
-      >
-        {rowContent}
-      </Animated.View>
-    );
-  }
-
-  // Todos los demás: slide horizontal + fade secuencial
-  return (
-    <Animated.View
-      style={{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }}
-    >
-      {rowContent}
-    </Animated.View>
   );
 }
 
@@ -887,11 +517,10 @@ export default function RankingsScreen() {
                 />
               )}
               <View style={styles.list}>
-                {leaderboard.slice(top3Count).map((item, index) => (
+                {leaderboard.slice(top3Count).map((item) => (
                   <LeaderboardRow
                     key={item.id}
                     item={item}
-                    index={index}
                     isMe={item.id === profile?.id}
                     theme={theme}
                     styles={styles}
