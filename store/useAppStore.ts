@@ -59,7 +59,7 @@ interface AppState {
   logsOffset: number;
   userSchedule: UserSchedule[] | null;
 
-  muscleRanks: UserRanks | null;
+  ranks: UserRanks | null;
   lastStreak: number;
   streakData: StreakData | null;
 
@@ -84,7 +84,7 @@ interface AppState {
   setLogsOffset: (offset: number) => void;
   resetWorkoutLogs: () => void;
   setUserSchedule: (schedule: UserSchedule[]) => void;
-  setMuscleRanks: (ranks: UserRanks | null) => void;
+  setRanks: (ranks: UserRanks | null) => void;
   setLastStreak: (streak: number) => void;
   setStreakData: (data: StreakData) => void;
   setThemeMode: (mode: ThemeMode) => void;
@@ -114,7 +114,7 @@ export const useAppStore = create<AppState>()(
       hasMoreLogs: true,
       logsOffset: 0,
       userSchedule: null,
-      muscleRanks: null,
+      ranks: null,
       lastStreak: 0,
       streakData: null,
       themeMode: 'dark',
@@ -138,7 +138,7 @@ export const useAppStore = create<AppState>()(
       setLogsOffset: (logsOffset) => set({ logsOffset }),
       resetWorkoutLogs: () => set({ workoutLogs: [], logsOffset: 0, hasMoreLogs: true }),
       setUserSchedule: (userSchedule) => set({ userSchedule }),
-      setMuscleRanks: (muscleRanks) => set({ muscleRanks }),
+      setRanks: (ranks) => set({ ranks }),
       setLastStreak: (lastStreak) => set({ lastStreak }),
       setStreakData: (streakData) => set({ streakData }),
       setThemeMode: (themeMode) => set({ themeMode }),
@@ -206,7 +206,7 @@ export const useAppStore = create<AppState>()(
         activeWorkout: null,
         workoutLogs: null,
         userSchedule: null,
-        muscleRanks: null,
+        ranks: null,
         lastStreak: 0,
         streakData: null
       }),

@@ -1,4 +1,5 @@
 import { LeaderboardAPI, LeaderboardItem, RankPosition } from "@/api/leaderboard";
+import { RanksAPI } from "@/api/ranks";
 import { RankingsSkeleton } from "@/components/rankings/RankingsSkeleton";
 import { RanksView } from "@/components/rankings/RanksView";
 import { RANK_TIERS } from "@/constants/ranks";
@@ -9,22 +10,22 @@ import { useAppStore } from "@/store/useAppStore";
 import { withTimeout } from "@/utils/async";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
-  FlatList,
   Image,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { RankingInfoModal } from "@/components/rankings/RankingInfoModal";
 
 const RANK_COLORS = ["#C5A356", "#A8A8B3", "#CD7F32"] as const;
 
@@ -49,49 +50,7 @@ const createStyles = (theme: AppTheme) =>
       color: theme.textPrimary,
       letterSpacing: -0.5,
     },
-    headerSubtitle: { fontSize: 13, color: theme.textMuted, marginTop: 2 },
-    infoBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 12,
-      backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-      justifyContent: "center",
-      alignItems: "center",
-    },
 
-    // Segment
-    segmentContainer: {
-      flexDirection: "row",
-      backgroundColor: theme.surface,
-      borderRadius: 14,
-      marginHorizontal: 20,
-      marginBottom: 20,
-      padding: 4,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-    },
-    segmentBtn: {
-      flex: 1,
-      paddingVertical: 10,
-      alignItems: "center",
-      borderRadius: 10,
-    },
-    segmentBtnActive: {
-      backgroundColor: theme.bgCard,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    segmentBtnText: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: theme.textSecondary,
-    },
-    segmentBtnTextActive: { color: theme.accent, fontWeight: "700" },
 
     // My position card
     myCard: {
@@ -140,17 +99,6 @@ const createStyles = (theme: AppTheme) =>
     myCardInfo: { flex: 1 },
     myCardName: { fontSize: 15, fontWeight: "700", color: theme.textPrimary },
     myCardPos: { fontSize: 12, color: theme.textMuted, marginTop: 1 },
-    myCardRight: { alignItems: "flex-end", gap: 4 },
-    myCardTier: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 10,
-    },
-    myCardTierText: { fontSize: 12, fontWeight: "800" },
-    myCardScore: { fontSize: 11, color: theme.textMuted },
 
     // Leaderboard list
     list: { paddingHorizontal: 20, paddingBottom: 24, gap: 8 },
@@ -212,8 +160,6 @@ const createStyles = (theme: AppTheme) =>
     nameCol: { flex: 1 },
     name: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
     nameFirst: { fontSize: 15 },
-    scoreText: { fontSize: 11, color: theme.textMuted, marginTop: 1 },
-    scoreTextMe: { color: theme.accent },
     tierBadge: {
       flexDirection: "row",
       alignItems: "center",
@@ -271,7 +217,6 @@ const createStyles = (theme: AppTheme) =>
     retryBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   });
 
-// Modal styles removed (now shared)
 
 // ─── Podium ───────────────────────────────────────────────────────────────────
 function PodiumView({
@@ -456,7 +401,6 @@ function PodiumView({
             marginBottom: 8,
           }}
         >
-          <Ionicons name={tier.icon as any} size={9} color={tier.color} />
           <Text style={{ fontSize: 9, fontWeight: "800", color: tier.color }}>
             {tier.name}
           </Text>
@@ -714,24 +658,10 @@ function LeaderboardRow({
           {item.name}
           {isMe && !isFirst ? " (tú)" : ""}
         </Text>
-        <Text
-          style={[
-            styles.scoreText,
-            isFirst && { color: "#C5A35699" },
-            isMe && !isFirst && styles.scoreTextMe,
-          ]}
-        >
-          Score {item.rankIndex.toFixed(2)}
-        </Text>
       </View>
       <View
         style={[styles.tierBadge, { backgroundColor: tierInfo.color + "20" }]}
       >
-        <Ionicons
-          name={tierInfo.icon as any}
-          size={11}
-          color={tierInfo.color}
-        />
         <Text style={[styles.tierText, { color: tierInfo.color }]}>
           {tierInfo.name}
         </Text>
@@ -781,26 +711,37 @@ function LeaderboardRow({
 export default function RankingsScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const { profile } = useAppStore();
+  const router = useRouter();
+  const { profile, userStats, ranks, setRanks, streakData } = useAppStore();
+  const streak = streakData?.streak ?? 0;
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
   const [myPosition, setMyPosition] = useState<RankPosition | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [errorStatus, setErrorStatus] = useState(false);
-  const [viewMode, setViewMode] = useState<"tabla" | "misrangos">("tabla");
-  const [infoVisible, setInfoVisible] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
-      loadLeaderboard();
+      load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
+    }, [profile?.id, userStats?.weight, streak]),
   );
 
-  const loadLeaderboard = async () => {
+  const load = async () => {
     try {
-      setLoading(true);
       setErrorStatus(false);
+      // Sync own rank first so the leaderboard below already reflects it.
+      if (profile?.id && userStats?.weight) {
+        const r = await RanksAPI.syncUserRank(
+          profile.id,
+          userStats.weight,
+          (userStats.gender as any) || "M",
+          streak,
+        );
+        if (r) setRanks(r);
+      }
+
       const data = await withTimeout(
         LeaderboardAPI.getRankLeaderboard(),
         15000,
@@ -809,12 +750,11 @@ export default function RankingsScreen() {
       setLeaderboard(data);
 
       // The top-10 list may not include the current user — fetch their real
-      // position separately in that case, instead of silently hiding "Mi posición".
+      // position separately in that case.
       const inTop10 = profile?.id && data.some((item) => item.id === profile.id);
       if (profile?.id && !inTop10) {
         try {
-          const pos = await LeaderboardAPI.getRankPosition(profile.id);
-          setMyPosition(pos);
+          setMyPosition(await LeaderboardAPI.getRankPosition(profile.id));
         } catch (e) {
           console.warn("[RankingsScreen] getRankPosition failed:", e);
           setMyPosition(null);
@@ -827,13 +767,9 @@ export default function RankingsScreen() {
       setErrorStatus(true);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
-
-  const myEntry = leaderboard.find((item) => item.id === profile?.id);
-  const myTierInfo = myEntry
-    ? RANK_TIERS.find((t) => t.name === myEntry.rankTier) || RANK_TIERS[0]
-    : null;
 
   const top3Count = Math.min(3, leaderboard.length);
   const showPodium = leaderboard.length >= 3;
@@ -852,276 +788,120 @@ export default function RankingsScreen() {
       />
 
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Rankings</Text>
-            <Text style={styles.headerSubtitle}>Por fuerza relativa</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.infoBtn}
-            onPress={() => setInfoVisible(true)}
-          >
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color={theme.textSecondary}
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
+              tintColor={theme.accent}
             />
-          </TouchableOpacity>
-        </View>
+          }
+        >
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Rankings</Text>
+          </View>
 
-        {/* Segment */}
-        <View style={styles.segmentContainer}>
-          <TouchableOpacity
-            style={[
-              styles.segmentBtn,
-              viewMode === "tabla" && styles.segmentBtnActive,
-            ]}
-            onPress={() => setViewMode("tabla")}
-          >
-            <Text
-              style={[
-                styles.segmentBtnText,
-                viewMode === "tabla" && styles.segmentBtnTextActive,
-              ]}
+          {/* ── Your rank ── */}
+          {!userStats?.weight ? (
+            <TouchableOpacity
+              style={styles.notRankedCard}
+              onPress={() => router.push("/(tabs)/nutrition")}
+              activeOpacity={0.85}
             >
-              Tabla
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.segmentBtn,
-              viewMode === "misrangos" && styles.segmentBtnActive,
-            ]}
-            onPress={() => setViewMode("misrangos")}
-          >
-            <Text
-              style={[
-                styles.segmentBtnText,
-                viewMode === "misrangos" && styles.segmentBtnTextActive,
-              ]}
-            >
-              Mis Rangos
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Ionicons name="scale-outline" size={18} color={theme.textMuted} />
+              <Text style={styles.notRankedText}>
+                Configura tu peso corporal para calcular tu rango.
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+            </TouchableOpacity>
+          ) : (
+            ranks && <RanksView ranks={ranks} streak={streak} />
+          )}
 
-        {viewMode === "tabla" ? (
-          <>
-            {/* My position card */}
-            {myEntry && myTierInfo && (
-              <View style={styles.myCard}>
-                <LinearGradient
-                  colors={[myTierInfo.color + "25", myTierInfo.color + "08"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.myCardGradient}
-                >
-                  <View style={styles.myCardAvatar}>
-                    {profile?.photo_url ? (
-                      <Image
-                        source={{ uri: profile.photo_url }}
-                        style={styles.myCardAvatarImg}
-                      />
-                    ) : (
-                      <Ionicons
-                        name="person"
-                        size={22}
-                        color={theme.textMuted}
-                      />
-                    )}
-                  </View>
-                  <View style={styles.myCardInfo}>
-                    <Text style={styles.myCardName}>
-                      {profile?.username || "Tú"}
-                    </Text>
-                    <Text style={styles.myCardPos}>
-                      Posición #{myEntry.position} de {leaderboard.length}
-                    </Text>
-                  </View>
-                  <View style={styles.myCardRight}>
-                    <View
-                      style={[
-                        styles.myCardTier,
-                        { backgroundColor: myTierInfo.color + "25" },
-                      ]}
-                    >
-                      <Ionicons
-                        name={myTierInfo.icon as any}
-                        size={12}
-                        color={myTierInfo.color}
-                      />
-                      <Text
-                        style={[
-                          styles.myCardTierText,
-                          { color: myTierInfo.color },
-                        ]}
-                      >
-                        {myTierInfo.name}
-                      </Text>
-                    </View>
-                    <Text style={styles.myCardScore}>
-                      Score {myEntry.rankIndex.toFixed(2)}
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </View>
-            )}
+          {/* ── Leaderboard ── */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Tabla</Text>
+          </View>
 
-            {/* Fallback: user isn't in the top 10, show just their real position */}
-            {!myEntry && myPosition && (
-              <View style={styles.myCard}>
-                <View style={[styles.myCardGradient, { backgroundColor: theme.surface }]}>
-                  <View style={styles.myCardAvatar}>
-                    {profile?.photo_url ? (
-                      <Image
-                        source={{ uri: profile.photo_url }}
-                        style={styles.myCardAvatarImg}
-                      />
-                    ) : (
-                      <Ionicons name="person" size={22} color={theme.textMuted} />
-                    )}
-                  </View>
-                  <View style={styles.myCardInfo}>
-                    <Text style={styles.myCardName}>
-                      {profile?.username || "Tú"}
-                    </Text>
-                    <Text style={styles.myCardPos}>
-                      Posición #{myPosition.position} de {myPosition.total}
-                    </Text>
-                  </View>
+          {/* User isn't in the top 10: show just their real position */}
+          {myPosition && (
+            <View style={styles.myCard}>
+              <View style={[styles.myCardGradient, { backgroundColor: theme.surface }]}>
+                <View style={styles.myCardAvatar}>
+                  {profile?.photo_url ? (
+                    <Image
+                      source={{ uri: profile.photo_url }}
+                      style={styles.myCardAvatarImg}
+                    />
+                  ) : (
+                    <Ionicons name="person" size={22} color={theme.textMuted} />
+                  )}
+                </View>
+                <View style={styles.myCardInfo}>
+                  <Text style={styles.myCardName}>
+                    {profile?.username || "Tú"}
+                  </Text>
+                  <Text style={styles.myCardPos}>
+                    Posición #{myPosition.position} de {myPosition.total}
+                  </Text>
                 </View>
               </View>
-            )}
+            </View>
+          )}
 
-            {/* Never ranked: no rank_index synced yet (e.g. no weight configured) */}
-            {!loading && !myEntry && !myPosition && (
-              <TouchableOpacity
-                style={styles.notRankedCard}
-                onPress={() => setViewMode("misrangos")}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="alert-circle-outline" size={18} color={theme.textMuted} />
-                <Text style={styles.notRankedText}>
-                  Aún no tienes una posición en el ranking. Ve a "Mis Rangos" para
-                  calcular tu nivel.
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-              </TouchableOpacity>
-            )}
-
-            {/* List */}
-            {loading ? (
-              <RankingsSkeleton />
-            ) : errorStatus ? (
-              <View style={styles.errorState}>
-                <Ionicons
-                  name="cloud-offline-outline"
-                  size={48}
-                  color={theme.textMuted}
-                />
-                <Text style={styles.errorTitle}>Sin conexión</Text>
-                <Text style={styles.errorText}>
-                  No pudimos cargar el ranking.
-                </Text>
-                <TouchableOpacity
-                  style={styles.retryBtn}
-                  onPress={loadLeaderboard}
+          {loading ? (
+            <RankingsSkeleton />
+          ) : errorStatus ? (
+            <View style={styles.errorState}>
+              <Ionicons
+                name="cloud-offline-outline"
+                size={48}
+                color={theme.textMuted}
+              />
+              <Text style={styles.errorTitle}>Sin conexión</Text>
+              <Text style={styles.errorText}>No pudimos cargar el ranking.</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={load}>
+                <LinearGradient
+                  colors={theme.gradients.accent}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.retryBtnGradient}
                 >
-                  <LinearGradient
-                    colors={theme.gradients.accent}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.retryBtnGradient}
-                  >
-                    <Ionicons name="refresh" size={14} color="#fff" />
-                    <Text style={styles.retryBtnText}>Reintentar</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={{ flex: 1, overflow: "hidden" }}>
-                {/* Podium for top 3 */}
-                {showPodium && (
-                  <PodiumView
-                    top3={leaderboard.slice(0, 3)}
-                    profileId={profile?.id}
-                    theme={theme}
-                  />
-                )}
-
-                {/* Section header between podium and rest of list */}
-                {showPodium && leaderboard.length > 3 && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      paddingHorizontal: 20,
-                      marginTop: 8,
-                      marginBottom: 8,
-                      gap: 10,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flex: 1,
-                        height: 1,
-                        backgroundColor: theme.borderSubtle,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        fontWeight: "800",
-                        color: theme.textMuted,
-                        textTransform: "uppercase",
-                        letterSpacing: 1.5,
-                      }}
-                    >
-                      RESTO DEL RANKING
-                    </Text>
-                    <View
-                      style={{
-                        flex: 1,
-                        height: 1,
-                        backgroundColor: theme.borderSubtle,
-                      }}
-                    />
-                  </View>
-                )}
-
-                <FlatList
-                  data={leaderboard.slice(top3Count)}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item, index }) => (
-                    <LeaderboardRow
-                      item={item}
-                      index={index}
-                      isMe={item.id === profile?.id}
-                      theme={theme}
-                      styles={styles}
-                    />
-                  )}
-                  contentContainerStyle={styles.list}
-                  showsVerticalScrollIndicator={false}
+                  <Ionicons name="refresh" size={14} color="#fff" />
+                  <Text style={styles.retryBtnText}>Reintentar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              {showPodium && (
+                <PodiumView
+                  top3={leaderboard.slice(0, 3)}
+                  profileId={profile?.id}
+                  theme={theme}
                 />
+              )}
+              <View style={styles.list}>
+                {leaderboard.slice(top3Count).map((item, index) => (
+                  <LeaderboardRow
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    isMe={item.id === profile?.id}
+                    theme={theme}
+                    styles={styles}
+                  />
+                ))}
               </View>
-            )}
-          </>
-        ) : (
-          <RanksView />
-        )}
+            </>
+          )}
+        </ScrollView>
       </SafeAreaView>
-
-      <RankingInfoModal
-        visible={infoVisible}
-        onClose={() => setInfoVisible(false)}
-        currentTierIndex={
-          myEntry
-            ? RANK_TIERS.findIndex((t) => t.name === myEntry.rankTier)
-            : -1
-        }
-      />
     </View>
   );
 }

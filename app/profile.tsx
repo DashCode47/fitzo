@@ -24,7 +24,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { MUSCLE_GROUPS, RANK_TIERS } from "@/constants/ranks";
+import { LIFTS, RANK_TIERS } from "@/constants/ranks";
 import { useAppStore } from "@/store/useAppStore";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -48,8 +48,9 @@ export default function ProfileScreen() {
     setProfile,
     clearAll,
     isHydrated,
-    muscleRanks,
-    setMuscleRanks,
+    ranks,
+    setRanks,
+    streakData,
     userStats,
     setUserStats,
     themeMode,
@@ -89,7 +90,7 @@ export default function ProfileScreen() {
   // this screen's "Mis Rangos" preview silently stays empty for anyone who
   // hasn't visited that tab yet, even though they have real data to show.
   useEffect(() => {
-    if (isHydrated && profile?.id && userStats?.weight && !muscleRanks) {
+    if (isHydrated && profile?.id && userStats?.weight && !ranks) {
       loadMuscleRanks();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,12 +100,14 @@ export default function ProfileScreen() {
     if (!profile?.id || !userStats?.weight) return;
     try {
       const maxWeights = await RanksAPI.getUserMaxWeights(profile.id);
-      const ranks = calculateAllRanks(
-        maxWeights,
-        userStats.weight,
-        (userStats.gender as any) || "M",
+      setRanks(
+        calculateAllRanks(
+          maxWeights,
+          userStats.weight,
+          (userStats.gender as any) || "M",
+          streakData?.streak ?? 0,
+        ),
       );
-      setMuscleRanks(ranks);
     } catch (e) {
       console.error("[ProfileScreen] Failed to load muscle ranks:", e);
     }
@@ -377,17 +380,12 @@ export default function ProfileScreen() {
           </View>
 
           {/* ── My Ranks Section ── */}
-          {muscleRanks && (
+          {ranks && (
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Mis Rangos</Text>
                 <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(tabs)/rankings",
-                      params: { view: "ranks" },
-                    })
-                  }
+                  onPress={() => router.push("/(tabs)/rankings")}
                 >
                   <Text style={styles.viewMoreRanks}>VER TODOS</Text>
                 </TouchableOpacity>
@@ -397,21 +395,14 @@ export default function ProfileScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.ranksScroll}
               >
-                {muscleRanks.muscleRanks.map((rank) => {
-                  const muscle = MUSCLE_GROUPS.find(
-                    (m) => m.key === rank.muscleGroup,
-                  );
+                {ranks.lifts.map((rank) => {
+                  const muscle = LIFTS.find((l) => l.key === rank.lift);
                   const tier = RANK_TIERS[rank.tierIndex];
                   return (
                     <TouchableOpacity
-                      key={rank.muscleGroup}
+                      key={rank.lift}
                       style={styles.miniRankCard}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/(tabs)/rankings",
-                          params: { view: "ranks" },
-                        })
-                      }
+                      onPress={() => router.push("/(tabs)/rankings")}
                     >
                       <Ionicons
                         name={muscle?.icon as any}

@@ -162,12 +162,6 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  podiumScore: {
-    color: theme.accent,
-    fontSize: 13,
-    fontWeight: '800',
-    marginTop: 2,
-  },
   tierPill: {
     backgroundColor: theme.surface,
     paddingHorizontal: 8,
@@ -325,7 +319,7 @@ export const EventsTimeline = ({ data, onPressItem }: EventsProps) => {
 
 // ─── TopThreePodium ───────────────────────────────────────────────────────────
 interface LeaderboardProps {
-  data: { rank: number; name: string; score: number; avatar: string }[];
+  data: { rank: number; name: string; avatar: string; tier: string }[];
   onSeeAll?: () => void;
 }
 
@@ -380,9 +374,8 @@ export const TopThreePodium = ({ data, onSeeAll }: LeaderboardProps) => {
         <Text style={[styles.podiumName, elevated && { fontSize: 14, fontWeight: '800' }]} numberOfLines={1}>
           {entry.name}
         </Text>
-        <Text style={styles.podiumScore}>{entry.score.toFixed(1)}</Text>
         <View style={styles.tierPill}>
-          <Text style={styles.tierText}>{entry.tier || 'Chulla'}</Text>
+          <Text style={styles.tierText}>{entry.tier}</Text>
         </View>
       </View>
     );

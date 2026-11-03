@@ -53,16 +53,19 @@ export async function saveActiveWorkout(workout: ActiveWorkout): Promise<void> {
 
   Notifications.cancelScheduledNotificationAsync(NOTIFICATION_ID).catch(() => {});
 
-  // Keep the leaderboard fresh right after a session. Fire-and-forget:
-  // the workout is already saved, this shouldn't block finishing the flow.
-  if (userStats?.weight) {
-    RanksAPI.syncUserRank(profile.id, userStats.weight, (userStats.gender as any) || 'M');
-  }
   // checkIn is idempotent, so finishing a session always counts as attendance.
   // Refreshing the streak also cancels today's "streak at risk" reminder.
+  // Fire-and-forget: the workout is already saved, this shouldn't block finishing.
   AttendanceAPI.checkIn(profile.id)
     .then(() => AttendanceAPI.getStreakData(profile.id!))
-    .then((s) => useAppStore.getState().setStreakData(s))
+    .then((s) => {
+      useAppStore.getState().setStreakData(s);
+      // Sync the rank after the streak refresh so the bonus uses today's streak.
+      if (userStats?.weight) {
+        return RanksAPI.syncUserRank(profile.id!, userStats.weight, (userStats.gender as any) || 'M', s.streak)
+          .then((r) => { if (r) useAppStore.getState().setRanks(r); });
+      }
+    })
     .catch((e) => console.error('[WorkoutAutoFinish] Failed to mark attendance:', e));
 }
 

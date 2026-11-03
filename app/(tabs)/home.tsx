@@ -192,11 +192,7 @@ export default function HomeScreen() {
                 gn as any,
                 streakInfo.streak,
               );
-              await RanksAPI.syncRankToProfile(
-                session.user.id,
-                calculated.avgIndex,
-                calculated.generalTier,
-              );
+              await RanksAPI.syncRankToProfile(session.user.id, calculated);
             }
           })
           .catch(() => {});
@@ -404,7 +400,6 @@ export default function HomeScreen() {
               data={data.leaderboard.slice(0, 3).map((item: any) => ({
                 rank: item.position,
                 name: item.name,
-                score: item.rankIndex,
                 avatar: item.avatar,
                 tier: item.rankTier,
               }))}

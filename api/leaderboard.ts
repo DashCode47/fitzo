@@ -1,4 +1,5 @@
 
+import { tierFromRankIndex } from '@/constants/ranks';
 import { supabase } from '@/lib/supabase';
 
 export interface LeaderboardItem {
@@ -19,7 +20,7 @@ export const LeaderboardAPI = {
     getRankLeaderboard: async (): Promise<LeaderboardItem[]> => {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, display_name, photo_url, rank_tier, rank_index')
+            .select('id, username, display_name, photo_url, rank_index')
             .order('rank_index', { ascending: false })
             .limit(10);
 
@@ -33,7 +34,8 @@ export const LeaderboardAPI = {
             name: entry.display_name || entry.username || 'Atleta',
             avatar: entry.photo_url || '',
             position: index + 1,
-            rankTier: entry.rank_tier || 'Chulla',
+            // Derived from rank_index, not rank_tier, so legacy tier names in old rows don't matter.
+            rankTier: tierFromRankIndex(entry.rank_index ?? 0).name,
             rankIndex: entry.rank_index ?? 0,
         }));
     },

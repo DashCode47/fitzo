@@ -1,7 +1,8 @@
 // ─── Rank System Constants ───────────────────────────────────────────────────
+// Rank = average level of the 4 main lifts + streak bonus (30 days = +1 level).
 
-export type RankTier = 'Chulla' | 'Camellador' | 'Chagra' | 'Capo' | 'Máquina' | 'Atahualpa';
-export type MuscleGroupKey = 'chest' | 'back' | 'legs' | 'shoulders' | 'arms' | 'core' | 'glutes' | 'forearms';
+export type RankTier = `Nivel ${number}`;
+export type LiftKey = 'bench' | 'squat' | 'deadlift' | 'ohp';
 export type Gender = 'M' | 'F';
 
 // ─── Tiers ───────────────────────────────────────────────────────────────────
@@ -9,82 +10,68 @@ export type Gender = 'M' | 'F';
 export interface RankTierInfo {
   name: RankTier;
   color: string;
-  icon: string; // Ionicons name
 }
 
 export const RANK_TIERS: RankTierInfo[] = [
-  { name: 'Chulla',    color: '#8A8A9A', icon: 'fitness-outline' },
-  { name: 'Camellador', color: '#34D399', icon: 'leaf-outline' },
-  { name: 'Chagra',    color: '#60A5FA', icon: 'shield-outline' },
-  { name: 'Capo',      color: '#A78BFA', icon: 'diamond-outline' },
-  { name: 'Máquina',   color: '#FBBF24', icon: 'flash-outline' },
-  { name: 'Atahualpa', color: '#F87171', icon: 'flame-outline' },
-];
+  // Distinct hues, cool → hot, gold at the top. No gray: gray reads as "empty".
+  '#84CC16', '#10B981', '#06B6D4', '#3B82F6', '#6366F1',
+  '#A855F7', '#EC4899', '#EF4444', '#F97316', '#EAB308',
+].map((color, i) => ({ color, name: `Nivel ${i + 1}` as RankTier }));
 
-// ─── Muscle Groups ───────────────────────────────────────────────────────────
+// Tier from a continuous rank index (what profiles.rank_index stores). Floors,
+// so you only show a tier once you've fully reached it.
+export const tierIndexFromRankIndex = (rankIndex: number): number =>
+  Math.max(0, Math.min(Math.floor(rankIndex || 0), RANK_TIERS.length - 1));
 
-export interface MuscleGroupInfo {
-  key: MuscleGroupKey;
+export const tierFromRankIndex = (rankIndex: number): RankTierInfo =>
+  RANK_TIERS[tierIndexFromRankIndex(rankIndex)];
+
+// ─── Lifts ───────────────────────────────────────────────────────────────────
+
+export interface LiftInfo {
+  key: LiftKey;
   label: string;
   icon: string; // Ionicons name
 }
 
-export const MUSCLE_GROUPS: MuscleGroupInfo[] = [
-  { key: 'chest',     label: 'Pecho',     icon: 'body-outline' },
-  { key: 'back',      label: 'Espalda',   icon: 'arrow-back-outline' },
-  { key: 'legs',      label: 'Piernas',   icon: 'walk-outline' },
-  { key: 'shoulders', label: 'Hombros',   icon: 'man-outline' },
-  { key: 'arms',      label: 'Brazos',    icon: 'barbell-outline' },
-  { key: 'core',      label: 'Core',      icon: 'radio-button-on-outline' },
-  { key: 'glutes',    label: 'Glúteos',   icon: 'trending-up-outline' },
-  { key: 'forearms',  label: 'Antebrazo', icon: 'hand-left-outline' },
+export const LIFTS: LiftInfo[] = [
+  { key: 'bench',    label: 'Press de Banca', icon: 'barbell-outline' },
+  { key: 'squat',    label: 'Sentadilla',     icon: 'walk-outline' },
+  { key: 'deadlift', label: 'Peso Muerto',    icon: 'body-outline' },
+  { key: 'ohp',      label: 'Press Militar',  icon: 'arrow-up-outline' },
 ];
 
-// ─── Representative Exercises ────────────────────────────────────────────────
-// Maps each muscle group to the exercise name used for rank calculation.
-// These must match exactly the `name` column in the `exercises` table.
-
-export const REPRESENTATIVE_EXERCISES: Record<MuscleGroupKey, string> = {
-  chest:     'Press de Banca (Bench Press)',
-  back:      'Peso Muerto (Deadlift)',
-  legs:      'Sentadilla (Squat)',
-  shoulders: 'Press de Hombro (Shoulder Press)',
-  arms:      'Curl de Bíceps (Bicep Curl)',
-  core:      'Plancha (Plank)',
-  glutes:    'Hip Thrust',
-  forearms:  'Curl de Muñeca (Wrist Curl)',
+// Must match exactly the `name` column in the `exercises` table.
+export const REPRESENTATIVE_EXERCISES: Record<LiftKey, string> = {
+  bench:    'Press de Banca (Bench Press)',
+  squat:    'Sentadilla (Squat)',
+  deadlift: 'Peso Muerto (Deadlift)',
+  ohp:      'Press de Hombro (Shoulder Press)',
 };
 
-// ─── Rank Thresholds ─────────────────────────────────────────────────────────
-// Each array has 6 values corresponding to the minimum ratio for each tier.
-// ratio = max_weight_lifted / body_weight
-// Core is special: uses seconds (from reps field), not weight ratio.
+// ─── Thresholds ──────────────────────────────────────────────────────────────
+// Minimum (max_weight / body_weight) ratio for each of the 10 levels.
+// Level 2 is an easy first step; after that steps are even (~12kg on bench at 80kg BW).
 
-type ThresholdTable = Record<MuscleGroupKey, [number, number, number, number, number, number]>;
+type ThresholdTable = Record<LiftKey, number[]>;
 
 export const THRESHOLDS_MALE: ThresholdTable = {
-  chest:     [0.00, 0.50, 0.75, 1.00, 1.25, 1.50],
-  back:      [0.00, 0.60, 0.90, 1.20, 1.50, 1.80],
-  legs:      [0.00, 0.70, 1.00, 1.30, 1.60, 2.00],
-  shoulders: [0.00, 0.35, 0.50, 0.65, 0.80, 1.00],
-  arms:      [0.00, 0.20, 0.30, 0.40, 0.50, 0.60],
-  core:      [0, 30, 60, 90, 120, 180],
-  glutes:    [0.00, 0.50, 0.75, 1.00, 1.25, 1.50],
-  forearms:  [0.00, 0.15, 0.25, 0.35, 0.45, 0.55],
+  bench:    [0, 0.25, 0.41, 0.56, 0.72, 0.88, 1.03, 1.19, 1.34, 1.50],
+  squat:    [0, 0.35, 0.56, 0.76, 0.97, 1.17, 1.38, 1.59, 1.79, 2.00],
+  deadlift: [0, 0.30, 0.49, 0.68, 0.86, 1.05, 1.24, 1.43, 1.61, 1.80],
+  ohp:      [0, 0.15, 0.26, 0.36, 0.47, 0.57, 0.68, 0.79, 0.89, 1.00],
 };
 
 export const THRESHOLDS_FEMALE: ThresholdTable = {
-  chest:     [0.00, 0.30, 0.50, 0.65, 0.80, 1.00],
-  back:      [0.00, 0.35, 0.55, 0.75, 0.95, 1.15],
-  legs:      [0.00, 0.50, 0.75, 1.00, 1.25, 1.50],
-  shoulders: [0.00, 0.20, 0.35, 0.45, 0.55, 0.70],
-  arms:      [0.00, 0.12, 0.20, 0.28, 0.35, 0.45],
-  core:      [0, 30, 60, 90, 120, 180],
-  glutes:    [0.00, 0.35, 0.55, 0.70, 0.85, 1.05],
-  forearms:  [0.00, 0.10, 0.18, 0.25, 0.32, 0.40],
+  bench:    [0, 0.15, 0.26, 0.36, 0.47, 0.57, 0.68, 0.79, 0.89, 1.00],
+  squat:    [0, 0.25, 0.41, 0.56, 0.72, 0.88, 1.03, 1.19, 1.34, 1.50],
+  deadlift: [0, 0.20, 0.32, 0.44, 0.56, 0.68, 0.79, 0.91, 1.03, 1.15],
+  ohp:      [0, 0.10, 0.17, 0.25, 0.32, 0.40, 0.47, 0.55, 0.62, 0.70],
 };
 
 export const getThresholds = (gender: string): ThresholdTable => {
   const normalized = gender?.toUpperCase()?.charAt(0);
   return normalized === 'F' ? THRESHOLDS_FEMALE : THRESHOLDS_MALE;
 };
+
+export const STREAK_DAYS_FOR_BONUS = 30;
