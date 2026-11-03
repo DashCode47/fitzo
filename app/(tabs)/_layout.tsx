@@ -1,20 +1,33 @@
 import { ActiveWorkoutBar } from "@/components/active-workout-bar";
 import { HapticTab } from "@/components/haptic-tab";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { View } from "react-native";
 
-type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
+// Active tab gets a filled glyph on an accent pill; inactive is outline + muted.
+function TabIcon({ on, off, focused }: { on: IconName; off: IconName; focused: boolean }) {
   const theme = useAppTheme();
   return (
-    <Ionicons
-      name={name}
-      size={22}
-      color={focused ? theme.accent : theme.textMuted}
-    />
+    <View
+      style={{
+        width: 52,
+        height: 30,
+        borderRadius: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: focused ? theme.accentDim : "transparent",
+      }}
+    >
+      <MaterialCommunityIcons
+        name={focused ? on : off}
+        size={22}
+        color={focused ? theme.accent : theme.textMuted}
+      />
+    </View>
   );
 }
 
@@ -48,10 +61,7 @@ export default function TabLayout() {
         options={{
           title: "Inicio",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name={focused ? "home" : "home-outline"}
-              focused={focused}
-            />
+            <TabIcon on="home-variant" off="home-variant-outline" focused={focused} />
           ),
         }}
       />
@@ -60,10 +70,7 @@ export default function TabLayout() {
         options={{
           title: "Rutinas",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name={focused ? "fitness" : "fitness-outline"}
-              focused={focused}
-            />
+            <TabIcon on="dumbbell" off="dumbbell" focused={focused} />
           ),
         }}
       />
@@ -72,10 +79,7 @@ export default function TabLayout() {
         options={{
           title: "Stats",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name={focused ? "stats-chart" : "stats-chart-outline"}
-              focused={focused}
-            />
+            <TabIcon on="chart-box" off="chart-box-outline" focused={focused} />
           ),
         }}
       />
@@ -84,10 +88,7 @@ export default function TabLayout() {
         options={{
           title: "Nutrición",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name={focused ? "restaurant" : "restaurant-outline"}
-              focused={focused}
-            />
+            <TabIcon on="food-apple" off="food-apple-outline" focused={focused} />
           ),
         }}
       />
@@ -96,10 +97,7 @@ export default function TabLayout() {
         options={{
           title: "Ranking",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name={focused ? "trophy" : "trophy-outline"}
-              focused={focused}
-            />
+            <TabIcon on="trophy" off="trophy-outline" focused={focused} />
           ),
         }}
       />
