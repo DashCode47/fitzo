@@ -1460,9 +1460,9 @@ function Dashboard({
             <Text style={styles.dietName}>{diet.name}</Text>
             <View style={styles.macrosRow}>
               {[
-                { key: "Prot", value: diet.macros?.protein },
-                { key: "Carb", value: diet.macros?.carbs },
-                { key: "Fat", value: diet.macros?.fats },
+                { key: "Prot", value: `${calc.macros.protein}g` },
+                { key: "Carb", value: `${calc.macros.carbs}g` },
+                { key: "Fat", value: `${calc.macros.fat}g` },
               ].map((m) => (
                 <View key={m.key} style={styles.macroBadge}>
                   <Ionicons

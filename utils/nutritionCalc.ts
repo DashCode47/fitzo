@@ -17,7 +17,12 @@ export const calculateCalories = (
   gender: 'M' | 'F',
   activityLevel: 'sedentary' | 'moderate' | 'active',
   userSelectedGoal: 'cut' | 'bulk' | 'maintain'
-): { calories: number; finalGoal: 'cut' | 'bulk' | 'maintain'; isOverridden: boolean } => {
+): {
+  calories: number;
+  finalGoal: 'cut' | 'bulk' | 'maintain';
+  isOverridden: boolean;
+  macros: { protein: number; fat: number; carbs: number }; // grams
+} => {
   
   // 1. Calculate BMI
   const heightInMeters = height / 100;
@@ -62,5 +67,10 @@ export const calculateCalories = (
     calories = Math.round(tdee);
   }
 
-  return { calories, finalGoal, isOverridden };
+  // 6. Macros (grams): protein by bodyweight, fat 25% of kcal, carbs fill the rest
+  const protein = Math.round((finalGoal === 'cut' ? 2.0 : 1.8) * weight); // ponytail: fixed g/kg, per-user setting if a coach needs it
+  const fat = Math.round((calories * 0.25) / 9);
+  const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4)); // clamp: very low-kcal cuts can go negative
+
+  return { calories, finalGoal, isOverridden, macros: { protein, fat, carbs } };
 };
