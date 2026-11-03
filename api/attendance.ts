@@ -17,6 +17,7 @@ export interface StreakData {
   streak: number;
   weekDays: number;   // distinct days checked-in Mon–Sun this week
   todayCount: number; // 0 or 1
+  weekFlags?: boolean[]; // Mon..Sun checked-in this week (optional: older persisted data lacks it)
 }
 
 const toDateStr = (d: Date): string =>
@@ -68,7 +69,7 @@ export const AttendanceAPI = {
       .order('date', { ascending: false });
 
     if (error) throw error;
-    if (!data) return { streak: 0, weekDays: 0, todayCount: 0 };
+    if (!data) return { streak: 0, weekDays: 0, todayCount: 0, weekFlags: Array(7).fill(false) };
 
     const today = localToday();
     const todayCount = data.filter(r => r.date === today).length;
@@ -93,6 +94,11 @@ export const AttendanceAPI = {
     });
 
     const currentWeekDays = weeksMap[currentWeekStart] || 0;
+    const weekFlags = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(currentWeekStart + 'T12:00:00');
+      d.setDate(d.getDate() + i);
+      return uniqueDates.includes(toDateStr(d));
+    });
     
     // Calculate streak: Sum of current days + days from all consecutive previous successful weeks
     let totalStreakDays = currentWeekDays;
@@ -118,8 +124,9 @@ export const AttendanceAPI = {
 
     return { 
       streak: totalStreakDays, 
-      weekDays: currentWeekDays, 
-      todayCount 
+      weekDays: currentWeekDays,
+      todayCount,
+      weekFlags,
     };
   },
 };

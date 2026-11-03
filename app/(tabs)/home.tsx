@@ -15,6 +15,7 @@ import {
   TopThreePodium,
 } from "@/components/home/SectionComponents";
 import { CustomModal } from "@/components/ui/CustomModal";
+import { WeekDots } from "@/components/ui/WeekDots";
 import { AppTheme } from "@/constants/theme";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -324,20 +325,25 @@ export default function HomeScreen() {
 
           {/* ── Attendance Check-in ── */}
           <View style={styles.attendanceCard}>
-            <View style={styles.attendanceInfo}>
-              <Ionicons
-                name="calendar-outline"
-                size={16}
-                color={theme.accent}
-              />
-              <Text style={styles.attendanceInfoText}>
+            <View style={styles.attendanceHeader}>
+              <View style={styles.attendanceInfo}>
+                <Ionicons name="flame" size={16} color="#FB923C" />
+                <Text style={styles.attendanceTitle}>Esta semana</Text>
+              </View>
+              <Text
+                style={[
+                  styles.attendanceCount,
+                  streak.weekDays >= 4 && { color: theme.success },
+                ]}
+              >
                 {streakLoading
-                  ? "Cargando racha..."
+                  ? "…"
                   : streak.weekDays >= 4
-                    ? "¡Racha asegurada esta semana!"
-                    : `${streak.weekDays}/4 días esta semana`}
+                    ? "Racha asegurada ✓"
+                    : `${streak.weekDays}/4 días`}
               </Text>
             </View>
+            <WeekDots days={streak.weekFlags ?? []} size={30} />
             <TouchableOpacity
               style={[
                 styles.checkInBtn,
@@ -480,13 +486,9 @@ const createStyles = (theme: AppTheme) =>
 
     // ── Attendance card ──────────────────────────────────────────────────────────
     attendanceCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
       marginHorizontal: 20,
       marginBottom: 8,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
+      padding: 14,
       backgroundColor: theme.surface,
       borderRadius: 14,
       borderWidth: 1,
@@ -499,19 +501,29 @@ const createStyles = (theme: AppTheme) =>
       alignItems: "center",
       gap: 6,
     },
-    attendanceInfoText: {
+    attendanceHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    attendanceTitle: {
+      color: theme.textPrimary,
+      fontSize: 14,
+      fontWeight: "800",
+    },
+    attendanceCount: {
       color: theme.textSecondary,
       fontSize: 12,
-      fontWeight: "500",
+      fontWeight: "700",
     },
     checkInBtn: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
+      justifyContent: "center",
+      gap: 6,
       backgroundColor: theme.accent,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      borderRadius: 10,
+      paddingVertical: 10,
+      borderRadius: 12,
     },
     checkInBtnDone: {
       backgroundColor: "rgba(52,211,153,0.12)",
@@ -520,7 +532,7 @@ const createStyles = (theme: AppTheme) =>
     },
     checkInBtnText: {
       color: "#fff",
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: "700",
     },
     headerRight: {

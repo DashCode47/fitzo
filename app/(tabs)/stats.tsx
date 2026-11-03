@@ -4,6 +4,7 @@ import { WorkoutsAPI } from "@/api/workouts";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { Bone } from "@/components/ui/Bone";
+import { WeekDots } from "@/components/ui/WeekDots";
 import { useAppStore } from "@/store/useAppStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -182,6 +183,7 @@ export default function StatsScreen() {
   const [previewExercise, setPreviewExercise] = useState<ExercisePR | null>(null);
 
   const dailyCounts = useMemo(() => computeDailyCounts(workoutLogs, weekOffset), [workoutLogs, weekOffset]);
+  const thisWeekDays = useMemo(() => computeDailyCounts(workoutLogs, 0).map((d) => d.count > 0), [workoutLogs]);
   const canGoNextWeek = weekOffset < 0;
   // workoutLogs is capped at RECENT_LIMIT — if we hit that cap, there may be
   // older sessions we never fetched, so we can't know the true oldest week.
@@ -283,13 +285,10 @@ export default function StatsScreen() {
                 <Bone w={170} h={12} radius={4} />
               </View>
             </View>
-            <View style={styles.statGrid}>
-              {[0, 1, 2, 3].map((i) => (
-                <View key={i} style={styles.statTile}>
-                  <Bone w={30} h={30} radius={10} />
-                  <Bone w={64} h={22} radius={5} />
-                  <Bone w={96} h={9} radius={3} />
-                </View>
+            <Bone w="100%" h={150} radius={22} />
+            <View style={styles.miniRow}>
+              {[0, 1, 2].map((i) => (
+                <Bone key={i} w="31%" h={78} radius={16} />
               ))}
             </View>
             <Bone w={200} h={14} radius={4} style={{ marginTop: 4 }} />
@@ -344,34 +343,35 @@ export default function StatsScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ── Stat grid ── */}
-          <View style={styles.statGrid}>
-            <StatTile
+          {/* ── This week ── */}
+          <WeekSummary
+            days={thisWeekDays}
+            volume={aggregates.lastWeekVolume}
+            trend={volumeTrend(aggregates.lastWeekVolume, aggregates.prevWeekVolume)}
+            theme={theme}
+            styles={styles}
+          />
+
+          {/* ── All-time mini stats ── */}
+          <View style={styles.miniRow}>
+            <MiniStat
               icon="barbell-outline"
               value={aggregates.totalWorkouts.toString()}
-              label={hitRecentLimit ? `ÚLTIMOS ${RECENT_LIMIT} ENTRENOS` : "ENTRENOS TOTALES"}
+              label={hitRecentLimit ? `Últimos ${RECENT_LIMIT}` : "Entrenos"}
               theme={theme}
               styles={styles}
             />
-            <StatTile
-              icon="trending-up-outline"
-              value={`${aggregates.lastWeekVolume.toLocaleString()}kg`}
-              label="VOLUMEN ESTA SEMANA"
-              trend={volumeTrend(aggregates.lastWeekVolume, aggregates.prevWeekVolume)}
+            <MiniStat
+              icon="timer-outline"
+              value={`${aggregates.avgDurationMin} min`}
+              label="Promedio"
               theme={theme}
               styles={styles}
             />
-            <StatTile
-              icon="time-outline"
-              value={`${aggregates.avgDurationMin}m`}
-              label="DURACIÓN PROMEDIO"
-              theme={theme}
-              styles={styles}
-            />
-            <StatTile
-              icon="calendar-outline"
-              value={aggregates.thisWeekCount.toString()}
-              label="ESTA SEMANA"
+            <MiniStat
+              icon="calendar-clear-outline"
+              value={daysAgoLabel(aggregates.lastWorkoutAt)}
+              label="Último entreno"
               theme={theme}
               styles={styles}
             />
@@ -663,47 +663,112 @@ export default function StatsScreen() {
   );
 }
 
-function StatTile({
+const WEEKLY_GOAL = 4; // same rule as the streak: 4 training days per week
+
+// "Hoy", "Ayer", "Hace 3 días", "—"
+export function daysAgoLabel(iso: string | null, now: Date = new Date()): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / (24 * 60 * 60 * 1000));
+  if (diff <= 0) return "Hoy";
+  if (diff === 1) return "Ayer";
+  return `Hace ${diff} días`;
+}
+
+function WeekSummary({
+  days,
+  volume,
+  trend,
+  theme,
+  styles,
+}: {
+  days: boolean[]; // Mon..Sun, trained or not
+  volume: number;
+  trend: { direction: "up" | "down"; pct: number } | null;
+  theme: AppTheme;
+  styles: any;
+}) {
+  const trained = days.filter(Boolean).length;
+  const goalMet = trained >= WEEKLY_GOAL;
+
+  return (
+    <View style={styles.weekCard}>
+      <LinearGradient
+        colors={[theme.accentDim, "transparent"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <View style={styles.weekHeader}>
+        <Text style={styles.weekEyebrow}>ESTA SEMANA</Text>
+        <View style={[styles.goalChip, goalMet && { backgroundColor: theme.success + "22", borderColor: theme.success + "55" }]}>
+          <Ionicons
+            name={goalMet ? "checkmark-circle" : "flag-outline"}
+            size={13}
+            color={goalMet ? theme.success : theme.accent}
+          />
+          <Text style={[styles.goalChipText, goalMet && { color: theme.success }]}>
+            {Math.min(trained, 7)}/{WEEKLY_GOAL} días
+          </Text>
+        </View>
+      </View>
+
+      <WeekDots days={days} />
+
+      <View style={styles.weekFooter}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.weekFooterLabel}>Volumen</Text>
+          <Text style={styles.weekFooterValue}>
+            {volume.toLocaleString("es-ES")}
+            <Text style={styles.weekFooterUnit}> kg</Text>
+          </Text>
+        </View>
+        {trend && (
+          <View
+            style={[
+              styles.trendPill,
+              { backgroundColor: (trend.direction === "up" ? theme.success : theme.error) + "1F" },
+            ]}
+          >
+            <Ionicons
+              name={trend.direction === "up" ? "trending-up" : "trending-down"}
+              size={14}
+              color={trend.direction === "up" ? theme.success : theme.error}
+            />
+            <Text style={[styles.trendText, { color: trend.direction === "up" ? theme.success : theme.error }]}>
+              {trend.pct}% vs semana pasada
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function MiniStat({
   icon,
   value,
   label,
   theme,
   styles,
-  trend,
 }: {
   icon: React.ComponentProps<typeof Ionicons>["name"];
   value: string;
   label: string;
   theme: AppTheme;
   styles: any;
-  trend?: { direction: "up" | "down"; pct: number } | null;
 }) {
   return (
-    <View style={styles.statTile}>
-      <View style={styles.statIconBox}>
-        <Ionicons name={icon} size={16} color={theme.accent} />
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-        <Text style={styles.statValue}>{value}</Text>
-        {trend && (
-          <View style={styles.trendBadge}>
-            <Ionicons
-              name={trend.direction === "up" ? "arrow-up" : "arrow-down"}
-              size={10}
-              color={trend.direction === "up" ? theme.success : theme.error}
-            />
-            <Text
-              style={[
-                styles.trendText,
-                { color: trend.direction === "up" ? theme.success : theme.error },
-              ]}
-            >
-              {trend.pct}%
-            </Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={styles.miniStat}>
+      <Ionicons name={icon} size={18} color={theme.accent} />
+      <Text style={styles.miniValue} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      <Text style={styles.miniLabel} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -827,11 +892,6 @@ const createStyles = (theme: AppTheme) =>
     },
 
     // ── Stat grid ──
-    statGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 12,
-    },
     chartCard: {
       backgroundColor: theme.bgCard,
       borderRadius: 18,
@@ -855,32 +915,64 @@ const createStyles = (theme: AppTheme) =>
       minWidth: 160,
       textAlign: "center",
     },
-    statTile: {
-      width: "47%",
+    // ── This week card ──
+    weekCard: {
+      borderRadius: 22,
+      padding: 18,
+      gap: 16,
+      overflow: "hidden",
       backgroundColor: theme.bgCard,
-      borderRadius: 18,
-      padding: 14,
-      gap: 6,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    weekHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    weekEyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.4, color: theme.accentLight },
+    goalChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+    },
+    goalChipText: { fontSize: 12, fontWeight: "800", color: theme.accent },
+    weekFooter: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: theme.borderSubtle,
+    },
+    weekFooterLabel: { fontSize: 12, color: theme.textMuted, fontWeight: "600" },
+    weekFooterValue: { fontSize: 22, fontWeight: "900", color: theme.textPrimary, letterSpacing: -0.5 },
+    weekFooterUnit: { fontSize: 13, fontWeight: "700", color: theme.textSecondary },
+    trendPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+    },
+    trendText: { fontSize: 11, fontWeight: "800" },
+
+    // ── Mini stats ──
+    miniRow: { flexDirection: "row", gap: 10 },
+    miniStat: {
+      flex: 1,
+      backgroundColor: theme.bgCard,
+      borderRadius: 16,
+      padding: 12,
+      gap: 4,
       borderWidth: 1,
       borderColor: theme.borderSubtle,
     },
-    statIconBox: {
-      width: 30,
-      height: 30,
-      borderRadius: 10,
-      backgroundColor: theme.accentDim,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    statValue: { fontSize: 18, fontWeight: "900", color: theme.textPrimary },
-    statLabel: {
-      fontSize: 9,
-      fontWeight: "800",
-      color: theme.textMuted,
-      letterSpacing: 0.5,
-    },
-    trendBadge: { flexDirection: "row", alignItems: "center", gap: 1 },
-    trendText: { fontSize: 11, fontWeight: "800" },
+    miniValue: { fontSize: 16, fontWeight: "900", color: theme.textPrimary, marginTop: 4 },
+    miniLabel: { fontSize: 11, color: theme.textMuted, fontWeight: "600" },
 
     // ── PR by exercise ──
     searchBar: {

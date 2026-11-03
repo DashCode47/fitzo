@@ -1,6 +1,7 @@
 import {
   computeAggregates,
   computeDailyCounts,
+  daysAgoLabel,
   startOfWeek,
   volumeTrend,
   weekRangeLabel,
@@ -171,5 +172,15 @@ describe("volumeTrend", () => {
 
   it("returns direction 'down' with the correct percentage on a decrease", () => {
     expect(volumeTrend(50, 100)).toEqual({ direction: "down", pct: 50 });
+  });
+});
+
+describe("daysAgoLabel", () => {
+  const now = new Date(2026, 10, 3, 9, 0); // Tue Nov 3 2026, 09:00
+  it("labels by calendar day, not 24h windows", () => {
+    expect(daysAgoLabel(null, now)).toBe("—");
+    expect(daysAgoLabel(new Date(2026, 10, 3, 7, 0).toISOString(), now)).toBe("Hoy");
+    expect(daysAgoLabel(new Date(2026, 10, 2, 23, 0).toISOString(), now)).toBe("Ayer");
+    expect(daysAgoLabel(new Date(2026, 9, 30, 12, 0).toISOString(), now)).toBe("Hace 4 días");
   });
 });
