@@ -7,6 +7,7 @@ import { Bone } from "@/components/ui/Bone";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/store/useAppStore";
 import { withTimeout } from "@/utils/async";
+import { CaloriesCard } from "@/components/nutrition/CaloriesCard";
 import { calculateCalories } from "@/utils/nutritionCalc";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -40,14 +41,6 @@ const ACTIVITY_LABELS: Record<Activity, string> = {
   sedentary: "Sedentario",
   moderate: "Moderado",
   active: "Activo",
-};
-const MACRO_ICONS: Record<
-  string,
-  React.ComponentProps<typeof Ionicons>["name"]
-> = {
-  Prot: "barbell-outline",
-  Carb: "leaf-outline",
-  Fat: "water-outline",
 };
 
 // Rough weekly-workout ranges each declared activity level implies. Used only
@@ -270,61 +263,6 @@ const createStyles = (theme: AppTheme) =>
       fontWeight: "700",
       letterSpacing: 0.3,
     },
-    caloriesCard: {
-      borderRadius: 20,
-      overflow: "hidden",
-      marginBottom: 12,
-      shadowColor: theme.accent,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.35,
-      shadowRadius: 14,
-      elevation: 10,
-    },
-    caloriesGradient: {
-      padding: 22,
-    },
-    caloriesTop: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: 12,
-    },
-    caloriesLabel: {
-      fontSize: 11,
-      fontWeight: "700",
-      color: "rgba(255,255,255,0.65)",
-      letterSpacing: 0.8,
-      textTransform: "uppercase",
-      marginBottom: 4,
-    },
-    caloriesValue: {
-      fontSize: 48,
-      fontWeight: "900",
-      color: "#fff",
-      letterSpacing: -2,
-      lineHeight: 52,
-    },
-    caloriesUnit: {
-      fontSize: 13,
-      color: "rgba(255,255,255,0.7)",
-      fontWeight: "600",
-      marginTop: 2,
-    },
-    goalBadge: {
-      backgroundColor: "rgba(255,255,255,0.2)",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-    },
-    goalBadgeText: {
-      color: "#fff",
-      fontSize: 12,
-      fontWeight: "700",
-    },
-    caloriesDesc: {
-      color: "rgba(255,255,255,0.6)",
-      fontSize: 12,
-    },
     warningCard: {
       flexDirection: "row",
       alignItems: "flex-start",
@@ -477,32 +415,6 @@ const createStyles = (theme: AppTheme) =>
       fontWeight: "700",
       color: theme.accent,
       letterSpacing: 0.5,
-      textTransform: "uppercase",
-      marginBottom: 14,
-    },
-    macrosRow: {
-      flexDirection: "row",
-      gap: 8,
-    },
-    macroBadge: {
-      flex: 1,
-      backgroundColor: theme.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.borderMuted,
-      padding: 10,
-      alignItems: "center",
-      gap: 4,
-    },
-    macroValue: {
-      color: theme.textPrimary,
-      fontSize: 14,
-      fontWeight: "800",
-    },
-    macroLabel: {
-      color: theme.textMuted,
-      fontSize: 10,
-      fontWeight: "700",
       textTransform: "uppercase",
     },
     mealCard: {
@@ -782,6 +694,7 @@ export default function NutritionScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [weightHistory, setWeightHistory] = useState<WeightLog[]>([]);
+  const [weightHistoryError, setWeightHistoryError] = useState(false);
   const [activitySuggestion, setActivitySuggestion] = useState<Activity | null>(null);
   const [logWeightModalVisible, setLogWeightModalVisible] = useState(false);
   const [logWeightValue, setLogWeightValue] = useState("");
@@ -828,13 +741,15 @@ export default function NutritionScreen() {
       const [newStats, newDiet, newWeightHistory, recentWorkouts] = await Promise.all([
         NutritionAPI.getUserStats(userId).catch(() => stats),
         NutritionAPI.getActiveDiet(userId).catch(() => diet),
-        NutritionAPI.getWeightHistory(userId).catch(() => []),
+        // null = failed; shown as an error instead of a fake "no data yet" state.
+        NutritionAPI.getWeightHistory(userId).catch(() => null),
         WorkoutsAPI.getWorkoutLogs(userId, 30, 0).catch((e) => {
           console.error("[Nutrition] Failed to load recent workouts:", e);
           return [];
         }),
       ]);
-      setWeightHistory(newWeightHistory);
+      setWeightHistoryError(newWeightHistory === null);
+      if (newWeightHistory) setWeightHistory(newWeightHistory);
       if (newStats) {
         setActivitySuggestion(suggestActivityLevel(recentWorkouts, newStats.activity_level));
       }
@@ -1135,6 +1050,8 @@ export default function NutritionScreen() {
             stats={stats}
             diet={diet}
             weightHistory={weightHistory}
+            weightHistoryError={weightHistoryError}
+            onRetryWeightHistory={loadData}
             activitySuggestion={activitySuggestion}
             onApplyActivitySuggestion={() =>
               activitySuggestion && handleSaveStats(activitySuggestion)
@@ -1310,6 +1227,8 @@ function Dashboard({
   stats,
   diet,
   weightHistory,
+  weightHistoryError,
+  onRetryWeightHistory,
   activitySuggestion,
   onApplyActivitySuggestion,
   onDismissActivitySuggestion,
@@ -1347,32 +1266,7 @@ function Dashboard({
         </TouchableOpacity>
       </View>
 
-      {/* Calories card */}
-      <View style={styles.caloriesCard}>
-        <LinearGradient
-          colors={theme.gradients.accent}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.caloriesGradient}
-        >
-          <View style={styles.caloriesTop}>
-            <View>
-              <Text style={styles.caloriesLabel}>Calorías diarias</Text>
-              <Text style={styles.caloriesValue}>{calc.calories}</Text>
-              <Text style={styles.caloriesUnit}>kcal / día</Text>
-            </View>
-            <View style={styles.goalBadge}>
-              <Text style={styles.goalBadgeText}>
-                {GOAL_LABELS[stats.goal as Goal] || stats.goal}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.caloriesDesc}>
-            {stats.weight} kg · {stats.height} cm · {stats.age} años ·{" "}
-            {stats.gender === "M" ? "Hombre" : "Mujer"}
-          </Text>
-        </LinearGradient>
-      </View>
+      <CaloriesCard calc={calc} stats={stats} />
 
       {/* Override warning */}
       {calc.isOverridden && !warningDismissed && (
@@ -1424,7 +1318,14 @@ function Dashboard({
           <Text style={styles.logWeightBtnText}>Actualizar</Text>
         </TouchableOpacity>
       </View>
-      {weightHistory.length > 1 ? (
+      {weightHistoryError ? (
+        <TouchableOpacity style={styles.weightEmptyCard} onPress={onRetryWeightHistory}>
+          <Ionicons name="cloud-offline-outline" size={20} color={theme.error} />
+          <Text style={[styles.emptyText, { marginTop: 6 }]}>
+            No pudimos cargar tu historial de peso. Toca para reintentar.
+          </Text>
+        </TouchableOpacity>
+      ) : weightHistory.length > 1 ? (
         <>
           <WeightChart history={weightHistory} theme={theme} styles={styles} />
           <WeightLogList history={weightHistory} theme={theme} styles={styles} />
@@ -1441,6 +1342,9 @@ function Dashboard({
             </Text>
             <Text style={styles.weightLogWeight}>{weightHistory[0].weight} kg</Text>
           </View>
+          <Text style={[styles.emptyText, { marginTop: 8 }]}>
+            Registra tu peso otra vez para ver la gráfica de tu evolución.
+          </Text>
         </View>
       ) : (
         <View style={styles.weightEmptyCard}>
@@ -1455,26 +1359,8 @@ function Dashboard({
 
       {diet ? (
         <>
-          {/* Macros */}
           <View style={styles.card}>
             <Text style={styles.dietName}>{diet.name}</Text>
-            <View style={styles.macrosRow}>
-              {[
-                { key: "Prot", value: `${calc.macros.protein}g` },
-                { key: "Carb", value: `${calc.macros.carbs}g` },
-                { key: "Fat", value: `${calc.macros.fat}g` },
-              ].map((m) => (
-                <View key={m.key} style={styles.macroBadge}>
-                  <Ionicons
-                    name={MACRO_ICONS[m.key]}
-                    size={16}
-                    color={theme.accent}
-                  />
-                  <Text style={styles.macroValue}>{m.value || "–"}</Text>
-                  <Text style={styles.macroLabel}>{m.key}</Text>
-                </View>
-              ))}
-            </View>
           </View>
 
           {/* Meals */}

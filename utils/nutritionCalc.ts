@@ -21,6 +21,7 @@ export const calculateCalories = (
   calories: number;
   finalGoal: 'cut' | 'bulk' | 'maintain';
   isOverridden: boolean;
+  tdee: number; // maintenance kcal, before the goal adjustment
   macros: { protein: number; fat: number; carbs: number }; // grams
 } => {
   
@@ -72,5 +73,5 @@ export const calculateCalories = (
   const fat = Math.round((calories * 0.25) / 9);
   const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4)); // clamp: very low-kcal cuts can go negative
 
-  return { calories, finalGoal, isOverridden, macros: { protein, fat, carbs } };
+  return { calories, finalGoal, isOverridden, tdee: Math.round(tdee), macros: { protein, fat, carbs } };
 };
