@@ -1,5 +1,5 @@
-import { Routine, RoutinesAPI } from "@/api/routines";
-import { TodayWorkoutCard } from "@/components/home/TodayWorkoutCard";
+import { ROUTINE_GOALS, Routine, RoutinesAPI } from "@/api/routines";
+import { GOAL_ICONS, TodayWorkoutCard, routineMeta } from "@/components/home/TodayWorkoutCard";
 import { CustomModal } from "@/components/ui/CustomModal";
 import { AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -157,23 +157,28 @@ export default function RoutinesScreen() {
         onPress={() => router.push(`/routine-detail?id=${routine.id}`)}
         activeOpacity={0.8}
       >
+        {/* Goal tile: gives each routine a recognizable icon */}
+        <View style={styles.goalTile}>
+          <Ionicons
+            name={GOAL_ICONS[routine.goal] ?? "barbell"}
+            size={22}
+            color={theme.accent}
+          />
+        </View>
         <View style={styles.routineInfo}>
+          {!!ROUTINE_GOALS[routine.goal] && (
+            <Text style={styles.routineGoal}>{ROUTINE_GOALS[routine.goal].toUpperCase()}</Text>
+          )}
           <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
           <View style={styles.routineMeta}>
-            {!!routine.estimated_duration && (
-              <View style={styles.metaBadge}>
-                <Ionicons name="time-outline" size={12} color={theme.textMuted} />
-                <Text style={styles.metaText}>{routine.estimated_duration} min</Text>
-              </View>
-            )}
-            {!!routine.difficulty && (
-              <View style={styles.metaBadge}>
-                <Ionicons name="speedometer-outline" size={12} color={theme.textMuted} />
-                <Text style={styles.metaText}>
-                  {RoutinesAPI.translateDifficulty(routine.difficulty)}
-                </Text>
-              </View>
-            )}
+            {routineMeta(routine, theme)
+              .filter((m) => m.key !== "goal") // already shown by the tile + eyebrow
+              .map((m) => (
+                <View key={m.key} style={styles.metaBadge}>
+                  {m.icon}
+                  <Text style={styles.metaText}>{m.text}</Text>
+                </View>
+              ))}
           </View>
         </View>
         {isOwner ? (
@@ -526,8 +531,25 @@ const createStyles = (theme: AppTheme) =>
       justifyContent: "center",
       alignItems: "center",
     },
+    goalTile: {
+      width: 46,
+      height: 46,
+      borderRadius: 14,
+      backgroundColor: theme.accentDim,
+      borderWidth: 1,
+      borderColor: theme.accentBorder,
+      justifyContent: "center",
+      alignItems: "center",
+    },
     routineInfo: {
       flex: 1,
+    },
+    routineGoal: {
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 1.2,
+      color: theme.accentLight,
+      marginBottom: 2,
     },
     routineName: {
       fontSize: 16,
@@ -537,7 +559,8 @@ const createStyles = (theme: AppTheme) =>
     },
     routineMeta: {
       flexDirection: "row",
-      gap: 8,
+      flexWrap: "wrap",
+      gap: 6,
     },
     metaBadge: {
       flexDirection: "row",
@@ -546,7 +569,7 @@ const createStyles = (theme: AppTheme) =>
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 8,
-      gap: 4,
+      gap: 5,
     },
     metaText: {
       fontSize: 11,
